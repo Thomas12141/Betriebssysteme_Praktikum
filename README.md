@@ -15,7 +15,7 @@
   - [Adding Executables](#osmp_executables-hinzufügen)
   - [Run tests](#run-tests)
   - [CI/CD Testing](#CI/CD-Testing)
-
+- [Overview](#overview)
 <!-- GETTING STARTED -->
 
 ## Getting Started <a name="getting-started"></a>
@@ -96,5 +96,24 @@ Das einfache durchlaufen beliebiger osmp_executable reicht aber of nicht um die 
 ### CI/CD Testing
 
 Wenn dieses Repository in Gitlab gepusht wird wird automatische eine pipeline gestartet die alle Test ausführt und auf ihren erfolg prüft.
+
+
+## Overview <a name="overview"></a>
+Das Projekt kommt mit ein paar beispiel OSMP-Executables, der auszuimplementierend Header Datei der OSMP-Library, als auch dem grundlegendem OSMP-Runner
+- src/
+    - osmp_executables/
+        - osmp_Bcast.c
+        - osmp_SendIrecv.c
+        - osmp_SendRecv.c
+    - osmp_library/
+        - OSMP.h
+        - osmplib.c
+        - osmplib.h
+    - osmp_runner/
+        - osmp_run.c
+        - osmp_run.h
+desweiteren gibt es eine Besipielhafte CMakeList.txt und gitlab-ci.yml
+- CMakeLists.txt
+- .gitlab-ci.yml
 
 <p align="right">(<a href="#readme-top">nach oben</a>)</p>
