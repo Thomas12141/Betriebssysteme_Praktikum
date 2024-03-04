@@ -1,6 +1,11 @@
 # CLion
 .idea/
 
+# vscode
+.vscode/
+
+# macOS
+.DS_Store
 # CMake build directory
 build/
 /cmake-build-release/
