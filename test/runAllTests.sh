@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function log {
+log() {
     echo "=== $1 ==="
 }
 
@@ -19,15 +19,15 @@ log "Changed to the project direcotry"
 declare -a passed
 declare -a failed
 
-# Iterate over all executables in the build directory
-for executable in build/osmpExecutable_*; do
-    ./test/runOneTest.sh "$executable"
+TESTS=$(cat test/tests.json | jq -r ".[].TestName")
 
-    # Check the exit status of the command
+for test in $TESTS; do
+    log "Running test $test"
+    ./test/runOneTest.sh "$test"
     if [ $? -eq 0 ]; then
-        passed+=("$executable")
+        passed+=("$test")
     else
-        failed+=("$executable")
+        failed+=("$test")
     fi
 done
 
