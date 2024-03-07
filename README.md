@@ -8,14 +8,15 @@
 
 # Inhalt
 
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Setup](#setup)
-  - [Building](#Building)
-  - [Adding Executables](#osmp_executables-hinzufügen)
-  - [Run tests](#run-tests)
-  - [CI/CD Testing](#CI/CD-Testing)
-- [Overview](#overview)
+- [Inhalt](#inhalt)
+  - [Getting Started ](#getting-started-)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
+    - [Building](#building)
+    - [osmp\_executables hinzufügen](#osmp_executables-hinzufügen)
+    - [Testing](#testing)
+    - [CI/CD Testing](#cicd-testing)
+  - [Overview ](#overview-)
 <!-- GETTING STARTED -->
 
 ## Getting Started <a name="getting-started"></a>
@@ -26,6 +27,13 @@ Um das Praktikums-Projekt benutzen zu können, musst du cmake und gcc installier
 
 ```sh
 sudo apt-get install cmake gcc
+```
+
+```sh
+sudo apt install doxygen
+sudo apt install make
+sudo apt install pdflatex
+sudo apt install graphviz
 ```
 
 ### Setup
