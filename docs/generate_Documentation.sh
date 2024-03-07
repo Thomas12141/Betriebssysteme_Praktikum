@@ -39,7 +39,7 @@ cd ./docs/latex || exit 1
 make
 
 # Move the pdf documentation to the docs directory
-mv ./refman.pdf ../osmp_documentation.pdf
+mv ./refman.pdf ../OSMP_Documentation.pdf
 
 # Delete unnecessary files
 cd ..

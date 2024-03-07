@@ -24,16 +24,10 @@ Das Praktikum-Projekt hat den anspruch daran auf Ubuntu zu laufen, insbesondere 
 
 ### Prerequisites
 Um das Praktikums-Projekt benutzen zu können, musst du cmake und gcc installieren.
+Für die Dokumentation benötigst Du doxygen, make, pdflatex und graphviz.
 
 ```sh
-sudo apt-get install cmake gcc
-```
-
-```sh
-sudo apt install doxygen
-sudo apt install make
-sudo apt install pdflatex
-sudo apt install graphviz
+sudo apt-get install cmake gcc doxygen make texlive-latex-base grpahviz
 ```
 
 ### Setup

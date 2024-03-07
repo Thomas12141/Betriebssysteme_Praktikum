@@ -1,11 +1,15 @@
-/**
- * Diese Datei beinhaltet lediglich alle in der Anleitung angegeben Prototypen der OSMP Kernfunktionen wie z.B. OSMP_Test(), sowie vorgegebene Konstanten.
- */
-
+/******************************************************************************
+* FILE: osmp_Bcast.c
+* DESCRIPTION:
+* Beinhaltet alle in der Anleitung angegeben Prototypen der OSMP Kernfunktionen wie z.B. OSMP_Test() und vorgegebene Konstanten.
+*
+* LAST MODIFICATION: March 07, 2024
+******************************************************************************/
 #ifndef BETRIEBSSYSTEME_OSMP_H
 #define BETRIEBSSYSTEME_OSMP_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 /**
  * Alle OSMP-Funktionen liefern im Erfolgsfall OSMP_SUCCESS als Rückgabewert. 
@@ -52,22 +56,44 @@ typedef enum enum_OSMP_Datatype {
     OSMP_BYTE           // char
 } OSMP_Datatype;
 
-/* getters to get OSMP-Constants */
+/**
+ * Gibt die maximale Länge der Nutzlast einer Nachricht zurück.
+ */
 int get_OSMP_MAX_PAYLOAD_LENGTH() {
   return OSMP_MAX_PAYLOAD_LENGTH;
 }
+
+/**
+ * Gibt die Maximale Anzahl der Nachrichten, die insgesamt vorhanden sein dürfen zurück. 
+ */
 int get_OSMP_MAX_SLOTS() {
     return OSMP_MAX_SLOTS;
 }
+
+/**
+ * Gibt die maximale Zahl der Nachrichten pro Prozess zurück.
+ */
 int get_OSMP_MAX_MESSAGES_PROC() {
     return OSMP_MAX_MESSAGES_PROC;
 }
+
+/**
+ * Gibt den Wert von OSMP_CRITICAL_FAILURE zurück.
+ */
 int get_OSMP_CRITICAL_FAILURE() {
     return OSMP_CRITICAL_FAILURE;
 }
+
+/**
+ * Gibt den Wert von OSMP_FAILURE zurück.
+ */
 int get_OSMP_FAILURE() {
     return OSMP_FAILURE;
 }
+
+/**
+ * Gibt den Wert von OSMP_SUCCESS zurück.
+ */
 int get_OSMP_SUCCESS() {
     return OSMP_SUCCESS;
 }
@@ -162,12 +188,9 @@ int OSMP_Finalize(void);
 int OSMP_Barrier(void);
 
 /**
- * @brief Sammelt Daten von allen processes in dem Empfänger-Prozess.
- *
- * This function gathers data from all processes in the communicator and
- * delivers it to the root process. Each process can provide a different
- * send buffer and send count, but the receive buffer and receive count
- * must be the same on all processes.
+ * Sammelt Daten von allen aufrufenden Prozessen und liefert sie and den Empfängerprozess.
+ * Jeder Prozess kann einen anderen Sendebuffer und eine andere Sendeanzahl bereitstellen,
+ * der Empfängerbuffer und die Empfängeranzahl müssen jedoch auf allen Prozessen gleich sein.
  *
  * @param [in]  sendbuf   Pointer to the send buffer.
  * @param [in]  sendcount Number of elements in the send buffer.
