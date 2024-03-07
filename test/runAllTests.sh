@@ -1,26 +1,33 @@
 #!/bin/bash
 
+function log {
+    echo "=== $1 ==="
+}
+
+
+PROJECT_DIR=$(realpath "$(dirname "$0")/..")
+
+# Save the current directory
+CALL_DIR=$(pwd)
+
+
+# Change to the project directory
+cd "$PROJECT_DIR" || exit 1
+log "Changed to the project direcotry"
+
 # Initialize passed and failed arrays
 declare -a passed
 declare -a failed
 
 # Iterate over all executables in the build directory
 for executable in build/osmpExecutable_*; do
-    # Extract the base name of the executable
-    base_name=$(basename "$executable")
-
-    # Read parameters for this executable from a configuration file
-    # The configuration file should have one line per executable, in the format "executable:parameters"
-    parameters=$(grep "^${base_name}:" parameters.conf | cut -d: -f2)
-
-    # Run the command with the current executable and its parameters
-    ./osmp_run $parameters "./${executable}"
+    ./test/runOneTest.sh "$executable"
 
     # Check the exit status of the command
     if [ $? -eq 0 ]; then
-        passed+=("$base_name")
+        passed+=("$executable")
     else
-        failed+=("$base_name")
+        failed+=("$executable")
     fi
 done
 

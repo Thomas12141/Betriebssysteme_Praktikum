@@ -1,0 +1,15 @@
+{
+    "tests": [
+      {
+        "executable_name": "exec1",
+        "osmp_run_parameter": [
+            5
+        ],
+        "executable_parameter": [
+                "param1",
+                "param2",
+                "param3"
+        ] 
+      }
+    ]
+  }
