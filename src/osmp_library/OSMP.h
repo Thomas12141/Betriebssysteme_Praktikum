@@ -1,5 +1,5 @@
 /******************************************************************************
-* FILE: osmp_Bcast.c
+* FILE: OSMP.h
 * DESCRIPTION:
 * Beinhaltet alle in der Anleitung angegeben Prototypen der OSMP Kernfunktionen wie z.B. OSMP_Test() und vorgegebene Konstanten.
 *
@@ -59,9 +59,7 @@ typedef enum enum_OSMP_Datatype {
 /**
  * Gibt die maximale Länge der Nutzlast einer Nachricht zurück.
  */
-int get_OSMP_MAX_PAYLOAD_LENGTH() {
-  return OSMP_MAX_PAYLOAD_LENGTH;
-}
+int get_OSMP_MAX_PAYLOAD_LENGTH();
 
 /**
  * Gibt die Maximale Anzahl der Nachrichten, die insgesamt vorhanden sein dürfen zurück. 

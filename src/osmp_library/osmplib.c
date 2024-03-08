@@ -4,6 +4,10 @@
 
 #include "osmplib.h"
 
+int get_OSMP_MAX_PAYLOAD_LENGTH() {
+  return OSMP_MAX_PAYLOAD_LENGTH;
+}
+
 int OSMP_Init(const int *argc, char ***argv){
     return OSMP_CRITICAL_FAILURE;
 }
