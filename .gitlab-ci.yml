@@ -16,8 +16,8 @@ build:
 test:
   stage: test
   script:
-    - chmod +x test/runAllTests.sh
-    - test/runAllTests.sh
+    - chmod +x ./test/runAllTests.sh
+    - ./test/runAllTests.sh
 
 documentation:
   stage: documentation

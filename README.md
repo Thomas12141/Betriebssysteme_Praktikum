@@ -86,6 +86,12 @@ target_link_libraries(osmpExecutable_echoall ${LIBRARIES}) # <- Genutzte Bibliot
 
 Sie können TestCases in der test/tests.json definieren.
 
+Über die folgende Skripte können diese Tests ausgeführt werden.
+
+- **runAllTests.sh** führt alle Tests, die in der tests.json definiert sind aus.
+- **runAllTestsForOneExecutable.sh** erwartet einen Executable-Namen und führt alle Tests aus, die diese Executable nutzen.
+- **runOneTest.sh** erwartet einen Testnamen und führt diesen Test aus.
+
 #### Aufbau test.json
 
 Die *test.json* beinhaltet eine Reihe von Ausführungen der verschiedenen osmp_executables und lässt sich beliebig erweitern.
@@ -106,9 +112,8 @@ Die *test.json* beinhaltet eine Reihe von Ausführungen der verschiedenen osmp_e
 }
 ```
 
-Die Parameter der Ausführung werden in den entsprechenden Variablen Angegeben, "TestName" is frei wählbar und dient nur der Zuordnung
-
-**NOTE:** Die Variable **TestName** muss eindeutig sein, sonst werden dies
+Die Parameter der Ausführung werden in den entsprechenden Variablen Angegeben, "TestName" is frei wählbar und dient nur der Zuordnung.
+Der Test Name sollte **nicht** mehrfach vorkommen. Sonst führt das runOneTest.sh Skript diesen nicht aus.
 
 >**NOTE:** Ein Test wird als "Passed" angesehen, falls der OSMP-Starter mit dem exitCode 0 beendet wird (Um z. B. Synchronisation reichen diese tests nicht aus).
 
