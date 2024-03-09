@@ -64,37 +64,27 @@ int get_OSMP_MAX_PAYLOAD_LENGTH();
 /**
  * Gibt die Maximale Anzahl der Nachrichten, die insgesamt vorhanden sein dürfen zurück. 
  */
-int get_OSMP_MAX_SLOTS() {
-    return OSMP_MAX_SLOTS;
-}
+int get_OSMP_MAX_SLOTS();
 
 /**
  * Gibt die maximale Zahl der Nachrichten pro Prozess zurück.
  */
-int get_OSMP_MAX_MESSAGES_PROC() {
-    return OSMP_MAX_MESSAGES_PROC;
-}
+int get_OSMP_MAX_MESSAGES_PROC();
 
 /**
  * Gibt den Wert von OSMP_CRITICAL_FAILURE zurück.
  */
-int get_OSMP_CRITICAL_FAILURE() {
-    return OSMP_CRITICAL_FAILURE;
-}
+int get_OSMP_CRITICAL_FAILURE();
 
 /**
  * Gibt den Wert von OSMP_FAILURE zurück.
  */
-int get_OSMP_FAILURE() {
-    return OSMP_FAILURE;
-}
+int get_OSMP_FAILURE();
 
 /**
  * Gibt den Wert von OSMP_SUCCESS zurück.
  */
-int get_OSMP_SUCCESS() {
-    return OSMP_SUCCESS;
-}
+int get_OSMP_SUCCESS();
 
 /**
  * Die Funktion OSMP_sizeof() liefert die Größe des Datentyps datatype in Byte zurück.

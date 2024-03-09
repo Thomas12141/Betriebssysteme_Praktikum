@@ -4,6 +4,10 @@ log() {
     echo "=== $1 ==="
 }
 
+if [ "$#" -ne 0 ]; then
+    echo "Usage: $0"
+    exit 1
+fi
 
 PROJECT_DIR=$(realpath "$(dirname "$0")/..")
 

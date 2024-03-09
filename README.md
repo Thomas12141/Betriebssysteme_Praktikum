@@ -9,19 +9,15 @@
 # Inhalt
 
 - [Inhalt](#inhalt)
-  
-   - [Getting Started ](#getting-started-)
-     
-      - [Prerequisites](#prerequisites)
-      - [Setup](#setup)
-      - [Building](#building)
-      - [osmp\_executables hinzufügen](#osmp_executables-hinzufügen)
-      - [Testing](#testing)
-      - [CI/CD Testing](#cicd-testing)
-  
-   - [Overview ](#overview-)
-     
-     <!-- GETTING STARTED -->
+  - [Getting Started ](#getting-started-)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
+    - [Building](#building)
+    - [osmp\_executables hinzufügen](#osmp_executables-hinzufügen)
+    - [Testing](#testing)
+      - [Aufbau test.json](#aufbau-testjson)
+    - [CI/CD Testing](#cicd-testing)
+  - [Overview ](#overview-)
 
 ## Getting Started <a name="getting-started"></a>
 
@@ -88,24 +84,33 @@ target_link_libraries(osmpExecutable_echoall ${LIBRARIES}) # <- Genutzte Bibliot
 
 ### Testing
 
-Um automatisch einmal alle executables auszuführen und auf eventuelle laufzeitfehler zu prüfen bietet sich folgendes an:
+Sie können TestCases in der test/tests.json definieren.
 
-```sh
-# Test einer osmp_executable "echoall"
-./osmp_run 5 -L /mylog.log -V 3 ./echoall 1234 param2
-# Das Programm sollte terminieren.
-# Falls das Programm mit ASAN Kompiliert wurde sollte sich das Programm ohne Speicherfehler beenden.
+#### Aufbau test.json
+
+Die *test.json* beinhaltet eine Reihe von Ausführungen der verschiedenen osmp_executables und lässt sich beliebig erweitern.
+
+```json
+{
+   "TestName": "ExampleTest",
+   "ProcAnzahl": 5,
+   "PfadZurLogDatei": "/path/to/logfile",
+   "LogVerbositaet": 5,
+   "osmp_executable": "exampleExecutable",
+   "parameter": [
+      "param1",
+      "param2",
+      7,
+      "param4"
+   ]
+}
 ```
 
-==TODO==
-Um alle Tests auszuführen:
+Die Parameter der Ausführung werden in den entsprechenden Variablen Angegeben, "TestName" is frei wählbar und dient nur der Zuordnung
 
-```sh
-  ./test/runAllTests.sh
-```
+**NOTE:** Die Variable **TestName** muss eindeutig sein, sonst werden dies
 
-Das einfache durchlaufen beliebiger osmp_executable reicht aber of nicht um die funktionalität eines programmes zu verifizieren.
-==/TODO==
+>**NOTE:** Ein Test wird als "Passed" angesehen, falls der OSMP-Starter mit dem exitCode 0 beendet wird (Um z. B. Synchronisation reichen diese tests nicht aus).
 
 ### CI/CD Testing
 

@@ -8,6 +8,27 @@ int get_OSMP_MAX_PAYLOAD_LENGTH() {
   return OSMP_MAX_PAYLOAD_LENGTH;
 }
 
+int get_OSMP_MAX_SLOTS() {
+    return OSMP_MAX_SLOTS;
+}
+
+int get_OSMP_MAX_MESSAGES_PROC() {
+    return OSMP_MAX_MESSAGES_PROC;
+}
+
+int get_OSMP_CRITICAL_FAILURE() {
+    return OSMP_CRITICAL_FAILURE;
+}
+
+int get_OSMP_FAILURE() {
+    return OSMP_FAILURE;
+}
+
+int get_OSMP_SUCCESS() {
+    return OSMP_SUCCESS;
+}
+
+
 int OSMP_Init(const int *argc, char ***argv){
     return OSMP_CRITICAL_FAILURE;
 }

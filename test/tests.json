@@ -1,46 +1,15 @@
 [
-      {
-        "TestName": "Test1",
-        "ProcAnzahl": 1,
-        "PfadZurLogDatei": "",
-        "LogVerbositaet": 0,
-        "osmp_executable": "exec1",
-        "parameter": [
-            "param1",
-            "param2"
-        ]
-      },
-      {
-        "TestName": "Test2",
-        "ProcAnzahl": 1,
-        "PfadZurLogDatei": "/path/to/logfile",
-        "LogVerbositaet": 0,
-        "osmp_executable": "exec1",
-        "parameter": [
-            "param1",
-            "param2"
-        ]
-      },
-      {
-        "TestName": "Test3",
-        "ProcAnzahl": 1,
-        "PfadZurLogDatei": "/home/name/log.log",
-        "LogVerbositaet": 0,
-        "osmp_executable": "exec1",
-        "parameter": [
-            "param1",
-            "param2"
-        ]
-      },
-      {
-        "TestName": "Test3",
-        "ProcAnzahl": 1,
-        "PfadZurLogDatei": "/home/name/log.log",
-        "LogVerbositaet": 5,
-        "osmp_executable": "exec1",
-        "parameter": [
-            "param1",
-            "param2"
-        ]
-      }
+  {
+    "TestName": "ExampleTest",
+    "ProcAnzahl": 5,
+    "PfadZurLogDatei": "/path/to/logfile",
+    "LogVerbositaet": 5,
+    "osmp_executable": "exampleExecutable",
+    "parameter": [
+        "param1",
+        "param2",
+        7,
+        "param4"
+    ]
+  }
 ]

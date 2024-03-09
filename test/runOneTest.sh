@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 log() {
     echo "=== $1 ==="
 }
@@ -17,11 +16,16 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <test_name>"
+    exit 1
+fi
+
+
 PROJECT_DIR=$(realpath "$(dirname "$0")/..")
 
 # Save the current directory
 CALL_DIR=$(pwd)
-
 
 # Change to the project directory
 cd "$PROJECT_DIR" || exit 1
@@ -29,8 +33,9 @@ log "Changed to the project direcotry"
 
 TEST_NAME="$1"
 TESTS_FILE="test/tests.json"
+BUILD_DIR="cmake-build-debug"
 
-if [ ! -f "build/osmp_run" ]; then
+if [ ! -f "$BUILD_DIR/osmp_run" ]; then
     log "osmp_run does not exist"
     #goto_call_dir
     #exit 1
@@ -63,15 +68,16 @@ arguments="$ProcAnzahl"
 
 if [ ! -z "$PfadZurLogDatei" ]; then
     arguments="$arguments -L $PfadZurLogDatei"
-    if [ "$LogVerbositaet" -ne 0 ]; then
-        arguments="$arguments -V $LogVerbositaet"
-    fi
+fi
+
+if [ "$LogVerbositaet" -ne 0 ]; then
+    arguments="$arguments -V $LogVerbositaet"
 fi
 
 arguments="$arguments ./$osmp_executable $parameter"
 
-log "Running ./build/osmp_run $arguments"
-#./build/osmp_run $arguments
+log "Running ./$BUILD_DIR/osmp_run $arguments"
+./$BUILD_DIR/osmp_run $arguments
 
 # Check the exit status of the command
 if [ $? -eq 0 ]; then
