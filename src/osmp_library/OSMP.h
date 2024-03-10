@@ -24,10 +24,10 @@
 #define OSMP_FAILURE 1
 
 /**
- * Im Fehlerfall liefern die OSMP-Funktionen OSMP_CRITICAL_FAILURE zurück. 
+ * Im Fehlerfall liefern die OSMP-Funktionen OSMP_NOT_IMPLEMENTED_YET zurück. 
  * Die Fehler sollten zum beenden des Programms führen (z. B. )
  */
-#define OSMP_CRITICAL_FAILURE 2
+#define OSMP_NOT_IMPLEMENTED_YET 2
 
 typedef void* OSMP_Request;
 
@@ -72,9 +72,9 @@ int get_OSMP_MAX_SLOTS();
 int get_OSMP_MAX_MESSAGES_PROC();
 
 /**
- * Gibt den Wert von OSMP_CRITICAL_FAILURE zurück.
+ * Gibt den Wert von OSMP_NOT_IMPLEMENTED_YET zurück.
  */
-int get_OSMP_CRITICAL_FAILURE();
+int get_OSMP_NOT_IMPLEMENTED_YET();
 
 /**
  * Gibt den Wert von OSMP_FAILURE zurück.
@@ -102,7 +102,7 @@ size_t OSMP_sizeof(OSMP_Datatype datatype);
  * @param [in] argc Adresse der Argumentzahl
  * @param [in] argv Adresse des Argumentvektors
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Init(const int *argc, char ***argv);
 
@@ -112,7 +112,7 @@ int OSMP_Init(const int *argc, char ***argv);
  *
  * @param [out] rank Zahl der OSMP-Prozesse
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Size(int *size);
 
@@ -121,7 +121,7 @@ int OSMP_Size(int *size);
  *
  * @param [out] rank Prozessnummer 0,…,np-1 des aktuellen OSMP-Prozesse
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Rank(int *rank);
 
@@ -136,7 +136,7 @@ int OSMP_Rank(int *rank);
  * @param [in] datatype OSMP-Typ der Daten im Puffer
  * @param [in] dest     Nummer des Empfängers zwischen 0,…,np-1
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest);
 
@@ -154,7 +154,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest);
  * @param [out] source   Nummer des Senders zwischen 0,…,np-1
  * @param [out] len      tatsächliche Länge der empfangenen Nachricht in Byte
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len);
 
@@ -163,7 +163,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
  * Sie geben damit den Zugriff auf die gemeinsamen Ressourcen frei.
  * Hierbei muss jeder Prozess zuvor alle noch vorhandenen Nachrichten abarbeiten.
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Finalize(void);
 
@@ -171,7 +171,7 @@ int OSMP_Finalize(void);
  * Diese kollektive Funktion blockiert den aufrufenden Prozess.
  * Erst wenn alle anderen Prozesse ebenfalls an der Barriere angekommen sind, laufen die Prozesse weiter.
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Barrier(void);
 
@@ -188,7 +188,7 @@ int OSMP_Barrier(void);
  * @param [in]  recvtype  MPI datatype of the receive buffer elements.
  * @param [in]  recv      Ist der aufrufende Prozess der Sender
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, bool recv);
 
@@ -202,7 +202,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
  * @param [in] dest PID des Empfängers zwischen 0, …, np-1
  * @param [in, out] request Adresse einer eigenen Datenstruktur, die später verwendet werden kann, um abzufragen, ob die Operation abgeschlossen ist.
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Isend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request);
 
@@ -217,7 +217,7 @@ int OSMP_Isend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
  * @param [out] len
  * @param [in, out] request Adresse einer Datenstruktur, die später verwendet werden kann, um abzufragen, ob die die Operation abgeschlossen ist.
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Irecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request);
 
@@ -228,7 +228,7 @@ int OSMP_Irecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
  * @param [in] request Adresse der Struktur, die eine blockierende Operation spezifiziert
  * @param [out] flag Gibt den Status der Operation an.
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Test(OSMP_Request request, int *flag);
 
@@ -238,7 +238,7 @@ int OSMP_Test(OSMP_Request request, int *flag);
  *
  * @param [in] request Adresse der Struktur, die eine nicht blockierende Operation spezifiziert
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_Wait (OSMP_Request request);
 
@@ -247,7 +247,7 @@ int OSMP_Wait (OSMP_Request request);
  *
  * @param [out] request Adresse eines Requests (input)
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_CreateRequest(OSMP_Request *request);
 
@@ -256,7 +256,7 @@ int OSMP_CreateRequest(OSMP_Request *request);
  *
  * @param [in] request Adresse eines Requests
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_RemoveRequest(OSMP_Request *request);
 
@@ -265,7 +265,7 @@ int OSMP_RemoveRequest(OSMP_Request *request);
  *
  * @param [out] name Der Name des Shared Memory Bereichs
  *
- * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_CRITICAL_FAILURE
+ * @return OSMP_SUCCESS or OSMP_FAILURE or OSMP_NOT_IMPLEMENTED_YET
  */
 int OSMP_GetShmName(char** name);
 

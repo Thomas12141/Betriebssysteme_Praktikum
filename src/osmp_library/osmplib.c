@@ -16,8 +16,8 @@ int get_OSMP_MAX_MESSAGES_PROC() {
     return OSMP_MAX_MESSAGES_PROC;
 }
 
-int get_OSMP_CRITICAL_FAILURE() {
-    return OSMP_CRITICAL_FAILURE;
+int get_OSMP_NOT_IMPLEMENTED_YET() {
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int get_OSMP_FAILURE() {
@@ -30,61 +30,97 @@ int get_OSMP_SUCCESS() {
 
 
 int OSMP_Init(const int *argc, char ***argv){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(argc);
+    UNUSED(argv);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Size(int *size){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(size);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Rank(int *rank){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(rank);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(dest);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(source);
+    UNUSED(len);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Finalize(void){
-    return OSMP_CRITICAL_FAILURE;
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Barrier(void){
-    return OSMP_CRITICAL_FAILURE;
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Bcast(void *buf, int count, OSMP_Datatype datatype, bool send, int *source, int *len){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(send);
+    UNUSED(source);
+    UNUSED(len);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Isend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(dest);
+    UNUSED(request);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Irecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(source);
+    UNUSED(len);
+    UNUSED(request);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Test(OSMP_Request request, int *flag){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(request);
+    UNUSED(flag);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_Wait (OSMP_Request request){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(request);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_CreateRequest(OSMP_Request *request){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(request);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(request);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }
 
 int OSMP_GetShmName(char** name){
-    return OSMP_CRITICAL_FAILURE;
+    UNUSED(name);
+    return OSMP_NOT_IMPLEMENTED_YET;
 }

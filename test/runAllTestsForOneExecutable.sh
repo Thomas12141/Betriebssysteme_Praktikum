@@ -13,9 +13,8 @@ goto_project_dir
 
 check_requirements
 
-
 TEST_NAME="$1"
-TEST_CASES=$(cat "$TEST_FILE" | jq -c "[.[] | select(.osmp_executable == \"$TEST_NAME\")] | .[].TestName")
+TEST_CASES=$(cat "$TESTS_FILE" | jq -c "[.[] | select(.osmp_executable == \"$TEST_NAME\")] | .[].TestName")
 COUNT=$(echo "$TEST_CASES" | jq '. | length')
 
 if [ -z "$COUNT" ] || [ "$COUNT" == 0 ]; then

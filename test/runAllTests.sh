@@ -18,7 +18,7 @@ check_requirements
 declare -a passed
 declare -a failed
 
-TEST_NAMES=$(cat "$TEST_FILE" | jq -r ".[].TestName")
+TEST_NAMES=$(cat "$TESTS_FILE" | jq -r ".[].TestName")
 
 for test in $TEST_NAMES; do
     echo "Running test $test"
