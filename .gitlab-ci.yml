@@ -24,6 +24,10 @@ test:
   stage: test
   script:
     - apt -y install jq
+    - cmake . -B ./cmake-build-debug
+    - cd cmake-build-debug
+    - cmake --build .
+    - cd ..
     - chmod +x ./test/runAllTests.sh
     - chmod +x ./test/runOneTest.sh
     - ./test/runAllTests.sh
