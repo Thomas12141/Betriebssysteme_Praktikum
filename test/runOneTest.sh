@@ -1,12 +1,8 @@
-#!/bin/sh
-
-log() {
-    echo "=== $1 ==="
-}
+#!/bin/bash
 
 goto_call_dir() {
     cd "$CALL_DIR" || exit 1
-    log "Changed back to the call directory"
+    echo "=== Changed back to the call directory ==="
 }
 
 
@@ -16,6 +12,7 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
+# Check usage
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <test_name>"
     exit 1
@@ -29,19 +26,25 @@ CALL_DIR=$(pwd)
 
 # Change to the project directory
 cd "$PROJECT_DIR" || exit 1
-log "Changed to the project direcotry"
+echo "=== Changed to the project direcotry ($PROJECT_DIR) ==="
 
 TEST_NAME="$1"
 TESTS_FILE="test/tests.json"
 BUILD_DIR="cmake-build-debug"
 
+# Check if the necessary files exist
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "$BUILD_DIR does not exist"
+    goto_call_dir
+    exit 1
+fi
 if [ ! -f "$BUILD_DIR/osmp_run" ]; then
-    log "osmp_run does not exist"
-    #goto_call_dir
-    #exit 1
+    echo "osmp_run does not exist"
+    goto_call_dir
+    exit 1
 fi
 if [ ! -f "$TESTS_FILE" ]; then
-    log "$TESTS_FILE does not exist"
+    echo "$TESTS_FILE does not exist"
     goto_call_dir
     exit 1
 fi
@@ -50,8 +53,8 @@ TEST_CASES=$(cat "$TESTS_FILE" | jq -c "[.[] | select(.TestName == \"$TEST_NAME\
 COUNT=$(echo "$TEST_CASES" | jq '. | length')
 
 if [ "$COUNT" != 1 ]; then
-    log "Test case is not unique or does not exist (exists $COUNT times)"
-    log "$TEST_NAME was not tested"
+    echo "Test case is not unique or does not exist (exists $COUNT times)"
+    echo "$TEST_NAME was not tested"
     goto_call_dir
     exit 1
 fi
@@ -76,16 +79,18 @@ fi
 
 arguments="$arguments ./$osmp_executable $parameter"
 
-log "Running ./$BUILD_DIR/osmp_run $arguments"
+echo "Running ./$BUILD_DIR/osmp_run $arguments"
 ./$BUILD_DIR/osmp_run $arguments
+
+RETURN_CODE=$?
 
 # Check the exit status of the command
 if [ $? -eq 0 ]; then
-    log "Test passed"
+    echo "Test passed"
     goto_call_dir
     exit 0
 else
-    log "Test failed"
+    echo "Test failed"
     goto_call_dir
     exit 1
 fi

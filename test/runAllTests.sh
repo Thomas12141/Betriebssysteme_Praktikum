@@ -1,9 +1,5 @@
 #!/bin/bash
 
-log() {
-    echo "=== $1 ==="
-}
-
 if [ "$#" -ne 0 ]; then
     echo "Usage: $0"
     exit 1
@@ -17,7 +13,7 @@ CALL_DIR=$(pwd)
 
 # Change to the project directory
 cd "$PROJECT_DIR" || exit 1
-log "Changed to the project direcotry"
+echo "=== Changed to the project direcotry ($PROJECT_DIR) ==="
 
 # Initialize passed and failed arrays
 declare -a passed
@@ -26,7 +22,7 @@ declare -a failed
 TESTS=$(cat test/tests.json | jq -r ".[].TestName")
 
 for test in $TESTS; do
-    log "Running test $test"
+    echo "Running test $test"
     ./test/runOneTest.sh "$test"
     if [ $? -eq 0 ]; then
         passed+=("$test")
