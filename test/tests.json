@@ -2,8 +2,8 @@
   {
     "TestName": "ExampleTest",
     "ProcAnzahl": 5,
-    "PfadZurLogDatei": "/path/to/logfile",
-    "LogVerbositaet": 5,
+    "PfadZurLogDatei": " ",
+    "LogVerbositaet": 0,
     "osmp_executable": "exampleExecutable",
     "parameter": [
         "param1",

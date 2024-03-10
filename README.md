@@ -96,6 +96,12 @@ Sie können TestCases in der test/tests.json definieren.
 
 Die *test.json* beinhaltet eine Reihe von Ausführungen der verschiedenen osmp_executables und lässt sich beliebig erweitern.
 
+Ist **PfadZurLogDatei** eine Leerer String (""), wird dieser nicht verwendet und auch kein -L als Argument übergeben.
+Es kann jedoch ein Leerzeichen als Pfad angegeben werden (" "). In diesem Fall wird lediglich ein -L als Argument übergeben.
+
+Die **LogVerbositaet** wird nur dann nicht übergeben, wenn diese auf 0 gesetzt wird.
+Auch hier kann bei angeben eines Leerzeichens lediglich das "-V" als Argument getestet werden.
+
 ```json
 {
    "TestName": "ExampleTest",

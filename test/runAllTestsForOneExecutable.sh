@@ -1,29 +1,21 @@
 #!/bin/bash
 
-goto_call_dir() {
-    cd "$CALL_DIR" || exit 1
-    echo "=== Changed back to the call directory ==="
-}
+# Include the common functions
+source "$(dirname "$0")/common.sh"
 
+# Check usage
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <osmp_executable_name>"
     exit 1
 fi
 
-PROJECT_DIR=$(realpath "$(dirname "$0")/..")
+goto_project_dir
 
-# Save the current directory
-CALL_DIR=$(pwd)
+check_requirements
 
-
-# Change to the project directory
-cd "$PROJECT_DIR" || exit 1
-echo "=== Changed to the project direcotry ==="
 
 TEST_NAME="$1"
-
-TEST_CASES=$(cat test/tests.json | jq -c "[.[] | select(.osmp_executable == \"$TEST_NAME\")] | .[].TestName")
-
+TEST_CASES=$(cat "$TEST_FILE" | jq -c "[.[] | select(.osmp_executable == \"$TEST_NAME\")] | .[].TestName")
 COUNT=$(echo "$TEST_CASES" | jq '. | length')
 
 if [ -z "$COUNT" ] || [ "$COUNT" == 0 ]; then
@@ -36,7 +28,7 @@ TEST_CASES=$(echo "$TEST_CASES" | tr -d '"')
 
 for test in $TEST_CASES; do
     echo "Running test $test"
-    ./test/runOneTest.sh "$test"
+    ./$TEST_DIR/runOneTest.sh "$test"
     if [ $? -eq 0 ]; then
         passed+=("$test")
     else

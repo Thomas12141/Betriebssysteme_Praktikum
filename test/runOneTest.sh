@@ -1,16 +1,7 @@
 #!/bin/bash
 
-goto_call_dir() {
-    cd "$CALL_DIR" || exit 1
-    echo "=== Changed back to the call directory ==="
-}
-
-
-# Check if jq is installed
-if ! command -v jq >/dev/null 2>&1; then
-    echo "jq could not be found"
-    exit 1
-fi
+# Include the common functions
+source "$(dirname "$0")/common.sh"
 
 # Check usage
 if [ "$#" -ne 1 ]; then
@@ -18,37 +9,12 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
+goto_project_dir
 
-PROJECT_DIR=$(realpath "$(dirname "$0")/..")
+check_requirements
 
-# Save the current directory
-CALL_DIR=$(pwd)
-
-# Change to the project directory
-cd "$PROJECT_DIR" || exit 1
-echo "=== Changed to the project direcotry ($PROJECT_DIR) ==="
 
 TEST_NAME="$1"
-TESTS_FILE="test/tests.json"
-BUILD_DIR="cmake-build-debug"
-
-# Check if the necessary files exist
-if [ ! -d "$BUILD_DIR" ]; then
-    echo "$BUILD_DIR does not exist"
-    goto_call_dir
-    exit 1
-fi
-if [ ! -f "$BUILD_DIR/osmp_run" ]; then
-    echo "osmp_run does not exist"
-    goto_call_dir
-    exit 1
-fi
-if [ ! -f "$TESTS_FILE" ]; then
-    echo "$TESTS_FILE does not exist"
-    goto_call_dir
-    exit 1
-fi
-
 TEST_CASES=$(cat "$TESTS_FILE" | jq -c "[.[] | select(.TestName == \"$TEST_NAME\")]")
 COUNT=$(echo "$TEST_CASES" | jq '. | length')
 
@@ -73,7 +39,7 @@ if [ ! -z "$PfadZurLogDatei" ]; then
     arguments="$arguments -L $PfadZurLogDatei"
 fi
 
-if [ "$LogVerbositaet" -ne 0 ]; then
+if [ "$LogVerbositaet" -ne 0 ] || [ "$LogVerbositaet" == " " ]; then
     arguments="$arguments -V $LogVerbositaet"
 fi
 
@@ -81,8 +47,6 @@ arguments="$arguments ./$osmp_executable $parameter"
 
 echo "Running ./$BUILD_DIR/osmp_run $arguments"
 ./$BUILD_DIR/osmp_run $arguments
-
-RETURN_CODE=$?
 
 # Check the exit status of the command
 if [ $? -eq 0 ]; then

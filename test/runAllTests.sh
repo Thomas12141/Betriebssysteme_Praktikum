@@ -1,29 +1,28 @@
 #!/bin/bash
 
+# Include the common functions
+source "$(dirname "$0")/common.sh"
+
+# Check usage
 if [ "$#" -ne 0 ]; then
     echo "Usage: $0"
     exit 1
 fi
 
-PROJECT_DIR=$(realpath "$(dirname "$0")/..")
+goto_project_dir
 
-# Save the current directory
-CALL_DIR=$(pwd)
+check_requirements
 
-
-# Change to the project directory
-cd "$PROJECT_DIR" || exit 1
-echo "=== Changed to the project direcotry ($PROJECT_DIR) ==="
 
 # Initialize passed and failed arrays
 declare -a passed
 declare -a failed
 
-TESTS=$(cat test/tests.json | jq -r ".[].TestName")
+TEST_NAMES=$(cat "$TEST_FILE" | jq -r ".[].TestName")
 
-for test in $TESTS; do
+for test in $TEST_NAMES; do
     echo "Running test $test"
-    ./test/runOneTest.sh "$test"
+    ./$TEST_DIR/runOneTest.sh "$test"
     if [ $? -eq 0 ]; then
         passed+=("$test")
     else
@@ -34,3 +33,5 @@ done
 # Print a summary of the results
 echo "Passed tests: ${passed[*]}"
 echo "Failed tests: ${failed[*]}"
+
+goto_call_dir
