@@ -23,6 +23,7 @@ build:
 test:
   stage: test
   script:
+    - apt -y install jq
     - chmod +x ./test/runAllTests.sh
     - chmod +x ./test/runOneTest.sh
     - ./test/runAllTests.sh
