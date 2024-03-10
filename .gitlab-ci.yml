@@ -24,6 +24,7 @@ test:
   stage: test
   script:
     - apt -y install jq
+    - apt -y install make cmake autoconf
     - cmake . -B ./cmake-build-debug
     - cd cmake-build-debug
     - cmake --build .
