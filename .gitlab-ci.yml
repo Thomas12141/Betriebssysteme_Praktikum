@@ -3,7 +3,6 @@ image: gcc
 stages:
   - build
   - test
-  - documentation
 
 before_script:
   - apt update
