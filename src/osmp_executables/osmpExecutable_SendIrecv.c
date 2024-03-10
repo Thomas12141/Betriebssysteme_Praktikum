@@ -1,5 +1,5 @@
 /******************************************************************************
-* FILE: osmp_SendIrecv.c
+* FILE: osmpExecutable_SendIrecv.c
 * DESCRIPTION:
 * OSMP program with a simple pair of OSMP_Send/OSMP_Irecv calls
 *

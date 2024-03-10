@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD 99)
 # add_link_options(-fsanitize=address)
 
 #== Compiler Flags ==#
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -pedantic -Wall -Werror -Wconversion -g")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -pedantic -Wall -Werror -Wextra -Wconversion -g")
 
 #== ADD Source files to Variable for executables ==#
 set(SOURCES_FOR_STARTER
@@ -24,11 +24,11 @@ set(LIBRARY_SRC_FILES
 #== set sources for each executable ==#
 #== If you want to add a new executable, copy one of the following blocks and modify it ==#
 set(SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDIRECV
-    src/osmp_executables/osmp_SendIrecv.c
+    src/osmp_executables/osmpExecutable_SendIrecv.c
     ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
 set(SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV
-    src/osmp_executables/osmp_SendRecv.c
+    src/osmp_executables/osmpExecutable_SendRecv.c
     ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
 

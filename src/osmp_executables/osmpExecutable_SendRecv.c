@@ -1,5 +1,5 @@
 /******************************************************************************
-* FILE: osmp_SendRecv.c
+* FILE: osmpExecutable_SendRecv.c
 * DESCRIPTION:
 * OSMP program with a simple pair of blocking OSMP_Send/OSMP_Recv calls
 *

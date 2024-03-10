@@ -1,32 +1,32 @@
 <a name="readme-top"></a>
 
 <div align="center">
-
-  <div align="center"><h><b>Betriebssysteme</b></h></div>
-
+   <h1>
+      <b>Betriebssysteme</b>
+   </h1>
 </div>
 
-# Inhalt
+## Inhalt
 
 - [Inhalt](#inhalt)
-  - [Getting Started ](#getting-started-)
-    - [Prerequisites](#prerequisites)
-    - [Setup](#setup)
-    - [Building](#building)
-    - [osmp\_executables hinzufügen](#osmp_executables-hinzufügen)
-    - [Testing](#testing)
-      - [Aufbau test.json](#aufbau-testjson)
-    - [CI/CD Testing](#cicd-testing)
-  - [Overview ](#overview-)
+- [Getting Started ](#getting-started-)
+  - [Prerequisites](#prerequisites)
+  - [Setup](#setup)
+  - [Building](#building)
+  - [Hinzufügen von osmp\_executables](#hinzufügen-von-osmp_executables)
+  - [Testing](#testing)
+    - [Aufbau test.json](#aufbau-testjson)
+  - [CI/CD Testing](#cicd-testing)
+- [Overview ](#overview-)
 
 ## Getting Started <a name="getting-started"></a>
 
-Das Praktikum-Projekt hat den anspruch daran auf Ubuntu zu laufen, insbesondere auf den Laborrechnern. Die Anleitung hilft gewissermaßen auch dabei das Projet auf einer eigenen Ubuntu installation zum laufen zu bekommen. Wir empfiehlen allerdings möglichtst auschließlich auf den Laborrechner zu arbeiten, ggf. Zuhause aus per SSH (Eine Anleitung dafür wird zu verfügung gestellt). Wenn du auf den Laborrechner arbeitest, brauchst du nichts installieren und kannst direkt zum Punkt [Setup](#setup) übergehen.
+Das Praktikum-Projekt hat den Anspruch daran auf Ubuntu zu laufen, insbesondere auf den Laborrechnern. Die Anleitung hilft gewissermaßen auch dabei das Projekt auf einer eigenen Ubuntu installation zum laufen zu bekommen. Wir empfehlen ausschließlich auf den Laborrechner zu arbeiten, ggf. von Zuhause über SSH (Eine Anleitung dafür wird zu Verfügung gestellt). Wenn Sie auf einem der Laborrechner arbeiten, müssen Sie nichts installieren und können direkt zum Punkt [Setup](#setup) übergehen.
 
 ### Prerequisites
 
-Um das Praktikums-Projekt benutzen zu können, musst du cmake und gcc installieren.
-Für die Dokumentation benötigst Du doxygen, make, pdflatex und graphviz.
+Um das Praktikums-Projekt benutzen zu können, müssen Sie cmake und gcc installiert haben.
+Für die Dokumentation benötigen Sie doxygen, make, pdflatex und graphviz.
 
 ```sh
 sudo apt-get install cmake gcc doxygen make texlive-latex-base grpahviz
@@ -34,10 +34,10 @@ sudo apt-get install cmake gcc doxygen make texlive-latex-base grpahviz
 
 ### Setup
 
-Die Versionierung des Praktikums geschieht über das Gitlab Der FH-Münster. Um lokal auf einem Rechner an dem Projekt weiterzuentwickeln muss das Projekt lokal auf den Rechner kopiert werden.
+Die Versionierung des Praktikums geschieht über das Gitlab der FH-Münster. Um lokal auf einem Rechner an dem Projekt weiterzuentwickeln muss das Projekt lokal auf den Rechner kopiert werden.
 
 SSH-Key für die Kommunikation mit dem Gitlab aufsetzen: [https://docs.gitlab.com/ee/user/ssh.html]
-Eventuell hilfreich um git/gitlab kennzulernen: [https://git.fh-muenster.de/help/topics/git/get_started.md], [https://about.gitlab.com/images/press/git-cheat-sheet.pdf]
+Eventuell hilfreich um git/gitlab kennenzulernen: [https://git.fh-muenster.de/help/topics/git/get_started.md], [https://about.gitlab.com/images/press/git-cheat-sheet.pdf]
 
 ```sh
 # Clonen des Projektes
@@ -53,6 +53,8 @@ Das Projekt lässt sich wie folgt per CMake bauen
 CMake: [https://cmake.org/getting-started/]
 
 ```sh
+cd /projectdir
+
 cmake . -B ./cmake-build-debug
 
 cd cmake-build-debug
@@ -60,17 +62,19 @@ cd cmake-build-debug
 cmake --build .
 ```
 
-### osmp_executables hinzufügen
+### Hinzufügen von osmp_executables
 
-Um eine weitere Executable "echoall" zum Baussystem hinzuzufügen müssen folgende einträge vorgenommen werden:
+Das Hinzufügen von osmp_executables wird folgend am Beispiel einer osmpExecutable_echoall.c demonstriert.
+
+Um eine weitere Executable "osmpExecutable_echoall" zum Bausystem hinzuzufügen müssen folgende Einträge vorgenommen werden:
 
 ```sh
 # ./CMakeLists.txt
 ...
 
 set(SOURCES_FOR_EXECUTABLE_ECHOALL # <- NAME der Executable innerhalb von CMake
-    src/executables/osmpExecutable_echoall.c src/executables/osmpExecutable_echoall.h # <- Source und Header Datien für de Executable
-    ${MAIN_SOURCES_FOR_EXECUTABLES} # <- Bereits besetzte variable mit anderen dateien, z.B. OSMP.h
+    src/executables/osmpExecutable_echoall.c src/executables/osmpExecutable_echoall.h # <- Source und Header Dateien für die Executable
+    ${MAIN_SOURCES_FOR_EXECUTABLES} # <- Bereits besetzte Variable mit anderen Dateien, z. B. OSMP.h
 ) 
 
 ...
@@ -86,21 +90,27 @@ target_link_libraries(osmpExecutable_echoall ${LIBRARIES}) # <- Genutzte Bibliot
 
 Sie können TestCases in der test/tests.json definieren.
 
-Über die folgende Skripte können diese Tests ausgeführt werden.
+Über die folgenden Skripte können diese Tests ausgeführt werden.
 
 - **runAllTests.sh** führt alle Tests, die in der tests.json definiert sind aus.
+  ```sh
+  # Usage
+  ./runAllTests.sh
+  ```
 - **runAllTestsForOneExecutable.sh** erwartet einen Executable-Namen und führt alle Tests aus, die diese Executable nutzen.
+  ```sh
+  # Usage
+  ./runAllTestsForOneExecutable.sh osmpExecutable_exampleExecutable
+  ```
 - **runOneTest.sh** erwartet einen Testnamen und führt diesen Test aus.
+  ```sh
+  # Usage
+  ./runOneTest.sh ExampleTest
+  ```
 
 #### Aufbau test.json
 
 Die *test.json* beinhaltet eine Reihe von Ausführungen der verschiedenen osmp_executables und lässt sich beliebig erweitern.
-
-Ist **PfadZurLogDatei** eine Leerer String (""), wird dieser nicht verwendet und auch kein -L als Argument übergeben.
-Es kann jedoch ein Leerzeichen als Pfad angegeben werden (" "). In diesem Fall wird lediglich ein -L als Argument übergeben.
-
-Die **LogVerbositaet** wird nur dann nicht übergeben, wenn diese auf 0 gesetzt wird.
-Auch hier kann bei angeben eines Leerzeichens lediglich das "-V" als Argument getestet werden.
 
 ```json
 {
@@ -108,7 +118,7 @@ Auch hier kann bei angeben eines Leerzeichens lediglich das "-V" als Argument ge
    "ProcAnzahl": 5,
    "PfadZurLogDatei": "/path/to/logfile",
    "LogVerbositaet": 5,
-   "osmp_executable": "exampleExecutable",
+   "osmp_executable": "osmpExecutable_exampleExecutable",
    "parameter": [
       "param1",
       "param2",
@@ -121,15 +131,21 @@ Auch hier kann bei angeben eines Leerzeichens lediglich das "-V" als Argument ge
 Die Parameter der Ausführung werden in den entsprechenden Variablen Angegeben, "TestName" is frei wählbar und dient nur der Zuordnung.
 Der Test Name sollte **nicht** mehrfach vorkommen. Sonst führt das runOneTest.sh Skript diesen nicht aus.
 
->**NOTE:** Ein Test wird als "Passed" angesehen, falls der OSMP-Starter mit dem exitCode 0 beendet wird (Um z. B. Synchronisation reichen diese tests nicht aus).
+Ist **PfadZurLogDatei** eine Leerer String (""), wird dieser nicht verwendet und auch kein -L als Argument übergeben.
+Es kann jedoch ein Leerzeichen als Pfad angegeben werden (" "). In diesem Fall wird lediglich ein -L als Argument übergeben.
+
+Die **LogVerbositaet** wird nur dann nicht übergeben, wenn diese auf 0 gesetzt wird.
+Auch hier kann bei angeben eines Leerzeichens lediglich das "-V" als Argument getestet werden.
+
+>**NOTE:** Ein Test wird als "Passed" angesehen, falls der OSMP-Starter mit dem exitCode 0 beendet wird (Um z. B. Synchronisation zu testen reichen diese tests nicht aus).
 
 ### CI/CD Testing
 
-Wenn dieses Repository in Gitlab gepusht wird wird automatische eine pipeline gestartet die alle Test ausführt und auf ihren erfolg prüft.
+Wenn dieses Repository in Gitlab gepusht wird wird automatische eine pipeline gestartet die alle Test ausführt und auf ihren Erfolg prüft.
 
 ## Overview <a name="overview"></a>
 
-Das Projekt kommt mit ein paar beispiel OSMP-Executables, der auszuimplementierend Header Datei der OSMP-Library, als auch dem grundlegendem OSMP-Runner
+Das Projekt kommt mit ein paar beispiel OSMP-Executables, der aus zu implementierenden Header Datei der OSMP-Library, als auch dem grundlegendem OSMP-Runner
 
 - src/
    - osmp_executables/
@@ -148,3 +164,5 @@ Das Projekt kommt mit ein paar beispiel OSMP-Executables, der auszuimplementiere
 - .gitlab-ci.yml
 
 <p align="right">(<a href="#readme-top">nach oben</a>)</p>
+
+[def]: #inhalt

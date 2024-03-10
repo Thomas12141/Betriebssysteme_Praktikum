@@ -1,10 +1,12 @@
 image: gcc
 
+before_script:
+  - apt update
+
 build:
   stage: build
-  before_script:
-    - apt update && apt -y install make cmake autoconf
   script:
+    - apt -y install make cmake autoconf
     - mkdir build
     - cd build
     - cmake ..
@@ -17,12 +19,12 @@ test:
   stage: test
   script:
     - chmod +x ./test/runAllTests.sh
+    - chmod +x ./test/runOneTest.sh
     - ./test/runAllTests.sh
 
 documentation:
   stage: documentation
   script:
-    - apt update
     - apt -y install doxygen
     - apt -y install graphviz
     - apt -y install pdflatex

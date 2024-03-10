@@ -4,7 +4,7 @@
     "ProcAnzahl": 5,
     "PfadZurLogDatei": " ",
     "LogVerbositaet": 0,
-    "osmp_executable": "exampleExecutable",
+    "osmp_executable": "osmpExecutable_exampleExecutable",
     "parameter": [
         "param1",
         "param2",
