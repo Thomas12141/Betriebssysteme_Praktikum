@@ -1,5 +1,5 @@
 /******************************************************************************
-* FILE: osmpExecutable_SendIrecv.c
+* FILE: osmpExecutable_SendIRecv.c
 * DESCRIPTION:
 * OSMP program with a simple pair of OSMP_Send/OSMP_Irecv calls
 *
@@ -32,11 +32,11 @@ int main(int argc, char *argv[])
     { // OSMP process 1
         bufout = malloc((size_t) SIZE); // check for != NULL
         rv = OSMP_CreateRequest( &myrequest );
-        rv = OSMP_Irecv( bufout, SIZE, OSMP_BYTE, &source, &len, myrequest );
+        rv = OSMP_IRecv( bufout, SIZE, OSMP_BYTE, &source, &len, myrequest );
         // do something important…
         // check if operation is completed and wait if not
         rv = OSMP_Wait( myrequest );
-        // OSMP_Irecv() completed, use bufout
+        // OSMP_IRecv() completed, use bufout
 
         printf("%s\n", bufout);
 

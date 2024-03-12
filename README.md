@@ -149,7 +149,7 @@ Das Projekt kommt mit ein paar beispiel OSMP-Executables, der aus zu implementie
 
 - src/
    - osmp_executables/
-      - osmpExecutable_SendIrecv.c
+      - osmpExecutable_SendIRecv.c
       - osmpExecutable_SendRecv.c
    - osmp_library/
       - OSMP.h

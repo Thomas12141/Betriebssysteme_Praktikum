@@ -24,7 +24,7 @@ set(LIBRARY_SRC_FILES
 #== set sources for each executable ==#
 #== If you want to add a new executable, copy one of the following blocks and modify it ==#
 set(SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDIRECV
-    src/osmp_executables/osmpExecutable_SendIrecv.c
+    src/osmp_executables/osmpExecutable_SendIRecv.c
     ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
 set(SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV
@@ -35,7 +35,7 @@ set(SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV
 #== Add executable target with source files listed in SOURCE_FILES variable ==#
 #== If you added a new executable, add a new add_executable line here ==#
 add_executable(osmp_run ${SOURCES_FOR_STARTER})
-add_executable(osmpExecutable_SendIrecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDIRECV} )
+add_executable(osmpExecutable_SendIRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDIRECV} )
 add_executable(osmpExecutable_SendRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV} )
 
 #== Add Library taget ==#
@@ -49,5 +49,5 @@ set(LIBRARIES
         rt)
 
 target_link_libraries(osmp_run ${LIBRARIES})
-target_link_libraries(osmpExecutable_SendIrecv ${LIBRARIES})
+target_link_libraries(osmpExecutable_SendIRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_SendRecv ${LIBRARIES})
