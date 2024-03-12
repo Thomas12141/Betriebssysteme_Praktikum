@@ -19,17 +19,18 @@ int main(int argc, char *argv[])
     rv = OSMP_Init( &argc, &argv );
     rv = OSMP_Size( &size );
     rv = OSMP_Rank( &rank );
-    if( size != 2 ){ /* Fehlerbehandlung */
+    if( size != 2 ){ 
+        /* Fehlerbehandlung */
     }
-    if( rank == 0 )
-    { // OSMP process 0
+    if( rank == 0 ) { 
+        // OSMP process 0
         bufin = malloc((size_t) SIZE); // check for != NULL
         len = 12; // length
         memcpy(bufin, "Hello World", (size_t) len);
         rv = OSMP_Send( bufin, len, OSMP_BYTE, 1 );
     }
-    else
-    { // OSMP process 1
+    else {
+        // OSMP process 1
         bufout = malloc((size_t) SIZE); // check for != NULL
         rv = OSMP_CreateRequest( &myrequest );
         rv = OSMP_IRecv( bufout, SIZE, OSMP_BYTE, &source, &len, myrequest );
