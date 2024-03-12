@@ -42,7 +42,7 @@ typedef void* OSMP_Request;
  * Sie werden verwendet, um den Typ der Daten anzugeben, die mit den OSMP-Funktionen gesendet bzw. empfangen werden sollen.
  * Mindestens folgende Datentypen *müssen* unterstützt werden:
  */
-typedef enum enum_OSMP_Datatype {
+typedef enum OSMP_Datatype {
     OSMP_SHORT,         // short int
     OSMP_INT,           // int
     OSMP_LONG,          // long int
