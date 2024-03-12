@@ -80,7 +80,7 @@ int OSMP_Bcast(void *buf, int count, OSMP_Datatype datatype, bool send, int *sou
     return OSMP_NOT_IMPLEMENTED_YET;
 }
 
-int OSMP_Isend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request){
+int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request){
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -89,7 +89,7 @@ int OSMP_Isend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
     return OSMP_NOT_IMPLEMENTED_YET;
 }
 
-int OSMP_Irecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request){
+int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request){
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
