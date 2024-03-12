@@ -20,10 +20,6 @@ int get_OSMP_FAILURE() {
     return OSMP_FAILURE;
 }
 
-int get_OSMP_FAILURE() {
-    return OSMP_FAILURE;
-}
-
 int get_OSMP_SUCCESS() {
     return OSMP_SUCCESS;
 }
