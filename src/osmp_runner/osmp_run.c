@@ -9,5 +9,8 @@ int main (int argc, char **argv) {
         printf("Argument: %s\n", *p);
     }
 
+    printf("OSMP_SUCCESS: %d\n", get_OSMP_SUCCESS());
+    printf("OSMP_FAILURE: %d\n", get_OSMP_FAILURE());
+
     return 0;
 }

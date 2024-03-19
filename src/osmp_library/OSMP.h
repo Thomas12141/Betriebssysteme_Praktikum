@@ -18,7 +18,7 @@
  * Im Fehlerfall liefern die OSMP-Funktionen den Wert OSMP_FAILURE zurück. 
  * Die Fehler führen aber nicht zum beenden des Programms (z. B. wenn ein Prozess eine Nachricht an einen nicht existierenden Prozess schickt).
  */
-#define OSMP_FAILURE 1
+#define OSMP_FAILURE !OSMP_SUCCESS
 
 typedef void* OSMP_Request;
 
@@ -80,13 +80,14 @@ int get_OSMP_FAILURE();
 int get_OSMP_SUCCESS();
 
 /**
- * Die Funktion OSMP_SizeOf() liefert die Größe des Datentyps datatype in Byte zurück.
+ * Die Funktion OSMP_SizeOf() liefert in *size* die Größe des Datentyps datatype in Byte zurück.
  *
  * @param [in] datatype OSMP-Datentyp
+ * @param [out] size Größe des Datentyps in Byte
  *
- * @return Größe des Datentyps in Byte
+ * @return Im Erfolgsfall OSMP_SUCCESS; falls der OSMP_Datatype nicht existiert, OSMP_FAILURE
  */
-int OSMP_SizeOf(OSMP_Datatype datatype);
+int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size);
 
 /**
  * Die Funktion OSMP_Init() initialisiert die OSMP-Umgebung und ermöglicht den Zugang zu den gemeinsamen Ressourcen der OSMP-Prozesse.
@@ -96,17 +97,17 @@ int OSMP_SizeOf(OSMP_Datatype datatype);
  * @param [in] argc Adresse der Argumentzahl
  * @param [in] argv Adresse des Argumentvektors
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Init(const int *argc, char ***argv);
 
 /**
- * Die Funktion OSMP_Size() liefert in *size die Zahl der OSMP-Prozesse ohne den OSMP-Starter Prozess zurück.
+ * Die Funktion OSMP_Size() liefert in *size* die Zahl der OSMP-Prozesse ohne den OSMP-Starter Prozess zurück.
  * Sollte mit der Zahl übereinstimmen, die in der Kommandozeile dem OSMP-Starter übergeben wird.
  *
  * @param [out] rank Zahl der OSMP-Prozesse
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Size(int *size);
 
@@ -115,7 +116,7 @@ int OSMP_Size(int *size);
  *
  * @param [out] rank Prozessnummer 0,…,np-1 des aktuellen OSMP-Prozesse
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Rank(int *rank);
 
@@ -130,7 +131,7 @@ int OSMP_Rank(int *rank);
  * @param [in] datatype OSMP-Typ der Daten im Puffer
  * @param [in] dest     Nummer des Empfängers zwischen 0,…,np-1
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest);
 
@@ -148,7 +149,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest);
  * @param [out] source   Nummer des Senders zwischen 0,…,np-1
  * @param [out] len      tatsächliche Länge der empfangenen Nachricht in Byte
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len);
 
@@ -157,7 +158,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
  * Sie geben damit den Zugriff auf die gemeinsamen Ressourcen frei.
  * Hierbei muss jeder Prozess zuvor alle noch vorhandenen Nachrichten abarbeiten. Dies bedeutet, dass der Posteingang gesperrt wird und alle noch vorhandenen Nachrichten gelöscht werden.
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Finalize(void);
 
@@ -165,7 +166,7 @@ int OSMP_Finalize(void);
  * Diese kollektive Funktion blockiert den aufrufenden Prozess.
  * Erst wenn alle anderen Prozesse ebenfalls an der Barriere angekommen sind, laufen die Prozesse weiter.
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Barrier(void);
 
@@ -181,7 +182,7 @@ int OSMP_Barrier(void);
  * @param [in]  recvtype  OSMP-Datentyp der Elemente im Empfangspuffer.
  * @param [in]  recv      1, falls der aufrufende Prozess der Empfänger ist, sonst 0.
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv);
 
@@ -195,7 +196,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
  * @param [in]      dest PID des Empfängers zwischen 0, …, np-1
  * @param [in, out] request Adresse einer eigenen Datenstruktur, die später verwendet werden kann, um abzufragen, ob die Operation abgeschlossen ist.
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request);
 
@@ -210,7 +211,7 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
  * @param [out]     len tatsächliche Länge der empfangenen Nachricht in Byte
  * @param [in, out] request Adresse einer Datenstruktur, die später verwendet werden kann, um abzufragen, ob die die Operation abgeschlossen ist.
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request);
 
@@ -221,7 +222,7 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
  * @param [in]  request Adresse der Struktur, die eine blockierende Operation spezifiziert
  * @param [out] flag Gibt den Status der Operation an.
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Test(OSMP_Request request, int *flag);
 
@@ -231,7 +232,7 @@ int OSMP_Test(OSMP_Request request, int *flag);
  *
  * @param [in] request Adresse der Struktur, die eine nicht blockierende Operation spezifiziert
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_Wait(OSMP_Request request);
 
@@ -241,7 +242,7 @@ int OSMP_Wait(OSMP_Request request);
  *
  * @param [out] request Adresse eines Requests (input)
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_CreateRequest(OSMP_Request *request);
 
@@ -250,7 +251,7 @@ int OSMP_CreateRequest(OSMP_Request *request);
  *
  * @param [in] request Adresse eines Requests
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_RemoveRequest(OSMP_Request *request);
 
@@ -259,7 +260,7 @@ int OSMP_RemoveRequest(OSMP_Request *request);
  *
  * @param [out] name Der Name des Shared Memory Bereichs
  *
- * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_GetSharedMemoryName(char **name);
 

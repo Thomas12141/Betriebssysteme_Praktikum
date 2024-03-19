@@ -31,8 +31,9 @@ int OSMP_Init(const int *argc, char ***argv) {
     return OSMP_FAILURE;
 }
 
-int OSMP_SizeOf(OSMP_Datatype datatype) {
+int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
     UNUSED(datatype);
+    UNUSED(size);
     return OSMP_FAILURE;
 }
 
