@@ -40,7 +40,6 @@ typedef void* OSMP_Request;
 /**
  * Die OSMP-Datentypen entsprechen den C-Datentypen. 
  * Sie werden verwendet, um den Typ der Daten anzugeben, die mit den OSMP-Funktionen gesendet bzw. empfangen werden sollen.
- * Mindestens folgende Datentypen **müssen** unterstützt werden:
  */
 typedef enum OSMP_Datatype {
     OSMP_SHORT,         // short int
