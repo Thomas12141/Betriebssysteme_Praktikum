@@ -18,7 +18,7 @@
  * Im Fehlerfall liefern die OSMP-Funktionen den Wert OSMP_FAILURE zurück. 
  * Die Fehler führen aber nicht zum beenden des Programms (z. B. wenn ein Prozess eine Nachricht an einen nicht existierenden Prozess schickt).
  */
-#define OSMP_FAILURE !OSMP_SUCCESS
+#define OSMP_FAILURE ( !OSMP_SUCCESS )
 
 typedef void* OSMP_Request;
 
