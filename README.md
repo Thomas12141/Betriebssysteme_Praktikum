@@ -1,46 +1,71 @@
-<a name="readme-top"></a>
-
 <div align="center">
-   <h1>
-      <b>Betriebssysteme</b>
-   </h1>
+
+# Betriebssysteme
+
 </div>
 
 ## Inhalt
 
-- [Inhalt](#inhalt)
-- [Getting Started ](#getting-started-)
-  - [Prerequisites](#prerequisites)
-  - [Setup](#setup)
-  - [Building](#building)
-  - [Hinzufügen von osmp\_executables](#hinzufügen-von-osmp_executables)
-  - [Testing](#testing)
-    - [Aufbau test.json](#aufbau-testjson)
-  - [CI/CD Testing](#cicd-testing)
-- [Overview ](#overview-)
+- [Betriebssysteme](#betriebssysteme)
+  - [Inhalt](#inhalt)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
+      - [Clonen des Projektes](#clonen-des-projektes)
+    - [Building](#building)
+    - [Hinzufügen von osmp\_executables](#hinzufügen-von-osmp_executables)
+    - [Testing](#testing)
+      - [Aufbau der test.json](#aufbau-der-testjson)
+    - [CI/CD Testing](#cicd-testing)
+  - [Overview ](#overview-)
 
-## Getting Started <a name="getting-started"></a>
+## Getting Started
 
-Das Praktikum-Projekt hat den Anspruch daran auf Ubuntu zu laufen, insbesondere auf den Laborrechnern. Die Anleitung hilft gewissermaßen auch dabei das Projekt auf einer eigenen Ubuntu installation zum laufen zu bekommen. Wir empfehlen ausschließlich auf den Laborrechner zu arbeiten, ggf. von Zuhause über SSH (Eine Anleitung dafür wird zu Verfügung gestellt). Wenn Sie auf einem der Laborrechner arbeiten, müssen Sie nichts installieren und können direkt zum Punkt [Setup](#setup) übergehen.
+Auf unseren Laborrechnern ist aktuell Ubuntu LTS in der aktuellsten Version (Stand: 19.03.2024) installiert.
+Wir erwarten, dass Ihr Praktikumsprojekt auf diesen Rechnern fehlerfrei kompiliert werden kann und zum Abschluss fehlerfrei funktioniert. 
+Mit dieser Anleitung möchten wir Sie unterstützen, dass Sie Ihr Praktikumsprojekt auch auf Ihrer eigenen Ubuntu-Installation weiter entwickeln können. 
+Im Praktikum empfehlen wir Ihnen, ausschließlich die Laborrechner zum Entwickeln der Lösung zu nutzen.
+
+Unsere Laborrechner sind für das Praktikum vorbereitet und enthalten insbesondere von uns geforderte Programme.
+Zu Beginn sind jedoch einige persönliche Einstellungen noch zu erledigen, die unter dem Punkt [Setup](#setup) besprochen werden.
+
+>**Anmerkung:** \
+> Obwohl Sie sich mit Ihrer FH-Kennung auch an unseren Rechnern mit dem gewohnten Passwort anmelden können, verwenden wir eigene Homeverzeichnisse, die von eigenen Servern gemountet werden.
+> 
+> Unser Labornetz ist zudem von außen **nicht** ohne Weiteres nutzbar.
+> Obwohl es technisch möglich wäre, über einen Verbindungsrechner auf die Laborrechner zuzugreifen, können wir die Rechner außerhalb der offiziellen Praktikumszeiten nicht ohne Weiteres zur Verfügung stellen.
+> Sorgen Sie also bitte dafür, dass Sie Ihre Dateien zum Ende des Praktikums möglichst in Ihrem Git-Repository ablegen.
 
 ### Prerequisites
 
-Um das Praktikums-Projekt benutzen zu können, müssen Sie cmake und gcc installiert haben.
-Für die Dokumentation benötigen Sie doxygen, make, pdflatex und graphviz.
+Um das Praktikumsprojekt benutzen zu können, müssen Sie cmake und gcc installiert haben.
 
 ```sh
-sudo apt-get install cmake gcc doxygen make texlive-latex-base grpahviz
+sudo apt-get install cmake gcc
+```
+
+Damit Sie das docs/generate_Documentation.sh Skript verwenden können, um die doxygen-Dokumentation zu erstellen, benötigen Sie doxygen, make, pdflatex und graphviz.
+
+```sh
+sudo apt-get install doxygen make texlive-latex-base grpahviz
 ```
 
 ### Setup
 
-Die Versionierung des Praktikums geschieht über das Gitlab der FH-Münster. Um lokal auf einem Rechner an dem Projekt weiterzuentwickeln muss das Projekt lokal auf den Rechner kopiert werden.
+Die Versionierung des Praktikums geschieht über das GitLab der FH-Münster. Um lokal auf einem Rechner an dem Projekt weiterzuentwickeln, muss das Projekt lokal auf den Rechner kopiert werden.
 
-SSH-Key für die Kommunikation mit dem Gitlab aufsetzen: [https://docs.gitlab.com/ee/user/ssh.html]
-Eventuell hilfreich um git/gitlab kennenzulernen: [https://git.fh-muenster.de/help/topics/git/get_started.md], [https://about.gitlab.com/images/press/git-cheat-sheet.pdf]
+Hilfreich, um git/gitlab kennenzulernen: 
+
+- [https://git.fh-muenster.de/help/topics/git/get_started.md](https://git.fh-muenster.de/help/topics/git/get_started.md)
+- [https://about.gitlab.com/images/press/git-cheat-sheet.pdf](https://about.gitlab.com/images/press/git-cheat-sheet.pdf)
+
+SSH-Key für die Kommunikation mit dem Gitlab aufsetzen: 
+
+- [https://docs.gitlab.com/ee/user/ssh.html](https://docs.gitlab.com/ee/user/ssh.html)
+
+#### Clonen des Projektes
 
 ```sh
-# Clonen des Projektes
 cd my-folder
 git clone ssh://git@git.fh-muenster.de:2323/<link-zum-projekt>.git
 cd <projektordner>
@@ -53,7 +78,7 @@ Das Projekt lässt sich wie folgt per CMake bauen
 CMake: [https://cmake.org/getting-started/]
 
 ```sh
-cd /projectdir
+cd /path/to/project
 
 cmake . -B ./cmake-build-debug
 
@@ -66,22 +91,22 @@ cmake --build .
 
 Das Hinzufügen von osmp_executables wird folgend am Beispiel einer osmpExecutable_echoall.c demonstriert.
 
-Um eine weitere Executable "osmpExecutable_echoall" zum Bausystem hinzuzufügen müssen folgende Einträge vorgenommen werden:
+Um eine weitere Executable "osmpExecutable_echoall" zum Bausystem hinzuzufügen, müssen folgende Einträge vorgenommen werden:
 
 ```sh
 # ./CMakeLists.txt
-...
+[...]
 
 set(SOURCES_FOR_EXECUTABLE_ECHOALL # <- NAME der Executable innerhalb von CMake
     src/executables/osmpExecutable_echoall.c src/executables/osmpExecutable_echoall.h # <- Source und Header Dateien für die Executable
     ${MAIN_SOURCES_FOR_EXECUTABLES} # <- Bereits besetzte Variable mit anderen Dateien, z. B. OSMP.h
 ) 
 
-...
+[...]
 
 add_executable(osmpExecutable_echoall ${SOURCES_FOR_EXECUTABLE_ECHOALL} ) # <- Executable bauen lassen
 
-...
+[...]
 
 target_link_libraries(osmpExecutable_echoall ${LIBRARIES}) # <- Genutzte Bibliotheken linken
 ```
@@ -108,9 +133,9 @@ Sie können TestCases in der test/tests.json definieren.
   ./runOneTest.sh ExampleTest
   ```
 
-#### Aufbau test.json
+#### Aufbau der test.json
 
-Die *test.json* beinhaltet eine Reihe von Ausführungen der verschiedenen osmp_executables und lässt sich beliebig erweitern.
+Die *test.json* beinhaltet eine Liste von Ausführungen der verschiedenen osmp_executables und lässt sich beliebig erweitern.
 
 ```json
 {
@@ -141,27 +166,43 @@ Auch hier kann bei angeben eines Leerzeichens lediglich das "-V" als Argument ge
 
 ### CI/CD Testing
 
-Wenn dieses Repository in Gitlab gepusht wird wird automatische eine pipeline gestartet die alle Test ausführt und auf ihren Erfolg prüft.
+Wenn dieses Repository in GitLab gepusht wird wird automatische eine Pipeline gestartet die alle Test ausführt und auf ihren Erfolg prüft.
 
 ## Overview <a name="overview"></a>
 
 Das Projekt kommt mit ein paar beispiel OSMP-Executables, der aus zu implementierenden Header Datei der OSMP-Library, als auch dem grundlegendem OSMP-Runner
 
-- src/
-   - osmp_executables/
-      - osmpExecutable_SendIRecv.c
-      - osmpExecutable_SendRecv.c
-   - osmp_library/
-      - OSMP.h
-      - osmplib.c
-      - osmplib.h
-   - osmp_runner/
-      - osmp_run.c
-      - osmp_run.h
-        desweiteren gibt es eine Besipielhafte CMakeList.txt und gitlab-ci.yml
-- CMakeLists.txt
-- .gitlab-ci.yml
+```text
+📁<projektordner>
+├── 📁docs/
+│   ├── Doxyfile
+│   ├── generate_Documentation.sh
+│   └── OSMP_Documentation.pdf
+├── 📁src/
+│   ├── 📁osmp_executables/
+│   │   ├── osmp_Executable_SendIRecv.c
+│   │   └── osmp_Executable_SendRecv.c
+│   ├── 📁osmp_library/
+│   │   ├── OSMP.h
+│   │   ├── osmplib.c
+│   │   └── osmplib.h
+│   ├── 📁osmp_runner/
+│   │   ├── osmp_run.c
+│   │   └── osmp_run.h
+├── 📁test/
+│   ├── common.sh
+│   ├── runAllTests.sh
+│   ├── runAllTestsForOneExecutable.sh
+│   ├── runOneTest.sh
+│   └── tests.json
+├── .gitignore
+├── .gitlab-ci.yml
+├── CMakeLists.txt
+└── README.md
+```
 
-<p align="right">(<a href="#readme-top">nach oben</a>)</p>
+<div style="text-align: right">
 
-[def]: #inhalt
+   [(nach oben)](#betriebssysteme)
+
+</div>
