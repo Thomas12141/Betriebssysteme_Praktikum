@@ -155,7 +155,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 /**
  * Alle OSMP-Prozesse müssen diese Funktion aufrufen, bevor sie sich beenden. 
  * Sie geben damit den Zugriff auf die gemeinsamen Ressourcen frei.
- * Hierbei muss jeder Prozess zuvor alle noch vorhandenen Nachrichten abarbeiten. Dies bedeutet, dass der Posteingang gesperrt wird und alle noch vorhandenen Nachrichten werden gelöscht.
+ * Hierbei muss jeder Prozess zuvor alle noch vorhandenen Nachrichten abarbeiten. Dies bedeutet, dass der Posteingang gesperrt wird und alle noch vorhandenen Nachrichten gelöscht werden.
  *
  * @return Im Erfolgsfall OSMP_SUCCESS, falls die Funktion noch nicht implementiert ist OSMP_FAILURE, sonst OSMP_FAILURE
  */
