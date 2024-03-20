@@ -1,0 +1,33 @@
+image: gcc
+
+stages:
+  - build
+  - test
+
+before_script:
+  - apt update
+
+build:
+  stage: build
+  script:
+    - apt -y install make cmake autoconf
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make
+  artifacts:
+    paths:
+      - mybinary
+
+test:
+  stage: test
+  script:
+    - apt -y install jq
+    - apt -y install make cmake autoconf
+    - cmake . -B ./cmake-build-debug
+    - cd cmake-build-debug
+    - cmake --build .
+    - cd ..
+    - chmod +x ./test/runAllTests.sh
+    - chmod +x ./test/runOneTest.sh
+    - ./test/runAllTests.sh
