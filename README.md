@@ -38,6 +38,12 @@ Zu Beginn sind jedoch einige persönliche Einstellungen noch zu erledigen, die u
 
 ### Prerequisites
 
+Um dieses Projekt lokal zu nutzen, wird Git benötigt, da es uns ermöglicht, den gesamten Projektcode von GitLab zu klonen/kopieren und Änderungen mit dem Stand im GitLab zu synchronisieren.
+
+```sh
+sudo apt-get install git
+```
+
 Um das Praktikumsprojekt benutzen zu können, müssen Sie cmake und gcc installiert haben.
 
 ```sh
