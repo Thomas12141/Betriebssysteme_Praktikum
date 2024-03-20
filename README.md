@@ -23,7 +23,7 @@
 
 Auf unseren Laborrechnern ist aktuell Ubuntu LTS in der aktuellsten Version (Stand: 19.03.2024) installiert.
 Wir erwarten, dass Ihr Praktikumsprojekt auf diesen Rechnern fehlerfrei kompiliert werden kann und zum Abschluss fehlerfrei funktioniert. 
-Mit dieser Anleitung möchten wir Sie unterstützen, dass Sie Ihr Praktikumsprojekt auch auf Ihrer eigenen Ubuntu-Installation weiter entwickeln können. 
+Mit dieser Anleitung möchten wir Sie unterstützen, dass Sie Ihr Praktikumsprojekt auch auf Ihrer eigenen Ubuntu-Installation weiterentwickeln können. 
 Im Praktikum empfehlen wir Ihnen, ausschließlich die Laborrechner zum Entwickeln der Lösung zu nutzen.
 
 Unsere Laborrechner sind für das Praktikum vorbereitet und enthalten insbesondere von uns geforderte Programme.
@@ -53,7 +53,7 @@ sudo apt-get install cmake gcc
 Damit Sie das docs/generate_Documentation.sh Skript verwenden können, um die doxygen-Dokumentation zu erstellen, benötigen Sie doxygen, make, pdflatex und graphviz.
 
 ```sh
-sudo apt-get install doxygen make texlive-latex-base grpahviz
+sudo apt-get install doxygen make texlive-latex-base graphviz
 ```
 
 ### Setup
@@ -101,29 +101,29 @@ Um eine weitere Executable "osmpExecutable_echoall" zum Bausystem hinzuzufügen,
 
 ```sh
 # ./CMakeLists.txt
-[...]
+...
 
 set(SOURCES_FOR_EXECUTABLE_ECHOALL # <- NAME der Executable innerhalb von CMake
     src/executables/osmpExecutable_echoall.c src/executables/osmpExecutable_echoall.h # <- Source und Header Dateien für die Executable
     ${MAIN_SOURCES_FOR_EXECUTABLES} # <- Bereits besetzte Variable mit anderen Dateien, z. B. OSMP.h
 ) 
 
-[...]
+...
 
 add_executable(osmpExecutable_echoall ${SOURCES_FOR_EXECUTABLE_ECHOALL} ) # <- Executable bauen lassen
 
-[...]
+...
 
 target_link_libraries(osmpExecutable_echoall ${LIBRARIES}) # <- Genutzte Bibliotheken linken
 ```
 
 ### Testing
 
-Sie können TestCases in der test/tests.json definieren.
+Sie können Test Cases in der test/tests.json definieren.
 
 Über die folgenden Skripte können diese Tests ausgeführt werden.
 
-- **runAllTests.sh** führt alle Tests, die in der tests.json definiert sind aus.
+- **runAllTests.sh** führt alle Tests, die in der tests.json definiert sind, aus.
   ```sh
   # Usage
   ./runAllTests.sh
@@ -159,24 +159,24 @@ Die *test.json* beinhaltet eine Liste von Ausführungen der verschiedenen osmp_e
 }
 ```
 
-Die Parameter der Ausführung werden in den entsprechenden Variablen Angegeben, "TestName" is frei wählbar und dient nur der Zuordnung.
-Der Test Name sollte **nicht** mehrfach vorkommen. Sonst führt das runOneTest.sh Skript diesen nicht aus.
+Die Parameter der Ausführung werden in den entsprechenden Variablen angegeben; "TestName" ist frei wählbar und dient nur der Zuordnung.
+Der Testname sollte **nicht** mehrfach vorkommen. Sonst führt das runOneTest.sh Skript diesen nicht aus.
 
-Ist **PfadZurLogDatei** eine Leerer String (""), wird dieser nicht verwendet und auch kein -L als Argument übergeben.
+Ist **PfadZurLogDatei** ein leerer String (""), wird dieser nicht verwendet und auch kein -L als Argument übergeben.
 Es kann jedoch ein Leerzeichen als Pfad angegeben werden (" "). In diesem Fall wird lediglich ein -L als Argument übergeben.
 
 Die **LogVerbositaet** wird nur dann nicht übergeben, wenn diese auf 0 gesetzt wird.
-Auch hier kann bei angeben eines Leerzeichens lediglich das "-V" als Argument getestet werden.
+Auch hier kann beim Angeben eines Leerzeichens lediglich das "-V" als Argument getestet werden.
 
 >**NOTE:** Ein Test wird als "Passed" angesehen, falls der OSMP-Starter mit dem exitCode 0 beendet wird (Um z. B. Synchronisation zu testen reichen diese tests nicht aus).
 
 ### CI/CD Testing
 
-Wenn dieses Repository in GitLab gepusht wird wird automatische eine Pipeline gestartet die alle Test ausführt und auf ihren Erfolg prüft.
+Sobald sie ihren Code zu GitLab pushen, wird automatisch eine Pipeline gestartet, die alle Tests ausführt und auf Ihren Erfolg prüft.
 
 ## Overview <a name="overview"></a>
 
-Das Projekt kommt mit ein paar beispiel OSMP-Executables, der aus zu implementierenden Header Datei der OSMP-Library, als auch dem grundlegendem OSMP-Runner
+Das Projekt kommt mit ein paar Beispiel OSMP-Executables, der aus zu implementierenden Header Datei der OSMP-Library, als auch dem grundlegenden OSMP-Runner
 
 ```text
 📁<projektordner>
@@ -192,9 +192,9 @@ Das Projekt kommt mit ein paar beispiel OSMP-Executables, der aus zu implementie
 │   │   ├── OSMP.h
 │   │   ├── osmplib.c
 │   │   └── osmplib.h
-│   ├── 📁osmp_runner/
-│   │   ├── osmp_run.c
-│   │   └── osmp_run.h
+│   └── 📁osmp_runner/
+│       ├── osmp_run.c
+│       └── osmp_run.h
 ├── 📁test/
 │   ├── common.sh
 │   ├── runAllTests.sh
@@ -207,7 +207,7 @@ Das Projekt kommt mit ein paar beispiel OSMP-Executables, der aus zu implementie
 └── README.md
 ```
 
-<div style="text-align: right">
+<div align="right" style="text-align: right">
 
    [(nach oben)](#betriebssysteme)
 
