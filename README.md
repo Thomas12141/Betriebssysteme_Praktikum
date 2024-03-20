@@ -101,18 +101,18 @@ Um eine weitere Executable "osmpExecutable_echoall" zum Bausystem hinzuzufügen,
 
 ```sh
 # ./CMakeLists.txt
-[...]
+...
 
 set(SOURCES_FOR_EXECUTABLE_ECHOALL # <- NAME der Executable innerhalb von CMake
     src/executables/osmpExecutable_echoall.c src/executables/osmpExecutable_echoall.h # <- Source und Header Dateien für die Executable
     ${MAIN_SOURCES_FOR_EXECUTABLES} # <- Bereits besetzte Variable mit anderen Dateien, z. B. OSMP.h
 ) 
 
-[...]
+...
 
 add_executable(osmpExecutable_echoall ${SOURCES_FOR_EXECUTABLE_ECHOALL} ) # <- Executable bauen lassen
 
-[...]
+...
 
 target_link_libraries(osmpExecutable_echoall ${LIBRARIES}) # <- Genutzte Bibliotheken linken
 ```
@@ -192,9 +192,9 @@ Das Projekt kommt mit ein paar Beispiel OSMP-Executables, der aus zu implementie
 │   │   ├── OSMP.h
 │   │   ├── osmplib.c
 │   │   └── osmplib.h
-│   ├── 📁osmp_runner/
-│   │   ├── osmp_run.c
-│   │   └── osmp_run.h
+│   └── 📁osmp_runner/
+│       ├── osmp_run.c
+│       └── osmp_run.h
 ├── 📁test/
 │   ├── common.sh
 │   ├── runAllTests.sh
@@ -207,7 +207,7 @@ Das Projekt kommt mit ein paar Beispiel OSMP-Executables, der aus zu implementie
 └── README.md
 ```
 
-<div style="text-align: right">
+<div align="right" style="text-align: right">
 
    [(nach oben)](#betriebssysteme)
 
