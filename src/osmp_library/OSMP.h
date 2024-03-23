@@ -105,7 +105,7 @@ int OSMP_Init(const int *argc, char ***argv);
  * Die Funktion OSMP_Size() liefert in *size* die Zahl der OSMP-Prozesse ohne den OSMP-Starter Prozess zurück.
  * Sollte mit der Zahl übereinstimmen, die in der Kommandozeile dem OSMP-Starter übergeben wird.
  *
- * @param [out] rank Zahl der OSMP-Prozesse
+ * @param [out] size Zahl der OSMP-Prozesse
  *
  * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
