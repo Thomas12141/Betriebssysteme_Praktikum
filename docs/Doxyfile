@@ -1,4 +1,5 @@
 PROJECT_NAME        = "OSMP - Entwurf und Implementierung einer Message Passing Umgebung für Interprozesskommunikation"
+PROJECT_NUMBER      = $(PROJECT_NUMBER)
 OUTPUT_DIRECTORY    = "./docs"
 OUTPUT_LANGUAGE     = "German"
 EXTRACT_ALL         = "YES"
