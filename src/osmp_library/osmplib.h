@@ -1,5 +1,6 @@
 #ifndef BETRIEBSSYSTEME_OSMPLIB_H
 #define BETRIEBSSYSTEME_OSMPLIB_H
+#include <stdio.h>
 
 #include "OSMP.h"
 

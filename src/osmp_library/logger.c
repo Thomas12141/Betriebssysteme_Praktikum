@@ -13,7 +13,9 @@ int main (void) {
         printf("Couldn't open logging file.\n");
     }
 
-    log_to_file(logging_file, "INFO", "File open success.");
+    log_to_file(logging_file, "ERROR", "File open success.");
+
+    log_to_file(logging_file, "WARNING", "Not secluded");
 
     return 0;
 }
