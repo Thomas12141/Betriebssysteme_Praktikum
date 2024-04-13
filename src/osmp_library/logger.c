@@ -1,19 +1,19 @@
 #include <stddef.h>
 #include <stdio.h>
 
-void log_to_file(void * fp, char * level, char* message){
-    fprintf(fp,"Level:%s  Time: %s Message: %s.\n", level, __TIMESTAMP__, message);
+void log_to_file(void * logging_file, char * level, char* message){
+    fprintf(logging_file,"Level:%s  Time: %s Message: %s.\n", level, __TIMESTAMP__, message);
 }
 
 int main (void) {
-    FILE *fp;
-    fp = fopen("log.log", "a+");
+    FILE *logging_file;
+    logging_file = fopen("log.log", "a+");
 
-    if(fp == NULL ){
+    if(logging_file == NULL ){
         printf("Couldn't open logging file.\n");
     }
 
-    log_to_file(fp, "INFO", "File open success.");
+    log_to_file(logging_file, "INFO", "File open success.");
 
     return 0;
 }
