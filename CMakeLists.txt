@@ -35,6 +35,10 @@ set(SOURCES_FOR_EXECUTABLE_BARRIER
         src/osmp_executables/osmpExecutable_Barrier.c
         ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
+set(SOURCES_FOR_EXECUTABLE_GATHER
+        src/osmp_executables/osmpExecutable_Gather.c
+        ${MAIN_SOURCES_FOR_EXECUTABLES}
+)
 
 #== Add executable target with source files listed in SOURCE_FILES variable ==#
 #== If you added a new executable, add a new add_executable line here ==#
@@ -42,6 +46,7 @@ add_executable(osmp_run ${SOURCES_FOR_STARTER})
 add_executable(osmpExecutable_SendIRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDIRECV} )
 add_executable(osmpExecutable_SendRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV} )
 add_executable(osmpExecutable_Barrier ${SOURCES_FOR_EXECUTABLE_BARRIER} )
+add_executable(osmpExecutable_Gather ${SOURCES_FOR_EXECUTABLE_GATHER} )
 
 #== Add Library taget ==#
 add_library(libosmp STATIC ${LIBRARY_SRC_FILES})
@@ -57,3 +62,4 @@ target_link_libraries(osmp_run ${LIBRARIES})
 target_link_libraries(osmpExecutable_SendIRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_SendRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_Barrier ${LIBRARIES})
+target_link_libraries(osmpExecutable_Gather ${LIBRARIES})
