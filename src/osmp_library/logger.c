@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <stdbool.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condition = PTHREAD_COND_INITIALIZER;
@@ -21,7 +20,7 @@ void logging_init(char * name){
 }
 
 void log_to_file(char * level, char* message){
-    int return_code = 0;
+    int return_code;
     if(file_name == NULL){
         printf("You must first initialize the logger.\n");
         return;
