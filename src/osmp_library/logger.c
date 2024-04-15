@@ -3,7 +3,6 @@
 #include <pthread.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t condition = PTHREAD_COND_INITIALIZER;
 FILE *logging_file;
 char * file_name;
 
@@ -36,7 +35,6 @@ void log_to_file(char * level, char* message){
         printf("Failed to release lock.\n");
         return_code = pthread_mutex_unlock(&mutex);
     }
-    pthread_cond_signal(&condition);
 }
 
 
@@ -44,7 +42,6 @@ void logging_close(){
     fclose(logging_file);
     logging_file = NULL;
     pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&condition);
 }
 
 
