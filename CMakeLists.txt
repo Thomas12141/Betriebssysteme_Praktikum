@@ -19,6 +19,7 @@ set(MAIN_SOURCES_FOR_EXECUTABLES
 set(LIBRARY_SRC_FILES
     src/osmp_library/osmplib.c src/osmp_library/osmplib.h
     src/osmp_library/OSMP.h
+        src/osmp_library/logger.c
 )
 
 #== set sources for each executable ==#

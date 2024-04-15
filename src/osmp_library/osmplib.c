@@ -4,46 +4,76 @@
 
 #include "osmplib.h"
 
-int get_OSMP_MAX_PAYLOAD_LENGTH() {
+int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
   return OSMP_MAX_PAYLOAD_LENGTH;
 }
 
-int get_OSMP_MAX_SLOTS() {
+int get_OSMP_MAX_SLOTS(void) {
     return OSMP_MAX_SLOTS;
 }
 
-int get_OSMP_MAX_MESSAGES_PROC() {
+int get_OSMP_MAX_MESSAGES_PROC(void) {
     return OSMP_MAX_MESSAGES_PROC;
 }
 
-int get_OSMP_FAILURE() {
+int get_OSMP_FAILURE(void) {
     return OSMP_FAILURE;
 }
 
-int get_OSMP_SUCCESS() {
+int get_OSMP_SUCCESS(void) {
     return OSMP_SUCCESS;
 }
 
 
 int OSMP_Init(const int *argc, char ***argv) {
-    UNUSED(argc);
-    UNUSED(argv);
-    return OSMP_FAILURE;
+    for (int i = 0; i < *argc; ++i) {
+        printf("%s", *argv[i]);
+    }
+    return OSMP_SUCCESS;
 }
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
-    UNUSED(datatype);
-    UNUSED(size);
+    if(datatype == OSMP_SHORT){
+        *size = sizeof(short int);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_INT){
+        *size = sizeof(int);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_LONG){
+        *size = sizeof(long int);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_UNSIGNED_CHAR){
+        *size = sizeof(unsigned char);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_UNSIGNED){
+        *size = sizeof(unsigned);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_UNSIGNED_SHORT){
+        *size = sizeof(unsigned short int);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_UNSIGNED_LONG){
+        *size = sizeof(unsigned long int);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_FLOAT){
+        *size = sizeof(float);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_DOUBLE){
+        *size = sizeof(double);
+        return OSMP_SUCCESS;
+    }else if(datatype == OSMP_BYTE){
+        *size = sizeof(char );
+        return OSMP_SUCCESS;
+    }
     return OSMP_FAILURE;
 }
 
 int OSMP_Size(int *size) {
-    UNUSED(size);
+    printf("%d", *size);
     return OSMP_FAILURE;
 }
 
 int OSMP_Rank(int *rank) {
-    UNUSED(rank);
+    printf("%d", *rank);
     return OSMP_FAILURE;
 }
 
@@ -124,6 +154,11 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
 }
 
 int OSMP_GetSharedMemoryName(char **name) {
-    UNUSED(name);
+    char * string = *name;
+    int count = 0;
+    while (string!=NULL){
+        printf("%s", string);
+        string = name[++count];
+    }
     return OSMP_FAILURE;
 }
