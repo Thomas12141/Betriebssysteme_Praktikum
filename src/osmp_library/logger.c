@@ -32,9 +32,9 @@ void log_to_file(char * level, char* message){
     }
     fprintf(logging_file,"Level:%s  Time: %s Message: %s.\n", level, __TIMESTAMP__, message);
     return_code = pthread_mutex_unlock(&mutex);
-    if(return_code!=0){
+    while (return_code!=0){
         printf("Failed to release lock.\n");
-        return;
+        return_code = pthread_mutex_unlock(&mutex);
     }
     pthread_cond_signal(&condition);
 }
