@@ -1,23 +1,51 @@
 #include <stddef.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <stdbool.h>
 
-void log_to_file(void * logging_file, char * level, char* message){
-    fprintf(logging_file,"Level:%s  Time: %s Message: %s.\n", level, __TIMESTAMP__, message);
-}
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t condition = PTHREAD_COND_INITIALIZER;
+FILE *logging_file;
+char * file_name;
 
-int main (void) {
-    FILE *logging_file;
-    logging_file = fopen("log.log", "a+");
-
+void logging_init(char * name){
+    if(name == NULL||*name == '\0'){
+        printf("You cant initialize logging file without giving a file name.");
+        return;
+    }
+    file_name = name;
+    logging_file = fopen(file_name, "a+");
     if(logging_file == NULL ){
         printf("Couldn't open logging file.\n");
     }
+}
 
-    log_to_file(logging_file, "ERROR", "File open success.");
+void log_to_file(char * level, char* message){
+    int return_code = 0;
+    if(file_name == NULL){
+        printf("You must first initialize the logger.\n");
+        return;
+    }
+    return_code = pthread_mutex_lock(&mutex);
+    if(return_code!=0){
+        printf("Failed to acquire lock.\n");
+        return;
+    }
+    fprintf(logging_file,"Level:%s  Time: %s Message: %s.\n", level, __TIMESTAMP__, message);
+    return_code = pthread_mutex_unlock(&mutex);
+    if(return_code!=0){
+        printf("Failed to release lock.\n");
+        return;
+    }
+    pthread_cond_signal(&condition);
+}
 
-    log_to_file(logging_file, "WARNING", "Not secluded");
 
-    return 0;
+void logging_close(){
+    fclose(logging_file);
+    logging_file = NULL;
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&condition);
 }
 
 
