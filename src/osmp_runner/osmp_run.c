@@ -69,6 +69,25 @@ int start_all_executables(int number_of_executables, int executable_index, char 
     return 0;
 }
 
+int freeAll(int shared_memory, char * shm_ptr, char ** arguments){
+    int result = munmap(shm_ptr, SHARED_MEMORY_SIZE);
+    if(result==-1){
+        printf("Couldn't unmap memory.\n");
+        return -1;
+    }
+    result = close(shared_memory);
+    if(result==-1){
+        printf("Couldn't close file descriptor memory.\n");
+        return -1;
+    }
+    result = shm_unlink(SHARED_MEMORY_NAME);
+    if(result==-1){
+        printf("Couldn't unlink file name.\n");
+        return -1;
+    }
+    free(arguments);
+    return 0;
+}
 int main (int argc, char **argv) {
     if (argc<2){
         printf("You have to give the number of executables and the executable file.\n");
@@ -87,6 +106,13 @@ int main (int argc, char **argv) {
         printf("Failed to truncate.\n");
         return -1;
     }
+    char *shm_ptr = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+
+    if (shm_ptr == MAP_FAILED){
+        printf("Failed to map memory.\n");
+        return -1;
+    }
+
 
     int executable_index = get_executable_index(argv);
     int number_of_executables = string_to_int(argv[1]);
@@ -108,7 +134,11 @@ int main (int argc, char **argv) {
         }
     }
 
-    free(arguments);
+    int free_result = freeAll(shared_memory_fd, shm_ptr, arguments);
+
+    if(free_result == -1){
+        return -1;
+    }
 
     return 0;
 }
