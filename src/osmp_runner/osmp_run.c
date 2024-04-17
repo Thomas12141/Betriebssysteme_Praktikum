@@ -13,8 +13,6 @@
 int start_all_executables(int number_of_executables, char* executable, char ** arguments){
     for (int i = 0; i < number_of_executables; ++i) {
         pid_t pid = fork();
-        printf("Forking... Executable: %s\n", executable);
-        puts("Arguments:");
         for(int j = 0; arguments[j] != NULL; j++) {
             printf("%s ", arguments[j]);
         }
@@ -150,7 +148,6 @@ int main (int argc, char **argv) {
     int processes, verbosity, exec_args_index;
     char *log_file, *executable;
     parse_args(argc, argv, &processes, &log_file, &verbosity, &executable, &exec_args_index);
-    puts("args parsed");
     int shared_memory_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
 
     if (shared_memory_fd==-1){
