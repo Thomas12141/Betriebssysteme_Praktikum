@@ -10,7 +10,7 @@
 #include "../osmp_library/OSMP.h"
 
 int main(int argc, char *argv[]) {
-    int rv, size, rank;
+    int rv, size=0, rank=0;
     rv = OSMP_Init(&argc, &argv);
     rv = OSMP_Size(&size);
     rv = OSMP_Rank(&rank);

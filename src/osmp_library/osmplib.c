@@ -27,8 +27,9 @@ int get_OSMP_SUCCESS(void) {
 
 int OSMP_Init(const int *argc, char ***argv) {
     for (int i = 0; i < *argc; ++i) {
-        printf("%s", *argv[i]);
+        printf("%s ", (*argv)[i]);
     }
+    puts("");
     return OSMP_SUCCESS;
 }
 
@@ -68,12 +69,12 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-    printf("%d", *size);
+    printf("%d\n", *size);
     return OSMP_FAILURE;
 }
 
 int OSMP_Rank(int *rank) {
-    printf("%d", *rank);
+    printf("%d\n", *rank);
     return OSMP_FAILURE;
 }
 
