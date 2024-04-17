@@ -107,6 +107,7 @@ int OSMP_Rank(int *rank) {
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_Send");
+    puts("OSMP_Send() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -116,6 +117,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_Recv");
+    puts("OSMP_Recv() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -126,16 +128,19 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 
 int OSMP_Finalize(void) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_Finalize");
+    puts("OSMP_Finalize() not implemented yet");
     return OSMP_FAILURE;
 }
 
 int OSMP_Barrier(void) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_Barrier");
+    puts("OSMP_Barrier() not implemented yet");
     return OSMP_FAILURE;
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_Gather");
+    puts("OSMP_Gather() not implemented yet");
     UNUSED(sendbuf);
     UNUSED(sendcount);
     UNUSED(sendtype);
@@ -148,6 +153,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_ISend");
+    puts("OSMP_ISend() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -158,6 +164,7 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_IRecv");
+    puts("OSMP_IRecv() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -169,6 +176,7 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
 
 int OSMP_Test(OSMP_Request request, int *flag) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_Test");
+    puts("OSMP_Test not implemented yet");
     UNUSED(request);
     UNUSED(flag);
     return OSMP_FAILURE;
@@ -176,24 +184,28 @@ int OSMP_Test(OSMP_Request request, int *flag) {
 
 int OSMP_Wait(OSMP_Request request) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_Wait");
+    puts("OSMP_Wait() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_CreateRequest");
+    puts("OSMP_CreateRequest() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_RemoveRequest");
+    puts("OSMP_RemoveRequest) not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_GetSharedMemoryName(char **name) {
     log_osmp_lib_call(getpid(), __TIMESTAMP__, "OSMP_GetSharedMemoryName");
+    puts("OSMP_GetSharedMemoryName() not implemented yet");
     char * string = *name;
     int count = 0;
     while (string!=NULL){
