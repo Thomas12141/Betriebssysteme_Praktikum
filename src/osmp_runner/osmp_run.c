@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include "../osmp_library/logger.h"
+
 #define SHARED_MEMORY_NAME "/shared_memory"
 #define SHARED_MEMORY_SIZE 1024
 
@@ -146,8 +148,11 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
 
 int main (int argc, char **argv) {
     int processes, verbosity, exec_args_index;
-    char *log_file, *executable;
+    char *log_file = NULL, *executable;
     parse_args(argc, argv, &processes, &log_file, &verbosity, &executable, &exec_args_index);
+
+    logging_init(log_file, verbosity);
+
     int shared_memory_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
 
     if (shared_memory_fd==-1){
