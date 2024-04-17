@@ -11,13 +11,14 @@
 #include "../osmp_library/OSMP.h"
 
 int main(int argc, char *argv[]) {
-    int rv, size, rank, wait_time;
+    puts("Test");
+    int rv, size=0, rank=0, wait_time;
     rv = OSMP_Init(&argc, &argv);
     rv = OSMP_Size(&size);
     rv = OSMP_Rank(&rank);
 
     // Seed für Zufallszahlen setzen
-    srand((unsigned int)time(NULL));
+    srand((unsigned int)(time(NULL)+rank));
     // Setze wait_time auf eine zufällige Zahl zwischen 1 und 10
     int min = 1;
     int max = 10;
