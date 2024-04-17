@@ -17,9 +17,10 @@
  */
 void log_osmp_lib_call(int pid, char* timestamp, const char* function_name) {
     // ausreichend großen Buffer für formatierten String erstellen
-    char message[30 + strlen(timestamp) + strlen(function_name)];
-    sprintf(message, "PID: %d called %s() at %s()", pid, function_name, timestamp);
-    log_to_file(1, message);
+    unsigned long string_len = 30 + strlen(timestamp) + strlen(function_name);
+    char message[string_len];
+    sprintf(message, "OSMP function %s() called", function_name);
+    log_to_file(1, timestamp, message);
 }
 
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {

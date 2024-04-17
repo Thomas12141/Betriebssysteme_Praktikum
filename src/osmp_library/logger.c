@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 FILE *logging_file;
@@ -53,7 +54,7 @@ void logging_init(char * name, int log_verbosity){
     }
 
     fprintf(logging_file,"Logfile initialized at %s.\n", __TIMESTAMP__);
-    fputs("Log entries follow the scheme <level> - <timestamp> - <message>.\n", logging_file);
+    fputs("Log entries follow the scheme <level> - <pid> - <timestamp> - <message>.\n", logging_file);
 }
 
 /**
@@ -62,7 +63,7 @@ void logging_init(char * name, int log_verbosity){
  * @param level     Logging-Level des Eintrags (1-3).
  * @param message   Zu loggende Nachricht.
  */
-void log_to_file(int level, char* message){
+void log_to_file(int level, char* timestamp, char* message){
     int return_code;
     if(file_name == NULL){
         printf("You must first initialize the logger.\n");
@@ -79,7 +80,7 @@ void log_to_file(int level, char* message){
         printf("Failed to acquire lock.\n");
         return;
     }
-    fprintf(logging_file,"%d - %s - %s.\n", level, __TIMESTAMP__, message);
+    fprintf(logging_file,"%d - %d - %s - %s.\n", level, getpid(), timestamp, message);
     return_code = pthread_mutex_unlock(&mutex);
     while (return_code!=0){
         printf("Failed to release lock.\n");
@@ -94,6 +95,20 @@ void logging_close(){
     fclose(logging_file);
     logging_file = NULL;
     pthread_mutex_destroy(&mutex);
+}
+
+/**
+ * Schreibt eine Level-2-Logging-Nachricht (Speicherverwaltung) in die Logdatei.
+ *
+ * @param function_name Der Name der aufrufenden Funktion
+ * @param message       Zusätzliche Nachricht.
+ */
+void log_memory_function(char* function_name, char* message, char* timestamp) {
+    unsigned long string_len = strlen(function_name) + strlen(message);
+    // Ausreichend großen Buffer erstellen
+    char string[30 + string_len];
+    sprintf(string, "%s() used memory function: %s", function_name, message);
+    log_to_file(2, timestamp, string);
 }
 
 

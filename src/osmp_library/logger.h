@@ -4,7 +4,7 @@
 
 void logging_init(char * name, int log_verbosity);
 
-void log_to_file(int level, char* message);
+void log_to_file(int level, char* timestamp, char* message);
 
 void logging_close();
 
