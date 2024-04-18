@@ -2,12 +2,22 @@
  * In dieser Quelltext-Datei sind Implementierungen der OSMP Bibliothek zu finden.
  */
 #define SHARED_MEMORY_NAME "/shared_memory"
+#define SHARED_MEMORY_SIZE 1024
 
 #include "osmplib.h"
 #include "logger.h"
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
+#include <sys/mman.h>
+#include <bits/fcntl.h>
+#include <malloc.h>
+
+#include "osmplib.h"
+#include "logger.h"
+
+char *shm_ptr;
+int shared_memory_fd;
+char * shared_memory_name;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -51,6 +61,17 @@ int get_OSMP_SUCCESS(void) {
 
 
 int OSMP_Init(const int *argc, char ***argv) {
+    OSMP_GetSharedMemoryName(&shared_memory_name);
+    shared_memory_fd = shm_open(shared_memory_name,O_CREAT | O_RDWR, 0666);
+    if(shared_memory_fd == -1){
+        log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.\n");
+        return OSMP_FAILURE;
+    }
+    shm_ptr = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    if(shm_ptr == MAP_FAILED){
+        log_to_file(3, __TIMESTAMP__, "Failed to map shared memory.\n");
+        return OSMP_FAILURE;
+    }
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Init");
     for (int i = 0; i < *argc; ++i) {
         printf("%s ", (*argv)[i]);
@@ -129,9 +150,20 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 }
 
 int OSMP_Finalize(void) {
+    int result = close(shared_memory_fd);
+    if(result == -1){
+        log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
+        return OSMP_FAILURE;
+    }
+    free(shared_memory_name);
+    result = munmap(shm_ptr, SHARED_MEMORY_SIZE);
+    if(result==-1){
+        log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
+        return OSMP_FAILURE;
+    }
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
     puts("OSMP_Finalize() not implemented yet");
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Barrier(void) {
@@ -207,6 +239,8 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
 
 int OSMP_GetSharedMemoryName(char **name) {
     int parent = getppid();
+    int size = snprintf(NULL, 0, "%s_%d" ,SHARED_MEMORY_NAME , parent);
+    *name = malloc(((unsigned long) (size + 1)) * sizeof(char));
     int result = sprintf(*name,"%s_%d" ,SHARED_MEMORY_NAME , parent);
     if(result<0){
         return OSMP_FAILURE;
