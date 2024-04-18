@@ -77,6 +77,11 @@ int OSMP_Init(const int *argc, char ***argv) {
         printf("%s ", (*argv)[i]);
     }
     puts("");
+
+    // Test
+    sleep(3);
+    printf("%s", shm_ptr);
+
     return OSMP_SUCCESS;
 }
 

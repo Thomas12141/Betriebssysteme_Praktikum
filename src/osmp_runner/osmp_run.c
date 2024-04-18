@@ -9,8 +9,13 @@
 
 #include "../osmp_library/logger.h"
 
-#define SHARED_MEMORY_NAME "/shared_memory"
 #define SHARED_MEMORY_SIZE 1024
+
+/**
+ * Shared memory name to be created following the scheme:
+ * shared_memory_<runner_pid>
+ */
+char* shared_memory_name;
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments){
     for (int i = 0; i < number_of_executables; ++i) {
@@ -42,11 +47,13 @@ int freeAll(int shared_memory, char * shm_ptr){
         log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
         return -1;
     }
-    result = shm_unlink(SHARED_MEMORY_NAME);
+    result = shm_unlink(shared_memory_name);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unlink file name.");
         return -1;
     }
+    log_to_file(2, __TIMESTAMP__, "Freeing shared_memory_name");
+    free(shared_memory_name);
     return 0;
 }
 
@@ -82,7 +89,7 @@ void printUsage(void) {
  * ./osmp_run <ProcAnzahl> [-L <PfadZurLogDatei> [-V <LogVerbosität>]] ./<osmp_executable> [<param1> <param2> ...]
  * entsprechen, wird printUsage() aufgerufen und das Programm mit EXIT_FAILURE beendet.
  * Achtung: exec_args_index kann == argc sein, nämlich dann, wenn keine Argumente für die OSMP-Executable übergeben werden.
- * Dies muss von der aufrufenden Funktion abgefangen werden.
+ * Dies muss von der aufrufenden Funktion abgefangen werden.#define SHARED_MEMORY_NAME "/shared_memory"
  *
  * @param[in] argc              Die Anzahl der gesamten Kommandozeilenargumente, die an dieses Programm übergeben wurden.
  * @param[in] argv              Zeiger auf die gesamten Kommandozeilenargumente, die an dieses Programm übergeben wurden.
@@ -145,15 +152,32 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
     *exec_args_index = i;
 }
 
+void set_shm_name()  {
+    int pid = getpid();
+    // Länge von pid
+    int length_prefix = strlen("/shared_memory_");
+    int length_pid = snprintf(NULL, 0, "%d", pid);
+    // Präfix + PID + Nullbyte
+    unsigned long total_length = (unsigned long)(length_prefix + length_pid + 1);
+    // Allokiere ausreichend Speicherplatz für zusammengesetzten Namen
+    shared_memory_name = calloc(total_length, sizeof(char));
+    log_to_file(2, __TIMESTAMP__, "Calloc space for shared memory name");
+    // Konkateniere Strings
+    snprintf(shared_memory_name, total_length, "/shared_memory_%d", pid);
+}
+
 
 int main (int argc, char **argv) {
     int processes, verbosity, exec_args_index;
     char *log_file = NULL, *executable;
+
+    set_shm_name();
+
     parse_args(argc, argv, &processes, &log_file, &verbosity, &executable, &exec_args_index);
 
     logging_init(log_file, verbosity);
 
-    int shared_memory_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
+    int shared_memory_fd = shm_open(shared_memory_name, O_CREAT | O_RDWR, 0666);
 
     if (shared_memory_fd==-1){
         log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.");
@@ -171,6 +195,8 @@ int main (int argc, char **argv) {
         log_to_file(3, __TIMESTAMP__, "Failed to map memory.");
         return -1;
     }
+
+    sprintf(shm_ptr, "Hello world!\n");
 
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
