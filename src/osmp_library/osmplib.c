@@ -9,7 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <bits/fcntl.h>
+#include <fcntl.h>
 #include <malloc.h>
 
 #include "osmplib.h"
