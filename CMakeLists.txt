@@ -19,7 +19,7 @@ set(MAIN_SOURCES_FOR_EXECUTABLES
 set(LIBRARY_SRC_FILES
     src/osmp_library/osmplib.c src/osmp_library/osmplib.h
     src/osmp_library/OSMP.h
-        src/osmp_library/logger.c
+    src/osmp_library/logger.c src/osmp_library/logger.c
 )
 
 #== set sources for each executable ==#
@@ -51,13 +51,15 @@ add_executable(osmpExecutable_Gather ${SOURCES_FOR_EXECUTABLE_GATHER} )
 
 #== Add Library taget ==#
 add_library(libosmp STATIC ${LIBRARY_SRC_FILES})
+add_library(liblogger STATIC ${LIBRARY_SRC_FILES})
 
 #== Link Library to executables ==#
 #== If you added a new executable, add a new target_link_libraries line here ==#
 set(LIBRARIES
         pthread
         libosmp
-        rt)
+        rt
+        liblogger)
 
 target_link_libraries(osmp_run ${LIBRARIES})
 target_link_libraries(osmpExecutable_SendIRecv ${LIBRARIES})

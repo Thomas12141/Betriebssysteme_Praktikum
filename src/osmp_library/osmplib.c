@@ -4,39 +4,63 @@
 #define SHARED_MEMORY_NAME "/shared_memory"
 
 #include "osmplib.h"
-#include <unistd.h>
+#include "logger.h"
 #include <string.h>
+#include <unistd.h>
 #include <stdlib.h>
 
+/**
+ * Übergibt eine Level-1-Lognachricht an den Logger.
+ *
+ * @param pid           Die Process ID des aufrufenden Prozesses.
+ * @param timestamp     Der Zeitpunkt des Aufrufs
+ * @param function_name Der Name der aufrufenden Funktion.
+ */
+void log_osmp_lib_call(char* timestamp, const char* function_name) {
+    // ausreichend großen Buffer für formatierten String erstellen
+    unsigned long string_len = 30 + strlen(timestamp) + strlen(function_name);
+    char message[string_len];
+    sprintf(message, "OSMP function %s() called", function_name);
+    log_to_file(1, timestamp, message);
+}
+
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
-  return OSMP_MAX_PAYLOAD_LENGTH;
+    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_PAYLOAD_LENGTH");
+    return OSMP_MAX_PAYLOAD_LENGTH;
 }
 
 int get_OSMP_MAX_SLOTS(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_SLOTS");
     return OSMP_MAX_SLOTS;
 }
 
 int get_OSMP_MAX_MESSAGES_PROC(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_MESSAGES_PROC");
     return OSMP_MAX_MESSAGES_PROC;
 }
 
 int get_OSMP_FAILURE(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_FAILURE");
     return OSMP_FAILURE;
 }
 
 int get_OSMP_SUCCESS(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_SUCCESS");
     return OSMP_SUCCESS;
 }
 
 
 int OSMP_Init(const int *argc, char ***argv) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Init");
     for (int i = 0; i < *argc; ++i) {
-        printf("%s", *argv[i]);
+        printf("%s ", (*argv)[i]);
     }
+    puts("");
     return OSMP_SUCCESS;
 }
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_SizeOf");
     if(datatype == OSMP_SHORT){
         *size = sizeof(short int);
         return OSMP_SUCCESS;
@@ -72,16 +96,20 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-    printf("%d", *size);
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Size");
+    printf("%d\n", *size);
     return OSMP_FAILURE;
 }
 
 int OSMP_Rank(int *rank) {
-    printf("%d", *rank);
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Rank");
+    printf("%d\n", *rank);
     return OSMP_FAILURE;
 }
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Send");
+    puts("OSMP_Send() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -90,6 +118,8 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Recv");
+    puts("OSMP_Recv() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -99,14 +129,20 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 }
 
 int OSMP_Finalize(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
+    puts("OSMP_Finalize() not implemented yet");
     return OSMP_FAILURE;
 }
 
 int OSMP_Barrier(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Barrier");
+    puts("OSMP_Barrier() not implemented yet");
     return OSMP_FAILURE;
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Gather");
+    puts("OSMP_Gather() not implemented yet");
     UNUSED(sendbuf);
     UNUSED(sendcount);
     UNUSED(sendtype);
@@ -118,6 +154,8 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
 }
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_ISend");
+    puts("OSMP_ISend() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -127,6 +165,8 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_IRecv");
+    puts("OSMP_IRecv() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
     UNUSED(datatype);
@@ -137,22 +177,30 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Test");
+    puts("OSMP_Test not implemented yet");
     UNUSED(request);
     UNUSED(flag);
     return OSMP_FAILURE;
 }
 
 int OSMP_Wait(OSMP_Request request) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Wait");
+    puts("OSMP_Wait() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_CreateRequest");
+    puts("OSMP_CreateRequest() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_RemoveRequest");
+    puts("OSMP_RemoveRequest) not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }

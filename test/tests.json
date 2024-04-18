@@ -2,9 +2,9 @@
   {
     "TestName": "ExampleTest",
     "ProcAnzahl": 5,
-    "PfadZurLogDatei": " ",
+    "PfadZurLogDatei": "",
     "LogVerbositaet": 0,
-    "osmp_executable": "osmpExecutable_exampleExecutable",
+    "osmp_executable": "osmpExecutable_Barrier",
     "parameter": [
         "param1",
         "param2",
