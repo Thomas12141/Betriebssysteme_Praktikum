@@ -12,6 +12,12 @@
 #define SHARED_MEMORY_NAME "/shared_memory"
 #define SHARED_MEMORY_SIZE 1024
 
+/**
+ * Shared memory name to be created following the scheme:
+ * shared_memory_<runner_pid>
+ */
+char* shared_memory_name;
+
 int start_all_executables(int number_of_executables, char* executable, char ** arguments){
     for (int i = 0; i < number_of_executables; ++i) {
         pid_t pid = fork();
@@ -47,6 +53,8 @@ int freeAll(int shared_memory, char * shm_ptr){
         log_to_file(3, __TIMESTAMP__, "Couldn't unlink file name.");
         return -1;
     }
+    log_to_file(2, __TIMESTAMP__, "Freeing shared_memory_name");
+    free(shared_memory_name);
     return 0;
 }
 
@@ -143,6 +151,19 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
 
     // Die restlichen Parameter sind Argumente für die OSMP-Executable
     *exec_args_index = i;
+}
+
+void create_shm_name()  {
+    int pid = getpid();
+    // Länge von pid
+    int length_prefix = strlen("/shared_memory_");
+    int length_pid = snprintf(NULL, 0, "%d", pid);
+    // Präfix + PID + Nullbyte
+    unsigned long total_length = (unsigned long)(length_prefix + length_pid + 1);
+    // Allokiere ausreichend Speicherplatz für zusammengesetzten Namen
+    shared_memory_name = calloc(1, total_length);
+    // Konkateniere Strings
+    snprintf(shared_memory_name, total_length, "/shared_memory_%d", pid);
 }
 
 
