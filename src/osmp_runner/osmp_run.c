@@ -89,7 +89,7 @@ void printUsage() {
  * ./osmp_run <ProcAnzahl> [-L <PfadZurLogDatei> [-V <LogVerbosität>]] ./<osmp_executable> [<param1> <param2> ...]
  * entsprechen, wird printUsage() aufgerufen und das Programm mit EXIT_FAILURE beendet.
  * Achtung: exec_args_index kann == argc sein, nämlich dann, wenn keine Argumente für die OSMP-Executable übergeben werden.
- * Dies muss von der aufrufenden Funktion abgefangen werden.
+ * Dies muss von der aufrufenden Funktion abgefangen werden.#define SHARED_MEMORY_NAME "/shared_memory"
  *
  * @param[in] argc              Die Anzahl der gesamten Kommandozeilenargumente, die an dieses Programm übergeben wurden.
  * @param[in] argv              Zeiger auf die gesamten Kommandozeilenargumente, die an dieses Programm übergeben wurden.
@@ -160,7 +160,7 @@ void set_shm_name()  {
     // Präfix + PID + Nullbyte
     unsigned long total_length = (unsigned long)(length_prefix + length_pid + 1);
     // Allokiere ausreichend Speicherplatz für zusammengesetzten Namen
-    shared_memory_name = calloc(1, total_length);
+    shared_memory_name = calloc(total_length, sizeof(char));
     log_to_file(2, __TIMESTAMP__, "Calloc space for shared memory name");
     // Konkateniere Strings
     snprintf(shared_memory_name, total_length, "/shared_memory_%d", pid);
