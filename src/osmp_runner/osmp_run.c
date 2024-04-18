@@ -197,6 +197,7 @@ int main (int argc, char **argv) {
     }
 
     sprintf(shm_ptr, "Hello world!\n");
+    memcpy(shm_ptr, &processes, sizeof(processes));
 
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
