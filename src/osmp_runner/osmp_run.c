@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include "../osmp_library/logger.h"
+
 #define SHARED_MEMORY_NAME "/shared_memory"
 #define SHARED_MEMORY_SIZE 1024
 
@@ -18,11 +20,11 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         }
         puts("");
         if (pid < 0) {
-            printf("Failed to fork.\n");
+            log_to_file(3, __TIMESTAMP__, "failed to fork");
             return -1;
         } else if (pid == 0) {
             execv(executable, arguments);
-            perror("execv failed.\n");
+            log_to_file(3, __TIMESTAMP__, "execv failed");
             return -1;
         }
     }
@@ -32,17 +34,17 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
 int freeAll(int shared_memory, char * shm_ptr){
     int result = munmap(shm_ptr, SHARED_MEMORY_SIZE);
     if(result==-1){
-        printf("Couldn't unmap memory.\n");
+        log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
         return -1;
     }
     result = close(shared_memory);
     if(result==-1){
-        printf("Couldn't close file descriptor memory.\n");
+        log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
         return -1;
     }
     result = shm_unlink(SHARED_MEMORY_NAME);
     if(result==-1){
-        printf("Couldn't unlink file name.\n");
+        log_to_file(3, __TIMESTAMP__, "Couldn't unlink file name.");
         return -1;
     }
     return 0;
@@ -146,24 +148,27 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
 
 int main (int argc, char **argv) {
     int processes, verbosity, exec_args_index;
-    char *log_file, *executable;
+    char *log_file = NULL, *executable;
     parse_args(argc, argv, &processes, &log_file, &verbosity, &executable, &exec_args_index);
+
+    logging_init(log_file, verbosity);
+
     int shared_memory_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
 
     if (shared_memory_fd==-1){
-        printf("Failed to open shared memory.\n");
+        log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.");
         return -1;
     }
     int ftruncate_result = ftruncate(shared_memory_fd, SHARED_MEMORY_SIZE);
 
     if(ftruncate_result == -1){
-        printf("Failed to truncate.\n");
+        log_to_file(3, __TIMESTAMP__, "Failed to truncate.");
         return -1;
     }
     char *shm_ptr = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
 
     if (shm_ptr == MAP_FAILED){
-        printf("Failed to map memory.\n");
+        log_to_file(3, __TIMESTAMP__, "Failed to map memory.");
         return -1;
     }
 
@@ -179,7 +184,7 @@ int main (int argc, char **argv) {
         int status;
         pid_t pid_child =  wait(&status);
         if (pid_child==-1){
-            printf("Problem by waiting\n");
+            log_to_file(3, __TIMESTAMP__, "Problem by waiting");
         }
         if ( WIFEXITED(status)&&WEXITSTATUS(status)!=0 ) {
             printf("Child returned failure code.\n");
