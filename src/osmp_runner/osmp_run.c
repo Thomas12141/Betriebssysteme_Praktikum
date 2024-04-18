@@ -80,7 +80,7 @@ int is_whitespace(const char* string) {
 /**
  * Gibt die korrekte Verwendung des Programms aus.
  */
-void printUsage() {
+void printUsage(void) {
     printf("Usage: ./osmp_run <ProcAnzahl> [-L <PfadZurLogDatei> [-V <LogVerbosität>]] ./<osmp_executable> [<param1> <param2> ...]\n");
 }
 
@@ -152,10 +152,10 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
     *exec_args_index = i;
 }
 
-void set_shm_name()  {
+void set_shm_name(void)  {
     int pid = getpid();
     // Länge von pid
-    int length_prefix = strlen("/shared_memory_");
+    long length_prefix = strlen("/shared_memory_");
     int length_pid = snprintf(NULL, 0, "%d", pid);
     // Präfix + PID + Nullbyte
     unsigned long total_length = (unsigned long)(length_prefix + length_pid + 1);
