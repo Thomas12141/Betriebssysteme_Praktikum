@@ -152,7 +152,7 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
     *exec_args_index = i;
 }
 
-void set_shm_name()  {
+void set_shm_name(void)  {
     int pid = getpid();
     // Länge von pid
     long length_prefix = strlen("/shared_memory_");
