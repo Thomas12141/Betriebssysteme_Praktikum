@@ -1,8 +1,12 @@
 /**
  * In dieser Quelltext-Datei sind Implementierungen der OSMP Bibliothek zu finden.
  */
+#define SHARED_MEMORY_NAME "/shared_memory"
 
 #include "osmplib.h"
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
   return OSMP_MAX_PAYLOAD_LENGTH;
@@ -154,11 +158,10 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
 }
 
 int OSMP_GetSharedMemoryName(char **name) {
-    char * string = *name;
-    int count = 0;
-    while (string!=NULL){
-        printf("%s", string);
-        string = name[++count];
+    int parent = getppid();
+    int result = sprintf(*name,"%s_%d" ,SHARED_MEMORY_NAME , parent);
+    if(result<0){
+        return OSMP_FAILURE;
     }
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
