@@ -73,7 +73,7 @@ int is_whitespace(const char* string) {
 /**
  * Gibt die korrekte Verwendung des Programms aus.
  */
-void printUsage() {
+void printUsage(void) {
     printf("Usage: ./osmp_run <ProcAnzahl> [-L <PfadZurLogDatei> [-V <LogVerbosität>]] ./<osmp_executable> [<param1> <param2> ...]\n");
 }
 
