@@ -155,7 +155,7 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
 void set_shm_name()  {
     int pid = getpid();
     // Länge von pid
-    int length_prefix = strlen("/shared_memory_");
+    long length_prefix = strlen("/shared_memory_");
     int length_pid = snprintf(NULL, 0, "%d", pid);
     // Präfix + PID + Nullbyte
     unsigned long total_length = (unsigned long)(length_prefix + length_pid + 1);
