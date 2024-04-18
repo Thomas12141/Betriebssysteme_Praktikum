@@ -196,6 +196,8 @@ int main (int argc, char **argv) {
         return -1;
     }
 
+    sprintf(shm_ptr, "Hello world!\n");
+
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
     int starting_result = start_all_executables(processes, executable, arguments);
