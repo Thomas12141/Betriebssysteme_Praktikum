@@ -9,7 +9,6 @@
 
 #include "../osmp_library/logger.h"
 
-#define SHARED_MEMORY_NAME "/shared_memory"
 #define SHARED_MEMORY_SIZE 1024
 
 /**
@@ -48,7 +47,7 @@ int freeAll(int shared_memory, char * shm_ptr){
         log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
         return -1;
     }
-    result = shm_unlink(SHARED_MEMORY_NAME);
+    result = shm_unlink(shared_memory_name);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unlink file name.");
         return -1;
@@ -153,7 +152,7 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
     *exec_args_index = i;
 }
 
-void create_shm_name()  {
+void set_shm_name()  {
     int pid = getpid();
     // Länge von pid
     int length_prefix = strlen("/shared_memory_");
@@ -162,6 +161,7 @@ void create_shm_name()  {
     unsigned long total_length = (unsigned long)(length_prefix + length_pid + 1);
     // Allokiere ausreichend Speicherplatz für zusammengesetzten Namen
     shared_memory_name = calloc(1, total_length);
+    log_to_file(2, __TIMESTAMP__, "Calloc space for shared memory name");
     // Konkateniere Strings
     snprintf(shared_memory_name, total_length, "/shared_memory_%d", pid);
 }
@@ -170,11 +170,14 @@ void create_shm_name()  {
 int main (int argc, char **argv) {
     int processes, verbosity, exec_args_index;
     char *log_file = NULL, *executable;
+
+    set_shm_name();
+
     parse_args(argc, argv, &processes, &log_file, &verbosity, &executable, &exec_args_index);
 
     logging_init(log_file, verbosity);
 
-    int shared_memory_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
+    int shared_memory_fd = shm_open(shared_memory_name, O_CREAT | O_RDWR, 0666);
 
     if (shared_memory_fd==-1){
         log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.");
