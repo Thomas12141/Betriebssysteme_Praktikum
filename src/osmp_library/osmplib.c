@@ -1,12 +1,13 @@
 /**
  * In dieser Quelltext-Datei sind Implementierungen der OSMP Bibliothek zu finden.
  */
-
-#include <string.h>
-#include <unistd.h>
+#define SHARED_MEMORY_NAME "/shared_memory"
 
 #include "osmplib.h"
 #include "logger.h"
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -205,13 +206,10 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
 }
 
 int OSMP_GetSharedMemoryName(char **name) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_GetSharedMemoryName");
-    puts("OSMP_GetSharedMemoryName() not implemented yet");
-    char * string = *name;
-    int count = 0;
-    while (string!=NULL){
-        printf("%s", string);
-        string = name[++count];
+    int parent = getppid();
+    int result = sprintf(*name,"%s_%d" ,SHARED_MEMORY_NAME , parent);
+    if(result<0){
+        return OSMP_FAILURE;
     }
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
