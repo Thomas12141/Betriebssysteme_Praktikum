@@ -125,7 +125,7 @@ int OSMP_Size(int *size) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Size");
     memcpy(size, shm_ptr, sizeof(int));
     printf("size: %d\n", *size);
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {

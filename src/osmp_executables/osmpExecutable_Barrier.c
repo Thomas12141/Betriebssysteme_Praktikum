@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
     puts("Test");
     int rv, size=0, rank=0, wait_time;
     rv = OSMP_Init(&argc, &argv);
+    if(rv==)
     rv = OSMP_Size(&size);
     rv = OSMP_Rank(&rank);
 
