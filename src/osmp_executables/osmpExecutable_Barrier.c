@@ -14,10 +14,10 @@ int main(int argc, char *argv[]) {
     puts("Test");
     int rv, size=0, rank=0, wait_time;
     rv = OSMP_Init(&argc, &argv);
-    if(rv==)
     rv = OSMP_Size(&size);
     rv = OSMP_Rank(&rank);
-
+    printf("Rank: %d\n",rank);
+    printf("Size: %d\n", size);
     // Seed für Zufallszahlen setzen
     srand((unsigned int)(time(NULL)+rank));
     // Setze wait_time auf eine zufällige Zahl zwischen 1 und 10
