@@ -17,9 +17,10 @@
  */
 char* shared_memory_name;
 
-int start_all_executables(int number_of_executables, char* executable, char ** arguments){
+int start_all_executables(int number_of_executables, char* executable, char ** arguments, char * shm_ptr){
+    char * iterator = shm_ptr + 5;
     for (int i = 0; i < number_of_executables; ++i) {
-        pid_t pid = fork();
+        int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
             printf("%s ", arguments[j]);
         }
@@ -31,6 +32,11 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             execv(executable, arguments);
             log_to_file(3, __TIMESTAMP__, "execv failed");
             return -1;
+        } else{
+            char toSave[20];
+            sprintf(toSave, "%d", pid);
+            strcpy(iterator, toSave);
+            iterator +=  strlen(toSave) +1;
         }
     }
     return 0;
@@ -196,12 +202,12 @@ int main (int argc, char **argv) {
         return -1;
     }
 
-    sprintf(shm_ptr, "Hello world!\n");
     memcpy(shm_ptr, &processes, sizeof(processes));
 
+    printf("%s", shm_ptr);
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
-    int starting_result = start_all_executables(processes, executable, arguments);
+    int starting_result = start_all_executables(processes, executable, arguments, shm_ptr);
 
     if(starting_result!=0){
         return -1;

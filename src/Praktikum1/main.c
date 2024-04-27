@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <sys/wait.h>
 
-int main() {
+int main(void) {
     pid_t pid = fork();
     if (pid == -1) {
         printf("Failed to fork.");

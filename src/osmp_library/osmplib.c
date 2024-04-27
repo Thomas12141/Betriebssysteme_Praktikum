@@ -125,12 +125,27 @@ int OSMP_Size(int *size) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Size");
     memcpy(size, shm_ptr, sizeof(int));
     printf("size: %d\n", *size);
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Rank");
-    printf("%d\n", *rank);
+    char *iterator = shm_ptr + 5;
+    char my_pid[20];
+    int getpid_result = getpid();
+    sprintf(my_pid, "%d", getpid_result);
+    int osmp_size;
+    OSMP_Size(&osmp_size);
+    printf("Child PID: %s\n", my_pid);
+    for (int i = 0; i < osmp_size; ++i) {
+        printf("Child Iterator: %s\n", iterator);
+        if(strcmp(my_pid, iterator) == 0){
+            *rank = i;
+            return OSMP_SUCCESS;
+        }
+        iterator += strlen(iterator) + 1;
+    }
+    printf("Rank not found\n");
     return OSMP_FAILURE;
 }
 
