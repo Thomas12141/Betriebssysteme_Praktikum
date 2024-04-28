@@ -22,6 +22,8 @@
 
 typedef void* OSMP_Request;
 
+#define SHARED_MEMORY_SIZE 1024
+
 /**
  * Die maximale Zahl der Nachrichten pro Prozess 
  */
@@ -264,4 +266,5 @@ int OSMP_RemoveRequest(OSMP_Request *request);
  */
 int OSMP_GetSharedMemoryName(char **name);
 
+void OSMP_GetSharedMemoryPointer(char **shared_memory);
 #endif /* BETRIEBSSYSTEME_OSMP_H */
