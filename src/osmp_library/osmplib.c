@@ -3,7 +3,6 @@
  */
 #define SHARED_MEMORY_NAME "/shared_memory"
 #define SHARED_MEMORY_SIZE 1024
-#define NO_MESSAGE          0
 
 #include "osmplib.h"
 #include "logger.h"
@@ -17,16 +16,6 @@
 char *shm_ptr;
 int shared_memory_fd, OSMP_size, OSMP_rank;
 char *shared_memory_name;
-
-/**
- * Struct für eine Nachricht entsprechend der Definition unseres Shared Memory.
- */
-typedef struct OSMP_message {
-    unsigned short free;                    // Flag: Slot frei (1) oder nicht (0)?
-    OSMP_Datatype type;                     // Datentyp der enthaltenen Nachricht
-    char payload[OSMP_MAX_PAYLOAD_LENGTH];  // eigentliche Nachricht
-    int next_message;                       // Offset (rel. zum Anfang des SHM) zur nächsten Nachricht des Empfängers (0 = keine weitere Nachricht)
-} OSMP_message;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
