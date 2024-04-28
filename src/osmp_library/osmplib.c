@@ -6,18 +6,16 @@
 
 #include "osmplib.h"
 #include "logger.h"
+#include "OSMP.h"
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <malloc.h>
 
-#include "osmplib.h"
-#include "logger.h"
-
 char *shm_ptr;
-int shared_memory_fd;
-char * shared_memory_name;
+int shared_memory_fd, OSMP_size, OSMP_rank;
+char *shared_memory_name;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -32,6 +30,85 @@ void log_osmp_lib_call(char* timestamp, const char* function_name) {
     char message[string_len];
     sprintf(message, "OSMP function %s() called", function_name);
     log_to_file(1, timestamp, message);
+}
+
+/**
+ * Offset (relativ zum Beginn des Shared Memory), ab dem der Postfach- und Nachrichten-Bereich beginnt, einschließlich
+ * der Liste der freien Slots (vgl. Struktur des Shared Memory).
+ * @return Offset (relativ zum Beginn des Shared Memory), an dem die Liste der freien Postfächer beginnt.
+ */
+int get_free_postboxes_list_offset() {
+    log_osmp_lib_call(__TIMESTAMP__, "get_free_postboxes_list_offset");
+    unsigned int int_size;
+    OSMP_SizeOf(OSMP_INT, &int_size);
+    // TODO: Berechne korrekten Offset für die Postfächer.
+    // shm_size ints für die Ranks + 1 Mutex
+    return (OSMP_size+1) *  (int)(int_size);
+}
+
+/**
+ * Berechnet den Offset (relativ zum Beginn des Shared Memory), an dem der Bereich der Postfächer beginnt.
+ * @return Offset (relativ zum Beginn des SHM), an dem die Postfächer beginnen.
+ */
+int get_postboxes_offset() {
+    log_osmp_lib_call(__TIMESTAMP__, "get_postbox_offset");
+    unsigned int int_size;
+    OSMP_SizeOf(OSMP_INT, &int_size);
+    return get_free_postboxes_list_offset() + OSMP_size * (int)int_size;
+}
+
+/**
+ * Gibt den Offset (relativ zum Beginn des Shared Memory) zurück, an dem das Postfach des aufrufenden Prozesses liegt.
+ * @return Offset (relativ zum Beginn des Shared Memory), an dem das Postfach des aufrufenden Prozesses liegt.
+ */
+int get_postbox_offset() {
+    log_osmp_lib_call(__TIMESTAMP__, "get_postbox_offset");
+    unsigned int int_size;
+    OSMP_SizeOf(OSMP_INT, &int_size);
+    return get_postboxes_offset() + OSMP_rank * (int)int_size;
+}
+
+/**
+ * Gibt in *free_slots* die freien Nachrichtenslots zurück.
+ * @param free_slots Zeiger auf ein int-Array, in das die freien Nachrichtenslots geschrieben werden. Leere Stellen des Arrays werden auf -1 gesetzt. Das Array muss OSMP_Size groß sein.
+ */
+void get_free_slots(int* free_slots) {
+    log_osmp_lib_call(__TIMESTAMP__, "get_free_slots");
+    memcpy(free_slots, shm_ptr + get_postboxes_offset(), (size_t)OSMP_size);
+}
+
+/**
+ * Gibt den Offset zu dem Slot zurück, in dem die nächste Nachricht für den aufrufenden Prozess liegt.
+ * @return Offset in Bytes zu dem Slot, in dem die nächste Nachricht für den Prozess liegt. NO_MESSAGE, wenn das Postfach leer ist.
+ */
+int get_next_message_slot() {
+    log_osmp_lib_call(__TIMESTAMP__, "get_next_message_slot");
+    int slot, offset;
+    unsigned int int_size;
+    OSMP_SizeOf(OSMP_INT, &int_size);
+    offset = get_postbox_offset();
+    memcpy(&slot, shm_ptr+offset+OSMP_rank, int_size);
+    return slot;
+}
+
+/**
+ * Prüft das Postfach des aufrufenden Prozesses auf die Anzahl der für ihn bereiten Nachrichten.
+ * @return Die Anzahl der Nachrichten, die für den aufrufenden Prozess bereit sind.
+ */
+int get_number_of_messages() {
+    log_osmp_lib_call(__TIMESTAMP__, "get_number_of_messages");
+    int number = 0, offset, message_slot;
+    unsigned int int_size;
+    offset = get_postbox_offset();
+    OSMP_SizeOf(OSMP_INT, &int_size);
+    // Iteriere durch alle Einträge des Postfachs
+    for(int i=0; i<OSMP_MAX_MESSAGES_PROC; i++) {
+        memcpy(&message_slot, shm_ptr+offset, int_size);
+        if(message_slot != NO_MESSAGE) {
+            number++;
+        }
+    }
+    return number;
 }
 
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
@@ -81,6 +158,10 @@ int OSMP_Init(const int *argc, char ***argv) {
     // Test
     sleep(3);
     printf("%s", shm_ptr);
+
+    // Setze globale Variablen
+    OSMP_Size(&OSMP_size);
+    OSMP_Rank(&OSMP_rank);
 
     return OSMP_SUCCESS;
 }
