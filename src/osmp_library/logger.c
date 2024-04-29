@@ -62,11 +62,27 @@ void logging_init_parent(char * name, int log_verbosity){
 /**
  * Initialisiert die Log-Bibliothek für das Kind. Es speichert die verbosität und Dateiname.
  */
-void logging_init_child(char * shared_memory){
-    strcpy(file_name, shared_memory+SHARED_MEMORY_SIZE-258);
-    verbosity = atoi(shared_memory+SHARED_MEMORY_SIZE-2);
-    printf("Log filename: %s verbosity: %d", file_name, verbosity);
+void logging_init_child(char *shared_memory) {
+    if (shared_memory == NULL) {
+        fprintf(stderr, "Error: shared_memory is NULL\n");
+        return;
+    }
+
+    size_t file_name_length = strlen(shared_memory + SHARED_MEMORY_SIZE - 258);
+    file_name = malloc(file_name_length + 1);
+    if (file_name == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        return;
+    }
+
+    strncpy(file_name, shared_memory + SHARED_MEMORY_SIZE - 258, file_name_length);
+    file_name[file_name_length] = '\0';
+
+    verbosity = atoi(shared_memory + SHARED_MEMORY_SIZE - 2);
+
+    printf("Log filename: %s verbosity: %d\n", file_name, verbosity);
 }
+
 
 /**
  * Schreibt in die Logdatei.
@@ -105,6 +121,7 @@ void log_to_file(int level, char* timestamp, char* message){
 void logging_close(void){
     fclose(logging_file);
     logging_file = NULL;
+    free(file_name);
     pthread_mutex_destroy(&mutex);
 }
 
