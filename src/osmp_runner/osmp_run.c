@@ -28,7 +28,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         if (pid < 0) {
             log_to_file(3, __TIMESTAMP__, "failed to fork");
             return -1;
-        } else if (pid == 0) {
+        } else if (pid == 0) {//Child process.
             execv(executable, arguments);
             log_to_file(3, __TIMESTAMP__, "execv failed");
             return -1;
@@ -167,21 +167,19 @@ void set_shm_name(void)  {
     unsigned long total_length = (unsigned long)(length_prefix + length_pid + 1);
     // Allokiere ausreichend Speicherplatz für zusammengesetzten Namen
     shared_memory_name = calloc(total_length, sizeof(char));
-    log_to_file(2, __TIMESTAMP__, "Calloc space for shared memory name");
     // Konkateniere Strings
     snprintf(shared_memory_name, total_length, "/shared_memory_%d", pid);
 }
 
-
 int main (int argc, char **argv) {
-    int processes, verbosity, exec_args_index;
+    int processes, verbosity = 1, exec_args_index;
     char *log_file = NULL, *executable;
 
     set_shm_name();
 
     parse_args(argc, argv, &processes, &log_file, &verbosity, &executable, &exec_args_index);
 
-    logging_init(log_file, verbosity);
+    logging_init_parent(log_file, verbosity);
 
     int shared_memory_fd = shm_open(shared_memory_name, O_CREAT | O_RDWR, 0666);
 
@@ -204,14 +202,20 @@ int main (int argc, char **argv) {
 
     memcpy(shm_ptr, &processes, sizeof(processes));
 
-    printf("%s", shm_ptr);
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
     int starting_result = start_all_executables(processes, executable, arguments, shm_ptr);
-
     if(starting_result!=0){
         return -1;
     }
+
+    strcpy(shm_ptr+SHARED_MEMORY_SIZE-258, get_logfile_name());
+
+    char verbosity_as_str[2];
+
+    sprintf(verbosity_as_str, "%d", verbosity);
+
+    strcpy(shm_ptr+SHARED_MEMORY_SIZE-2, verbosity_as_str);
 
     for (int j = 0; j < processes; ++j) {
         int status;

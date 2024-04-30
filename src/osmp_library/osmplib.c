@@ -2,7 +2,6 @@
  * In dieser Quelltext-Datei sind Implementierungen der OSMP Bibliothek zu finden.
  */
 #define SHARED_MEMORY_NAME "/shared_memory"
-#define SHARED_MEMORY_SIZE 1024
 
 #include "osmplib.h"
 #include "logger.h"
@@ -141,10 +140,11 @@ int OSMP_Init(const int *argc, char ***argv) {
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_CREAT | O_RDWR, 0666);
     if(shared_memory_fd == -1){
-        log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.\n");
+        printf("Failed to open shared memory.\n");
         return OSMP_FAILURE;
     }
     shm_ptr = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    logging_init_child(shm_ptr);
     if(shm_ptr == MAP_FAILED){
         log_to_file(3, __TIMESTAMP__, "Failed to map shared memory.\n");
         return OSMP_FAILURE;
@@ -205,7 +205,6 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 int OSMP_Size(int *size) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Size");
     memcpy(size, shm_ptr, sizeof(int));
-    printf("size: %d\n", *size);
     return OSMP_SUCCESS;
 }
 
@@ -217,9 +216,7 @@ int OSMP_Rank(int *rank) {
     sprintf(my_pid, "%d", getpid_result);
     int osmp_size;
     OSMP_Size(&osmp_size);
-    printf("Child PID: %s\n", my_pid);
     for (int i = 0; i < osmp_size; ++i) {
-        printf("Child Iterator: %s\n", iterator);
         if(strcmp(my_pid, iterator) == 0){
             *rank = i;
             return OSMP_SUCCESS;
@@ -348,4 +345,8 @@ int OSMP_GetSharedMemoryName(char **name) {
         return OSMP_FAILURE;
     }
     return OSMP_SUCCESS;
+}
+
+void OSMP_GetSharedMemoryPointer(char **shared_memory) {
+    *shared_memory = shm_ptr;
 }

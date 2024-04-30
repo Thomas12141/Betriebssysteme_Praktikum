@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include "logger.h"
+
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 FILE *logging_file;
@@ -28,14 +30,14 @@ void init_file(const char *filename) {
 }
 
 /**
- * Initialisiert die Log-Bibliothek. Erzeugt Logdatei, falls sie noch nicht existiert.
+ * Initialisiert die Log-Bibliothek. Erzeugt Logdatei, falls sie noch nicht existiert. Diese Methode ist für das Elter, das Kind hat eine eigene Methode.
  * @param name          Pfad zur Logdatei.
  * @param log_verbosity Logging-Verbosität (Level 1-3). Bei ungültigem Wert wird das Standard-Level 1 verwendet.
  */
-void logging_init(char * name, int log_verbosity){
+void logging_init_parent(char * name, int log_verbosity){
     // Erlaubte Werte für Verbosität: 1 bis 3
     // Bei unerlaubtem Wert wird Standard (1) verwendet
-    if(log_verbosity >= 1 && log_verbosity <= 3) {
+    if(log_verbosity > 1 && log_verbosity <= 3) {
         verbosity = log_verbosity;
     }
 
@@ -56,6 +58,31 @@ void logging_init(char * name, int log_verbosity){
     fprintf(logging_file,"Logfile initialized at %s.\n", __TIMESTAMP__);
     fputs("Log entries follow the scheme <level> - <pid> - <timestamp> - <message>.\n", logging_file);
 }
+
+/**
+ * Initialisiert die Log-Bibliothek für das Kind. Es speichert die verbosität und Dateiname.
+ */
+void logging_init_child(char *shared_memory) {
+    if (shared_memory == NULL) {
+        fprintf(stderr, "Error: shared_memory is NULL\n");
+        return;
+    }
+
+    size_t file_name_length = strlen(shared_memory + SHARED_MEMORY_SIZE - 258);
+    file_name = malloc(file_name_length + 1);
+    if (file_name == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        return;
+    }
+
+    strncpy(file_name, shared_memory + SHARED_MEMORY_SIZE - 258, file_name_length);
+    file_name[file_name_length] = '\0';
+
+    verbosity = atoi(shared_memory + SHARED_MEMORY_SIZE - 2);
+
+    printf("Log filename: %s verbosity: %d\n", file_name, verbosity);
+}
+
 
 /**
  * Schreibt in die Logdatei.
@@ -94,6 +121,7 @@ void log_to_file(int level, char* timestamp, char* message){
 void logging_close(void){
     fclose(logging_file);
     logging_file = NULL;
+    free(file_name);
     pthread_mutex_destroy(&mutex);
 }
 
@@ -111,4 +139,10 @@ void log_memory_function(char* function_name, char* message, char* timestamp) {
     log_to_file(2, timestamp, string);
 }
 
-
+/**
+ * Gibt den Dateinamen zum Loggen zurück.
+ * @return Der Name der Datei als String.
+ */
+char* get_logfile_name(void){
+    return file_name;
+}
