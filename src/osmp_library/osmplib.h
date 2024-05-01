@@ -34,6 +34,9 @@
  */
 typedef struct OSMP_message {
     unsigned short free;                    // Flag: Slot frei (SLOT_FREE) oder nicht (SLOT_TAKEN)?
+    int to;                                 // Rang des empfangenden Prozesses
+    int from;                               // Rang des sendenden Prozesses
+    int len;                                // Länge der Nachricht in Bytes
     OSMP_Datatype type;                     // Datentyp der enthaltenen Nachricht
     char payload[OSMP_MAX_PAYLOAD_LENGTH];  // eigentliche Nachricht
     int next_message;                       // Offset (rel. zum Anfang des SHM) zur nächsten Nachricht des Empfängers (NO_MESSAGE = keine weitere Nachricht)

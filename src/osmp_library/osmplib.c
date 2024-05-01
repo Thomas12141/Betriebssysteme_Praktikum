@@ -178,6 +178,51 @@ void reference_new_message(int dest, int new_message_slot) {
         last_message->next_message = new_message_slot;
     }
 }
+/**
+ * Setzt Flag im angegebenen Nachrichtenslot auf "frei", die Bytes im Nachrichtenpuffer auf 0 und den Verweis auf
+ * die nächste Nachricht auf NO_MESSAGE.
+ * @param message_offset Offset (rel. zum SHM) zum Nachrichtenslot, der geleert werden soll.
+ */
+void empty_message_slot(int message_offset) {
+    log_osmp_lib_call(__TIMESTAMP__, "empty_message_slot");
+    OSMP_message* message = (OSMP_message*) shm_ptr + message_offset;
+    message->free = SLOT_FREE;
+    memset(message->payload, '\0', (unsigned long) message->len);
+    message->next_message = NO_MESSAGE;
+}
+
+/**
+ * Entfernt Nachricht aus der Nachrichtenkette und setzt die Referenzen davor und danach passend.
+ * Der Nachrichtenslot wird außerdem mittels empty_message_slot() geleert.
+ * @param message_offset Offset (rel. zum SHM) zum Slot der Nachricht, die entfernt werden soll.
+ */
+void remove_message(int message_offset) {
+    log_osmp_lib_call(__TIMESTAMP__, "remove_message");
+    OSMP_message* message = (OSMP_message*) shm_ptr + message_offset;
+    // Finde Referenz auf diese Nachricht
+    int postbox_offset = get_postbox_offset(message->to);
+    int next_message_offset;
+    // erste Nachricht im Postfach
+    memcpy(&next_message_offset, shm_ptr+postbox_offset, sizeof(int));
+    if(next_message_offset == message_offset) {
+        // zu entfernende Nachricht war erste Nachricht im Postfach
+        memcpy(shm_ptr+postbox_offset, &(message->next_message), sizeof(int));
+        // Slot leeren
+        empty_message_slot(message_offset);
+        return;
+    }
+    // andernfalls durch verkettete Nachrichten iterieren, bis die passende erreicht wird
+    OSMP_message* previous_message;
+    while(next_message_offset != message_offset) {
+        previous_message = (OSMP_message*)(shm_ptr + next_message_offset);
+        next_message_offset = previous_message->next_message;
+    }
+    // Referenz der vorherigen Nachricht auf nachfolgende Nachricht setzen
+    previous_message = (OSMP_message*)(shm_ptr + next_message_offset);
+    previous_message->next_message = message->next_message;
+    // Slot leeren
+    empty_message_slot(message_offset);
+}
 
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
     log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_PAYLOAD_LENGTH");
@@ -323,6 +368,9 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         int to_copy = OSMP_MAX_PAYLOAD_LENGTH < length_in_bytes ? OSMP_MAX_PAYLOAD_LENGTH : length_in_bytes;
         OSMP_message* message = (OSMP_message*) slot_addr;
         message->free = SLOT_TAKEN;
+        message->to = dest;
+        OSMP_Rank(&(message->from));
+        message->len = to_copy;
         message->type = datatype;
         memcpy(message->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
         message->next_message = NO_MESSAGE;
@@ -337,13 +385,33 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Recv");
-    puts("OSMP_Recv() not implemented yet");
-    UNUSED(buf);
-    UNUSED(count);
-    UNUSED(datatype);
-    UNUSED(source);
-    UNUSED(len);
-    return OSMP_FAILURE;
+    if(count <= 0) {
+        return OSMP_FAILURE;
+    }
+    // TODO: Synchronisierung
+    unsigned int datatype_size;
+    OSMP_SizeOf(datatype, &datatype_size);
+    int length_in_bytes = (int)datatype_size * count;
+    int message_offset = get_next_message_slot();
+    if(message_offset == NO_MESSAGE) {
+        // TODO: oder warten, bis eine Nachricht da ist?
+        return OSMP_FAILURE;
+    }
+    OSMP_message* message = (OSMP_message*)(shm_ptr + message_offset);
+    while(message->type != datatype) {
+        message_offset = message->next_message;
+        if(message_offset == NO_MESSAGE) {
+            return OSMP_FAILURE;
+        }
+        message = (OSMP_message*)(shm_ptr + message_offset);
+    }
+    int max_to_copy = length_in_bytes < message->len ? length_in_bytes : message->len;
+    memcpy(buf, message->payload, (unsigned long) max_to_copy);
+    memcpy(source, &(message->from), sizeof(int));
+    memcpy(len, &max_to_copy, sizeof(int));
+    // Leere Slot und entferne Referenzen auf die Nachricht
+    remove_message(message_offset);
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Finalize(void) {
