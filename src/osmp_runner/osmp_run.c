@@ -187,13 +187,19 @@ void init_shm(char* shm_ptr, int shm_size, int processes, int verbosity) {
 
     // Setze freie Postfächer, Flags in jedem Nachrichtenslot und nächste Nachricht
     int free_postboxes_offset = get_free_slots_list_offset();
-    int postbox_offset = get_postboxes_offset();
+    // Startpunkt der Nachrichtenslots
+    int slot_offset = free_postboxes_offset + get_OSMP_MAX_SLOTS() * (int)sizeof(int);
     for(int i=0; i<get_OSMP_MAX_SLOTS(); i++) {
-        memcpy(shm_ptr + free_postboxes_offset, &postbox_offset, sizeof(int));
-        OSMP_message* message = (OSMP_message*)shm_ptr+postbox_offset;
+        // Offset des Eintrags in der Liste der freien Postfächer
+        free_postboxes_offset += (int)((unsigned long)i*sizeof(int));
+        // Schreibe Slot-Offset in die Liste der freien Slots
+        memcpy(shm_ptr + free_postboxes_offset, &slot_offset, sizeof(int));
+        // Initialisiere Nachrichtenslot
+        OSMP_message* message = (OSMP_message*)(shm_ptr + slot_offset);
         message->free = SLOT_FREE;
         message->next_message = NO_MESSAGE;
-        postbox_offset += (int)sizeof(OSMP_message);
+        // Offset des nächsten Nachrichtenslots
+        slot_offset += (int)sizeof(OSMP_message);
     }
 
     // Logging-Info
