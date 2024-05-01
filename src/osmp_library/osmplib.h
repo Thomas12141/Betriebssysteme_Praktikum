@@ -46,6 +46,6 @@ int get_free_slots_list_offset();
 
 int get_postboxes_offset();
 
-int get_OSMP_MAX_SLOTS();
+int calculate_shared_memory_size(int processes);
 
 #endif //BETRIEBSSYSTEME_OSMPLIB_H
