@@ -119,7 +119,7 @@ int get_number_of_messages(int rank) {
     int number = 0, offset, message_slot;
     unsigned int int_size;
     // Offset zum Postfach des fraglichen Prozesses
-    offset = get_postbox_offset(OSMP_rank);
+    offset = get_postbox_offset(rank);
     OSMP_SizeOf(OSMP_INT, &int_size);
     // Iteriere durch alle Nachrichten des Prozesses
     memcpy(&message_slot, shm_ptr+offset, int_size);
@@ -141,7 +141,7 @@ int get_last_message_slot(int rank) {
     int offset, message_slot, old_message_slot;
     unsigned int int_size;
     // Offset zum Postfach des fraglichen Prozesses
-    offset = get_postbox_offset(OSMP_rank);
+    offset = get_postbox_offset(rank);
     OSMP_SizeOf(OSMP_INT, &int_size);
     // Betrachte Postfach des Prozesses
     memcpy(&message_slot, shm_ptr+offset, int_size);
@@ -293,11 +293,15 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         char* slot_addr = shm_ptr + slot;
         // zu kopierende Bytes = min(OSMP_MAX_PAYLOAD_LENGTH, length_in_bytes)
         int to_copy = OSMP_MAX_PAYLOAD_LENGTH < length_in_bytes ? OSMP_MAX_PAYLOAD_LENGTH : length_in_bytes;
-        memcpy(slot_addr, (char*)buf + buf_offset, (unsigned long) to_copy);
+        OSMP_message* message = (OSMP_message*) slot_addr;
+        message->free = SLOT_TAKEN;
+        message->type = datatype;
+        memcpy(message->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
+        message->next_message = NO_MESSAGE;
         // Verweise in der letzten Nachricht auf diese neue Nachricht
         // Erhalte letzte Nachricht des empfangenden Prozesses
-        int last_message = get_last_message_slot(dest);
-        if (last_message == NO_MESSAGE) {
+        int last_message_slot = get_last_message_slot(dest);
+        if (last_message_slot == NO_MESSAGE) {
             // vorher noch keine Nachricht vorhanden => schreibe in Postfach
             int postbox = get_postbox_offset(dest);
             char* addr = shm_ptr + postbox;
@@ -307,8 +311,8 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         }
         else {
             // vorher schon Nachricht(en) vorhanden => schreibe ans Ende der letzten Nachricht
-            OSMP_message* message = (OSMP_message*)slot_addr;
-            message->next_message = slot;
+            OSMP_message* last_message = (OSMP_message*)(shm_ptr+last_message_slot);
+            last_message->next_message = slot;
         }
         // Aktualisiere Variablen für nächsten Schleifendurchlauf
         length_in_bytes -= to_copy;
