@@ -155,6 +155,30 @@ int get_last_message_slot(int rank) {
     return old_message_slot;
 }
 
+/**
+ * Verweist in der letzten Nachricht auf die neue Nachricht. Wenn der Empfänger aktuell keine anderen Nachrichten hat,
+ * wird in seinem Postfach auf die neue Nachricht verwiesen.
+ * @param dest Rang des empfangenden Prozesses
+ * @param new_message_slot Offset (rel. zum Beginn des SHM) der neuen Nachricht, auf die verwiesen werden soll
+ */
+void reference_new_message(int dest, int new_message_slot) {
+    // Erhalte letzte Nachricht des empfangenden Prozesses
+    int last_message_slot = get_last_message_slot(dest);
+    if (last_message_slot == NO_MESSAGE) {
+        // vorher noch keine Nachricht vorhanden => schreibe in Postfach
+        int postbox = get_postbox_offset(dest);
+        char* addr = shm_ptr + postbox;
+        unsigned int int_size;
+        OSMP_SizeOf(OSMP_INT, &int_size);
+        memcpy(addr, &new_message_slot, int_size);
+    }
+    else {
+        // vorher schon Nachricht(en) vorhanden => schreibe ans Ende der letzten Nachricht
+        OSMP_message* last_message = (OSMP_message*)(shm_ptr+last_message_slot);
+        last_message->next_message = new_message_slot;
+    }
+}
+
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
     log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_PAYLOAD_LENGTH");
     return OSMP_MAX_PAYLOAD_LENGTH;
@@ -179,7 +203,6 @@ int get_OSMP_SUCCESS(void) {
     log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_SUCCESS");
     return OSMP_SUCCESS;
 }
-
 
 int OSMP_Init(const int *argc, char ***argv) {
     OSMP_GetSharedMemoryName(&shared_memory_name);
@@ -299,21 +322,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         memcpy(message->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
         message->next_message = NO_MESSAGE;
         // Verweise in der letzten Nachricht auf diese neue Nachricht
-        // Erhalte letzte Nachricht des empfangenden Prozesses
-        int last_message_slot = get_last_message_slot(dest);
-        if (last_message_slot == NO_MESSAGE) {
-            // vorher noch keine Nachricht vorhanden => schreibe in Postfach
-            int postbox = get_postbox_offset(dest);
-            char* addr = shm_ptr + postbox;
-            unsigned int int_size;
-            OSMP_SizeOf(OSMP_INT, &int_size);
-            memcpy(addr, &slot, int_size);
-        }
-        else {
-            // vorher schon Nachricht(en) vorhanden => schreibe ans Ende der letzten Nachricht
-            OSMP_message* last_message = (OSMP_message*)(shm_ptr+last_message_slot);
-            last_message->next_message = slot;
-        }
+        reference_new_message(dest, slot);
         // Aktualisiere Variablen für nächsten Schleifendurchlauf
         length_in_bytes -= to_copy;
         buf_offset += to_copy;
