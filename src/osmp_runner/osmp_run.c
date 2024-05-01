@@ -202,12 +202,7 @@ int main (int argc, char **argv) {
 
     memcpy(shm_ptr, &processes, sizeof(processes));
 
-    // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
-    char ** arguments = argv + exec_args_index -1;
-    int starting_result = start_all_executables(processes, executable, arguments, shm_ptr);
-    if(starting_result!=0){
-        return -1;
-    }
+
 
     strcpy(shm_ptr+SHARED_MEMORY_SIZE-258, get_logfile_name());
 
@@ -217,6 +212,13 @@ int main (int argc, char **argv) {
 
     strcpy(shm_ptr+SHARED_MEMORY_SIZE-2, verbosity_as_str);
 
+
+    // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
+    char ** arguments = argv + exec_args_index -1;
+    int starting_result = start_all_executables(processes, executable, arguments, shm_ptr);
+    if(starting_result!=0){
+        return -1;
+    }
     for (int j = 0; j < processes; ++j) {
         int status;
         pid_t pid_child =  wait(&status);

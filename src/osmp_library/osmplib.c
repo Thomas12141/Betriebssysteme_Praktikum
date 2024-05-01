@@ -80,7 +80,7 @@ void get_free_slots(int* free_slots) {
  * Gibt den Offset zu dem Slot zurück, in dem die nächste Nachricht für den aufrufenden Prozess liegt.
  * @return Offset in Bytes zu dem Slot, in dem die nächste Nachricht für den Prozess liegt. NO_MESSAGE, wenn das Postfach leer ist.
  */
-int get_next_message_slot() {
+int get_next_message_slot(void) {
     log_osmp_lib_call(__TIMESTAMP__, "get_next_message_slot");
     int slot, offset;
     unsigned int int_size;
@@ -94,7 +94,7 @@ int get_next_message_slot() {
  * Prüft das Postfach des aufrufenden Prozesses auf die Anzahl der für ihn bereiten Nachrichten.
  * @return Die Anzahl der Nachrichten, die für den aufrufenden Prozess bereit sind.
  */
-int get_number_of_messages() {
+int get_number_of_messages(void) {
     log_osmp_lib_call(__TIMESTAMP__, "get_number_of_messages");
     int number = 0, offset, message_slot;
     unsigned int int_size;
@@ -261,6 +261,7 @@ int OSMP_Finalize(void) {
         return OSMP_FAILURE;
     }
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
+    logging_close();
     puts("OSMP_Finalize() not implemented yet");
     return OSMP_SUCCESS;
 }
