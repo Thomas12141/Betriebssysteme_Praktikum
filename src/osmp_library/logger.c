@@ -48,8 +48,8 @@ void logging_init_parent(char * name, int log_verbosity){
     }
 
     init_file(file_name);
-
     logging_file = fopen(file_name, "a+");
+
     if(logging_file == NULL ){
         printf("Couldn't open logging file.\n");
         exit(EXIT_FAILURE);

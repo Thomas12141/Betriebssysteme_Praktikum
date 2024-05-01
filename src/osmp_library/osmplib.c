@@ -224,6 +224,13 @@ void remove_message(int message_offset) {
     empty_message_slot(message_offset);
 }
 
+void OSMP_Init_Runner(int fd, char* shm, int size) {
+    shared_memory_fd = fd;
+    memory_size = size;
+    shm_ptr = shm;
+    OSMP_Size(&OSMP_size);
+}
+
 int calculate_shared_memory_size(int processes) {
     // Größe des SHM berechnen
     // 2 Ints für Size und Mutex, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
@@ -339,21 +346,22 @@ int OSMP_Size(int *size) {
 
 int OSMP_Rank(int *rank) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Rank");
-    char *iterator = shm_ptr + 5;
-    char my_pid[20];
-    int getpid_result = getpid();
-    sprintf(my_pid, "%d", getpid_result);
-    int osmp_size;
-    OSMP_Size(&osmp_size);
-    for (int i = 0; i < osmp_size; ++i) {
-        if(strcmp(my_pid, iterator) == 0){
-            *rank = i;
-            return OSMP_SUCCESS;
+
+    int* rank_ptr = (int*)(shm_ptr + sizeof(int));
+    int pid = getpid();
+    int size, i;
+    OSMP_Size(&size);
+    for(i=0; i<size; i++) {
+        int temp_pid = *(rank_ptr + i*(int)sizeof(int));
+        if(temp_pid == pid) {
+            break;
         }
-        iterator += strlen(iterator) + 1;
     }
-    printf("Rank not found\n");
-    return OSMP_FAILURE;
+    if (i == size) {
+        return OSMP_FAILURE;
+    }
+    memcpy(rank, &i, sizeof(int));
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {

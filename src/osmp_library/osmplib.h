@@ -48,4 +48,6 @@ int get_postboxes_offset();
 
 int calculate_shared_memory_size(int processes);
 
+void OSMP_Init_Runner(int fd, char* shm, int size);
+
 #endif //BETRIEBSSYSTEME_OSMPLIB_H

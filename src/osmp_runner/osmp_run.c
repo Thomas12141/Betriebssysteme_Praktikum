@@ -195,7 +195,7 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
         memcpy(shm_ptr + free_postboxes_offset, &slot_offset, sizeof(int));
         // Initialisiere Nachrichtenslot
         OSMP_message* message = (OSMP_message*)(shm_ptr + slot_offset);
-        message->free = SLOT_FREE;
+        message->free = (unsigned short)SLOT_FREE;
         message->next_message = NO_MESSAGE;
         // Offset des nächsten Nachrichtenslots
         slot_offset += (int)sizeof(OSMP_message);
@@ -222,24 +222,23 @@ int main (int argc, char **argv) {
     logging_init_parent(log_file, verbosity);
 
     int shared_memory_fd = shm_open(shared_memory_name, O_CREAT | O_RDWR, 0666);
-
     if (shared_memory_fd==-1){
         log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.");
         return -1;
     }
 
     int ftruncate_result = ftruncate(shared_memory_fd, shm_size);
-
     if(ftruncate_result == -1){
         log_to_file(3, __TIMESTAMP__, "Failed to truncate.");
         return -1;
     }
     char *shm_ptr = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
-
     if (shm_ptr == MAP_FAILED){
         log_to_file(3, __TIMESTAMP__, "Failed to map memory.");
         return -1;
     }
+
+    OSMP_Init_Runner(shared_memory_fd, shm_ptr, shm_size);
 
     init_shm(shm_ptr, processes, verbosity);
 
