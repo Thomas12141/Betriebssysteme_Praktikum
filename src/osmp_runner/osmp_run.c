@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../osmp_library/logger.h"
+#include "../osmp_library/osmplib.h"
 
 #define SHARED_MEMORY_SIZE 1024
 
@@ -18,7 +19,6 @@
 char* shared_memory_name;
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, char * shm_ptr){
-    char * iterator = shm_ptr + 5;
     for (int i = 0; i < number_of_executables; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
@@ -33,10 +33,9 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             log_to_file(3, __TIMESTAMP__, "execv failed");
             return -1;
         } else{
-            char toSave[20];
-            sprintf(toSave, "%d", pid);
-            strcpy(iterator, toSave);
-            iterator +=  strlen(toSave) +1;
+            // Schreibe PIDs in Shared Memory (erster Int ist für Size => i+1)
+            unsigned long offset = (unsigned long) (i + 1) * sizeof(int);
+            memcpy(shm_ptr + offset, &pid, sizeof(int));
         }
     }
     return 0;
@@ -171,6 +170,39 @@ void set_shm_name(void)  {
     snprintf(shared_memory_name, total_length, "/shared_memory_%d", pid);
 }
 
+/**
+ * Setzt alle initialen Werte im Shared Memory.
+ * @param shm_ptr Pointer auf den Shared Memory.
+ * @param shm_size Größe des gesamten Shared Memory.
+ * @param processes Anzahl der Prozesse.
+ * @param verbosity Logging-Verbosität.
+ */
+void init_shm(char* shm_ptr, int shm_size, int processes, int verbosity) {
+    // Anzahl der Prozesse stehen am Anfang des SHM.
+    memcpy(shm_ptr, &processes, sizeof(processes));
+
+    // PIDs / Ranks werden in start_all_executables() gesetzt
+
+    // TODO: Mutex
+
+    // Setze freie Postfächer, Flags in jedem Nachrichtenslot und nächste Nachricht
+    int free_postboxes_offset = get_free_slots_list_offset();
+    int postbox_offset = get_postboxes_offset();
+    for(int i=0; i<get_OSMP_MAX_SLOTS(); i++) {
+        memcpy(shm_ptr + free_postboxes_offset, &postbox_offset, sizeof(int));
+        OSMP_message* message = (OSMP_message*)shm_ptr+postbox_offset;
+        message->free = SLOT_FREE;
+        message->next_message = NO_MESSAGE;
+        postbox_offset += (int)sizeof(OSMP_message);
+    }
+
+    // Logging-Info
+    strcpy(shm_ptr+shm_size-258, get_logfile_name());
+    char verbosity_as_str[2];
+    sprintf(verbosity_as_str, "%d", verbosity);
+    strcpy(shm_ptr+shm_size-2, verbosity_as_str);
+}
+
 int main (int argc, char **argv) {
     int processes, verbosity = 1, exec_args_index;
     char *log_file = NULL, *executable;
@@ -187,7 +219,10 @@ int main (int argc, char **argv) {
         log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.");
         return -1;
     }
-    int ftruncate_result = ftruncate(shared_memory_fd, SHARED_MEMORY_SIZE);
+    // TODO: korrekte Größe des SHM setzen
+    // 2 Ints für Size und Mutex, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
+    int shm_size = 2*(int)sizeof(int) + get_OSMP_MAX_SLOTS() + (int)(sizeof(int))*processes + (int)sizeof(OSMP_message)*get_OSMP_MAX_SLOTS() + 258;
+    int ftruncate_result = ftruncate(shared_memory_fd, shm_size);
 
     if(ftruncate_result == -1){
         log_to_file(3, __TIMESTAMP__, "Failed to truncate.");
@@ -200,18 +235,7 @@ int main (int argc, char **argv) {
         return -1;
     }
 
-    memcpy(shm_ptr, &processes, sizeof(processes));
-
-
-
-    strcpy(shm_ptr+SHARED_MEMORY_SIZE-258, get_logfile_name());
-
-    char verbosity_as_str[2];
-
-    sprintf(verbosity_as_str, "%d", verbosity);
-
-    strcpy(shm_ptr+SHARED_MEMORY_SIZE-2, verbosity_as_str);
-
+    init_shm(shm_ptr, shm_size, processes, verbosity);
 
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;

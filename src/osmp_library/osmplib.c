@@ -14,7 +14,6 @@
 
 char *shm_ptr;
 int shared_memory_fd, OSMP_size, OSMP_rank;
-char *shared_memory_name;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -36,13 +35,14 @@ void log_osmp_lib_call(char* timestamp, const char* function_name) {
  * der Liste der freien Slots (vgl. Struktur des Shared Memory).
  * @return Offset (relativ zum Beginn des Shared Memory), an dem die Liste der freien Postfächer beginnt.
  */
-int get_free_postboxes_list_offset() {
-    log_osmp_lib_call(__TIMESTAMP__, "get_free_postboxes_list_offset");
+int get_free_slots_list_offset() {
+    log_osmp_lib_call(__TIMESTAMP__, "get_free_slots_list_offset");
     unsigned int int_size;
+    int size;
     OSMP_SizeOf(OSMP_INT, &int_size);
-    // TODO: Berechne korrekten Offset für die Postfächer.
-    // shm_size ints für die Ranks + 1 Mutex
-    return (OSMP_size+1) *  (int)(int_size);
+    OSMP_Size(&size);
+    // 1 Int für Size + 1 Int/Prozess für die Ranks + 1 Int für Mutex
+    return (size+2) *  (int)(int_size);
 }
 
 /**
@@ -53,7 +53,7 @@ int get_postboxes_offset() {
     log_osmp_lib_call(__TIMESTAMP__, "get_postbox_offset");
     unsigned int int_size;
     OSMP_SizeOf(OSMP_INT, &int_size);
-    return get_free_postboxes_list_offset() + OSMP_size * (int)int_size;
+    return get_free_slots_list_offset() + get_OSMP_MAX_SLOTS() * (int)int_size;
 }
 
 /**
@@ -205,6 +205,8 @@ int get_OSMP_SUCCESS(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
+    char *shared_memory_name = calloc(256, sizeof(char));
+    log_to_file(2, __TIMESTAMP__, "Calloc 256 B (shared_memory_name)");
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_CREAT | O_RDWR, 0666);
     if(shared_memory_fd == -1){
@@ -230,6 +232,9 @@ int OSMP_Init(const int *argc, char ***argv) {
     // Setze globale Variablen
     OSMP_Size(&OSMP_size);
     OSMP_Rank(&OSMP_rank);
+
+    free(shared_memory_name);
+    log_to_file(2, __TIMESTAMP__, "Free 256 B (shared_memory_name)");
 
     return OSMP_SUCCESS;
 }
@@ -347,7 +352,6 @@ int OSMP_Finalize(void) {
         log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
         return OSMP_FAILURE;
     }
-    free(shared_memory_name);
     result = munmap(shm_ptr, SHARED_MEMORY_SIZE);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");

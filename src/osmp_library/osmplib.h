@@ -39,4 +39,10 @@ typedef struct OSMP_message {
     int next_message;                       // Offset (rel. zum Anfang des SHM) zur nächsten Nachricht des Empfängers (NO_MESSAGE = keine weitere Nachricht)
 } OSMP_message;
 
+int get_free_slots_list_offset();
+
+int get_postboxes_offset();
+
+int get_OSMP_MAX_SLOTS();
+
 #endif //BETRIEBSSYSTEME_OSMPLIB_H
