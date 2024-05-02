@@ -269,18 +269,24 @@ int get_OSMP_SUCCESS(void) {
 
 int OSMP_Init(const int *argc, char ***argv) {
     char *shared_memory_name = calloc(256, sizeof(char));
-    log_to_file(2, __TIMESTAMP__, "Calloc 256 B (shared_memory_name)");
     OSMP_GetSharedMemoryName(&shared_memory_name);
-    shared_memory_fd = shm_open(shared_memory_name,O_CREAT | O_RDWR, 0666);
+    shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
     if(shared_memory_fd == -1){
         printf("Failed to open shared memory.\n");
         return OSMP_FAILURE;
     }
 
+    // Mappe zunächst nur die ersten Bytes, um die Anzahl der Prozesse auszulesen
+    shm_ptr = mmap(NULL, (size_t)sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
     int processes;
-    OSMP_Size(&processes);
-    memory_size = calculate_shared_memory_size(processes);
+    // Kopiere Anzahl der Prozesse
+    memcpy(&processes, shm_ptr, (int)sizeof(int));
+    // Unmap
+    munmap(shm_ptr, (int)sizeof(int));
 
+    // Berechne die tatsächliche Größe des Shared Memory
+    memory_size = calculate_shared_memory_size(processes);
+    // Mappe neu mit der passenden Größe
     shm_ptr = mmap(NULL, (size_t)memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
     logging_init_child(shm_ptr, memory_size);
     if(shm_ptr == MAP_FAILED){
@@ -288,6 +294,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Init");
+    log_to_file(2, __TIMESTAMP__, "Calloc 256 B (shared_memory_name)");
     for (int i = 0; i < *argc; ++i) {
         printf("%s ", (*argv)[i]);
     }
