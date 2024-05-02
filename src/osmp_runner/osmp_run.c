@@ -189,14 +189,18 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
     // Startpunkt der Nachrichtenslots
     int slot_offset = free_postboxes_offset + get_OSMP_MAX_SLOTS() * (int)sizeof(int);
     for(int i=0; i<get_OSMP_MAX_SLOTS(); i++) {
-        // Offset des Eintrags in der Liste der freien Postfächer
-        free_postboxes_offset += (int)((unsigned long)i*sizeof(int));
+        printf("i: %d, free_postboxes_offset: %d\n", i, free_postboxes_offset);
+        printf("slot_offset: %d\n", slot_offset);
         // Schreibe Slot-Offset in die Liste der freien Slots
         memcpy(shm_ptr + free_postboxes_offset, &slot_offset, sizeof(int));
         // Initialisiere Nachrichtenslot
         OSMP_message* message = (OSMP_message*)(shm_ptr + slot_offset);
         message->free = (unsigned short)SLOT_FREE;
+        printf("message->free: %d\n", message->free);
         message->next_message = NO_MESSAGE;
+        printf("message->next_message: %d\n", message->next_message);
+        // Offset des Eintrags in der Liste der freien Postfächer
+        free_postboxes_offset += (int)sizeof(int);
         // Offset des nächsten Nachrichtenslots
         slot_offset += (int)sizeof(OSMP_message);
     }
@@ -218,6 +222,7 @@ int main (int argc, char **argv) {
 
     // Größe des SHM berechnen
     shm_size = calculate_shared_memory_size(processes);
+    printf("shm_size: %d\n", shm_size);
 
     logging_init_parent(log_file, verbosity);
 
