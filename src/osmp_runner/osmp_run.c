@@ -242,26 +242,22 @@ int main (int argc, char **argv) {
     // Größe des SHM berechnen
     shm_size = calculate_shared_memory_size(processes);
 
-    logging_init_parent(log_file, verbosity);
 
     int shared_memory_fd = shm_open(shared_memory_name, O_CREAT | O_RDWR, 0666);
     if (shared_memory_fd==-1){
-        log_to_file(3, __TIMESTAMP__, "Failed to open shared memory.");
         return -1;
     }
 
     int ftruncate_result = ftruncate(shared_memory_fd, shm_size);
     printf("shm_size: %d\n", shm_size);
     if(ftruncate_result == -1){
-        log_to_file(3, __TIMESTAMP__, "Failed to truncate.");
         return -1;
     }
     char *shm_ptr = mmap(NULL, (size_t) shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
     if (shm_ptr == MAP_FAILED){
-        log_to_file(3, __TIMESTAMP__, "Failed to map memory.");
         return -1;
     }
-
+    logging_init_parent(shm_ptr, log_file, verbosity, processes);
     OSMP_Init_Runner(shared_memory_fd, shm_ptr, shm_size);
 
     init_shm(shm_ptr, processes, verbosity);
