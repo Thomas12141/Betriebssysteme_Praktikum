@@ -42,7 +42,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
 }
 
 int freeAll(int shared_memory, char * shm_ptr){
-    int result = munmap(shm_ptr, SHARED_MEMORY_SIZE);
+    int result = munmap(shm_ptr, (size_t) shm_size);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
         return -1;
@@ -181,12 +181,11 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
     memcpy(shm_ptr, &processes, sizeof(processes));
 
     // PIDs / Ranks werden in start_all_executables() gesetzt
+    // Mutex wird im Logger gesetzt
 
-    // TODO: Mutex
-
-    // Setze freie Postfächer
-    // Offset zur Liste der freien Slots: size, pids, mutex überspringen => 2+n ints
-    int free_slots_list_offset = (2 + processes) * (int)sizeof(pthread_mutex_t);
+    // Setze freie Slots
+    // Offset zur Liste der freien Slots: size, pids überspringen => 1+n ints; mutex überspr.
+    int free_slots_list_offset = (1 + processes) * (int)sizeof(int) + (int)sizeof(pthread_mutex_t);
     // Offset zum ersten Nachrichtenslot:
     int first_slot_offset = free_slots_list_offset
             + get_OSMP_MAX_SLOTS() * (int)sizeof(int) // überspringe Liste mit freien Slots
@@ -200,15 +199,22 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
         memcpy(shm_ptr + current_free_slot_list_offset, &current_slot_offset, sizeof(int));
     }
 
-    puts("Initialized free slots list");
+    // Setze Postfächer auf NO_MESSAGE
+    // Offset zu Postfächern: überspringe Freie-Slot-Liste
+    int postbox_offset = free_slots_list_offset + get_OSMP_MAX_SLOTS() * (int)sizeof(int);
+    // zu kopierende Variable
+    int no_message = NO_MESSAGE;
+    for(int i=0; i<processes; i++) {
+        // Berechne aktuellen Postfach-Offset relativ zum ersten Postfach
+        int current_postbox_offset = postbox_offset + i * (int)sizeof(int);
+        memcpy(shm_ptr + current_postbox_offset, &no_message, sizeof(int));
+    }
 
     // Initialisiere Nachrichtenslots: setze Flag auf SLOT_FREE und nächste Nachr. auf NO_MESSAGE
     int slot_size = (int)sizeof(OSMP_message);
     for(int i=0; i<get_OSMP_MAX_SLOTS(); i++) {
-        printf("i: %d\n", i);
         // Berechne Offset des aktuellen Slots basierend auf erstem Slot
         int current_slot_offset = first_slot_offset + i * slot_size;
-        printf("current_slot_offset: %d\n", current_slot_offset);
         // Pointer auf aktuellen Slot
         char* slot_pointer = shm_ptr + current_slot_offset;
         // Cast auf Message-Struct
@@ -217,9 +223,6 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
         message->free = SLOT_FREE;
         message->next_message = NO_MESSAGE;
     }
-
-    puts("Initialized message slots");
-
 
     // Logging-Info
     strcpy(shm_ptr+shm_size-258, get_logfile_name());
@@ -250,7 +253,7 @@ int main (int argc, char **argv) {
     if(ftruncate_result == -1){
         return -1;
     }
-    char *shm_ptr = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    char *shm_ptr = mmap(NULL, (size_t) shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
     if (shm_ptr == MAP_FAILED){
         return -1;
     }
