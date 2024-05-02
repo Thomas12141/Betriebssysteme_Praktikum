@@ -181,8 +181,7 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
     memcpy(shm_ptr, &processes, sizeof(processes));
 
     // PIDs / Ranks werden in start_all_executables() gesetzt
-
-    // TODO: Mutex
+    // Mutex wird im Logger gesetzt
 
     // Setze freie Slots
     // Offset zur Liste der freien Slots: size, pids überspringen => 1+n ints; mutex überspr.
@@ -200,8 +199,6 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
         memcpy(shm_ptr + current_free_slot_list_offset, &current_slot_offset, sizeof(int));
     }
 
-    puts("Initialized free slots list");
-
     // Setze Postfächer auf NO_MESSAGE
     // Offset zu Postfächern: überspringe Freie-Slot-Liste
     int postbox_offset = free_slots_list_offset + get_OSMP_MAX_SLOTS() * (int)sizeof(int);
@@ -213,15 +210,11 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
         memcpy(shm_ptr + current_postbox_offset, &no_message, sizeof(int));
     }
 
-    puts("Initialized postboxes");
-
     // Initialisiere Nachrichtenslots: setze Flag auf SLOT_FREE und nächste Nachr. auf NO_MESSAGE
     int slot_size = (int)sizeof(OSMP_message);
     for(int i=0; i<get_OSMP_MAX_SLOTS(); i++) {
-        printf("i: %d\n", i);
         // Berechne Offset des aktuellen Slots basierend auf erstem Slot
         int current_slot_offset = first_slot_offset + i * slot_size;
-        printf("current_slot_offset: %d\n", current_slot_offset);
         // Pointer auf aktuellen Slot
         char* slot_pointer = shm_ptr + current_slot_offset;
         // Cast auf Message-Struct
@@ -229,10 +222,7 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
         // Setze Werte
         message->free = SLOT_FREE;
         message->next_message = NO_MESSAGE;
-        printf("msg ptr: %p\n", (void*)message);
     }
-
-    puts("Initialized message slots");
 
     // Logging-Info
     strcpy(shm_ptr+shm_size-258, get_logfile_name());
