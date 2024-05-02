@@ -10,6 +10,7 @@
 
 
 pthread_mutex_t * mutex;
+pthread_mutexattr_t att;
 FILE *logging_file;
 char * file_name = NULL;
 int verbosity = 1;
@@ -36,8 +37,10 @@ void init_file(const char *filename) {
  * @param log_verbosity Logging-Verbosität (Level 1-3). Bei ungültigem Wert wird das Standard-Level 1 verwendet.
  */
 void logging_init_parent(void * shared_memory, char * name, int log_verbosity, int process_number){
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
     mutex = malloc(sizeof(pthread_mutex_t));
-    int mutex_result = pthread_mutex_init(mutex, NULL);
+    int mutex_result = pthread_mutex_init(mutex, &att);
     if(mutex_result < 0){
         printf("mutex_result -> %d\n", mutex_result);
         exit(1);
