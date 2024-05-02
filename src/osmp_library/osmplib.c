@@ -37,12 +37,10 @@ void log_osmp_lib_call(char* timestamp, const char* function_name) {
  */
 int get_free_slots_list_offset() {
     log_osmp_lib_call(__TIMESTAMP__, "get_free_slots_list_offset");
-    unsigned int int_size;
     int size;
-    OSMP_SizeOf(OSMP_INT, &int_size);
     OSMP_Size(&size);
     // 1 Int für Size + 1 Int/Prozess für die Ranks + 1 Int für Mutex
-    return (size+2) *  (int)(int_size);
+    return (size+2) *  (int)(sizeof(int));
 }
 
 /**
@@ -51,9 +49,7 @@ int get_free_slots_list_offset() {
  */
 int get_postboxes_offset() {
     log_osmp_lib_call(__TIMESTAMP__, "get_postbox_offset");
-    unsigned int int_size;
-    OSMP_SizeOf(OSMP_INT, &int_size);
-    return get_free_slots_list_offset() + get_OSMP_MAX_SLOTS() * (int)int_size;
+    return get_free_slots_list_offset() + get_OSMP_MAX_SLOTS() * (int)sizeof(int);
 }
 
 /**
@@ -233,8 +229,12 @@ void OSMP_Init_Runner(int fd, char* shm, int size) {
 
 int calculate_shared_memory_size(int processes) {
     // Größe des SHM berechnen
-    // 2 Ints für Size und Mutex, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
-    return 2*(int)sizeof(int) + OSMP_MAX_SLOTS + (int)(sizeof(int))*processes + (int)sizeof(OSMP_message)*OSMP_MAX_SLOTS + 258;
+    // 2 Ints für Size und Mutex, Ranks, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
+    return 2*(int)sizeof(int) +
+    (int)(sizeof(int))*processes +
+    OSMP_MAX_SLOTS * (int)sizeof(int) +
+    processes* (int)sizeof(int) +
+    (int)sizeof(OSMP_message)*OSMP_MAX_SLOTS + 258;
 }
 
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
