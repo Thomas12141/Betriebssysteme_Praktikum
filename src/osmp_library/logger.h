@@ -2,7 +2,7 @@
 #ifndef BERTRIEBSSYSTEME_LOGGER_H
 #define BERTRIEBSSYSTEME_LOGGER_H
 
-void logging_init_parent(char * name, int log_verbosity);
+void logging_init_parent(void * shared_memory, char * name, int log_verbosity, int process_number);
 
 void log_to_file(int level, char* timestamp, char* message);
 

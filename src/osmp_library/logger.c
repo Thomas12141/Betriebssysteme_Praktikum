@@ -6,9 +6,10 @@
 #include <unistd.h>
 #include <string.h>
 #include "logger.h"
+#include "OSMP.h"
 
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t * mutex;
 FILE *logging_file;
 char * file_name = NULL;
 int verbosity = 1;
@@ -34,7 +35,17 @@ void init_file(const char *filename) {
  * @param name          Pfad zur Logdatei.
  * @param log_verbosity Logging-Verbosität (Level 1-3). Bei ungültigem Wert wird das Standard-Level 1 verwendet.
  */
-void logging_init_parent(char * name, int log_verbosity){
+void logging_init_parent(void * shared_memory, char * name, int log_verbosity, int process_number){
+    mutex = malloc(sizeof(pthread_mutex_t));
+    int mutex_result = pthread_mutex_init(mutex, NULL);
+    if(mutex_result < 0){
+        printf("mutex_result -> %d\n", mutex_result);
+        exit(1);
+    }
+    memcpy((char *)shared_memory + (unsigned long) (process_number+1) * (sizeof(int)), mutex, sizeof(pthread_mutex_t));
+    pthread_mutex_destroy(mutex);
+    free(mutex);
+    mutex = (pthread_mutex_t *) ((char *) shared_memory + (unsigned long) (process_number + 1) * (sizeof(int)));
     // Erlaubte Werte für Verbosität: 1 bis 3
     // Bei unerlaubtem Wert wird Standard (1) verwendet
     if(log_verbosity > 1 && log_verbosity <= 3) {
@@ -70,6 +81,10 @@ void logging_init_child(char *shared_memory, int memory_size) {
         return;
     }
 
+    int process_number;
+    OSMP_Size(&process_number);
+    mutex = (pthread_mutex_t *) (shared_memory + (unsigned long) (process_number + 1) * (sizeof(int)));
+
     size_t file_name_length = strlen(shared_memory + memory_size - 258);
     file_name = malloc(file_name_length + 1);
     if (file_name == NULL) {
@@ -104,16 +119,16 @@ void log_to_file(int level, char* timestamp, char* message){
         return;
     }
 
-    return_code = pthread_mutex_lock(&mutex);
+    return_code = pthread_mutex_lock(mutex);
     if(return_code!=0){
         printf("Failed to acquire lock.\n");
         return;
     }
     fprintf(logging_file,"%d - %d - %s - %s.\n", level, getpid(), timestamp, message);
-    return_code = pthread_mutex_unlock(&mutex);
+    return_code = pthread_mutex_unlock(mutex);
     while (return_code!=0){
         printf("Failed to release lock.\n");
-        return_code = pthread_mutex_unlock(&mutex);
+        return_code = pthread_mutex_unlock(mutex);
     }
 }
 
@@ -124,7 +139,6 @@ void logging_close(void){
     fclose(logging_file);
     logging_file = NULL;
     free(file_name);
-    pthread_mutex_destroy(&mutex);
 }
 
 /**

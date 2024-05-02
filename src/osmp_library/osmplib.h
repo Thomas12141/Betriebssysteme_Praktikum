@@ -33,7 +33,7 @@
  * Struct für eine Nachricht entsprechend der Definition unseres Shared Memory.
  */
 typedef struct OSMP_message {
-    unsigned short free;                    // Flag: Slot frei (SLOT_FREE) oder nicht (SLOT_TAKEN)?
+    int free;                               // Flag: Slot frei (SLOT_FREE) oder nicht (SLOT_TAKEN)?
     int to;                                 // Rang des empfangenden Prozesses
     int from;                               // Rang des sendenden Prozesses
     int len;                                // Länge der Nachricht in Bytes
