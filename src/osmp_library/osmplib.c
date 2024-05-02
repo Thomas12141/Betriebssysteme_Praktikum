@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <pthread.h>
 #include <fcntl.h>
 #include <malloc.h>
 
@@ -230,7 +231,8 @@ void OSMP_Init_Runner(int fd, char* shm, int size) {
 int calculate_shared_memory_size(int processes) {
     // Größe des SHM berechnen
     // 2 Ints für Size und Mutex, Ranks, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
-    return 2*(int)sizeof(int) +
+    return (int)sizeof(int) +
+    (int)sizeof(pthread_mutex_t)+
     (int)(sizeof(int))*processes +
     OSMP_MAX_SLOTS * (int)sizeof(int) +
     processes* (int)sizeof(int) +
