@@ -48,8 +48,8 @@ void logging_init_parent(char * name, int log_verbosity){
     }
 
     init_file(file_name);
-
     logging_file = fopen(file_name, "a+");
+
     if(logging_file == NULL ){
         printf("Couldn't open logging file.\n");
         exit(EXIT_FAILURE);
@@ -61,24 +61,26 @@ void logging_init_parent(char * name, int log_verbosity){
 
 /**
  * Initialisiert die Log-Bibliothek für das Kind. Es speichert die verbosität und Dateiname.
+ * @param shared_memory Pointer auf den Shared Memory
+ * @param memory_size   Größe des Shared Memory in Bytes
  */
-void logging_init_child(char *shared_memory) {
+void logging_init_child(char *shared_memory, int memory_size) {
     if (shared_memory == NULL) {
         fprintf(stderr, "Error: shared_memory is NULL\n");
         return;
     }
 
-    size_t file_name_length = strlen(shared_memory + SHARED_MEMORY_SIZE - 258);
+    size_t file_name_length = strlen(shared_memory + memory_size - 258);
     file_name = malloc(file_name_length + 1);
     if (file_name == NULL) {
         fprintf(stderr, "Error: Memory allocation failed\n");
         return;
     }
 
-    strncpy(file_name, shared_memory + SHARED_MEMORY_SIZE - 258, file_name_length);
+    strncpy(file_name, shared_memory + memory_size - 258, file_name_length);
     file_name[file_name_length] = '\0';
 
-    verbosity = atoi(shared_memory + SHARED_MEMORY_SIZE - 2);
+    verbosity = atoi(shared_memory + memory_size - 2);
 
     printf("Log filename: %s verbosity: %d\n", file_name, verbosity);
 }

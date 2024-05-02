@@ -13,7 +13,7 @@
 #include <malloc.h>
 
 char *shm_ptr;
-int shared_memory_fd, OSMP_size, OSMP_rank;
+int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -224,6 +224,19 @@ void remove_message(int message_offset) {
     empty_message_slot(message_offset);
 }
 
+void OSMP_Init_Runner(int fd, char* shm, int size) {
+    shared_memory_fd = fd;
+    memory_size = size;
+    shm_ptr = shm;
+    OSMP_Size(&OSMP_size);
+}
+
+int calculate_shared_memory_size(int processes) {
+    // Größe des SHM berechnen
+    // 2 Ints für Size und Mutex, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
+    return 2*(int)sizeof(int) + OSMP_MAX_SLOTS + (int)(sizeof(int))*processes + (int)sizeof(OSMP_message)*OSMP_MAX_SLOTS + 258;
+}
+
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
     log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_PAYLOAD_LENGTH");
     return OSMP_MAX_PAYLOAD_LENGTH;
@@ -258,8 +271,13 @@ int OSMP_Init(const int *argc, char ***argv) {
         printf("Failed to open shared memory.\n");
         return OSMP_FAILURE;
     }
-    shm_ptr = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
-    logging_init_child(shm_ptr);
+
+    int processes;
+    OSMP_Size(&processes);
+    memory_size = calculate_shared_memory_size(processes);
+
+    shm_ptr = mmap(NULL, (size_t)memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    logging_init_child(shm_ptr, memory_size);
     if(shm_ptr == MAP_FAILED){
         log_to_file(3, __TIMESTAMP__, "Failed to map shared memory.\n");
         return OSMP_FAILURE;
@@ -328,21 +346,22 @@ int OSMP_Size(int *size) {
 
 int OSMP_Rank(int *rank) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Rank");
-    char *iterator = shm_ptr + 5;
-    char my_pid[20];
-    int getpid_result = getpid();
-    sprintf(my_pid, "%d", getpid_result);
-    int osmp_size;
-    OSMP_Size(&osmp_size);
-    for (int i = 0; i < osmp_size; ++i) {
-        if(strcmp(my_pid, iterator) == 0){
-            *rank = i;
-            return OSMP_SUCCESS;
+
+    int* rank_ptr = (int*)(shm_ptr + sizeof(int));
+    int pid = getpid();
+    int size, i;
+    OSMP_Size(&size);
+    for(i=0; i<size; i++) {
+        int temp_pid = *(rank_ptr + i*(int)sizeof(int));
+        if(temp_pid == pid) {
+            break;
         }
-        iterator += strlen(iterator) + 1;
     }
-    printf("Rank not found\n");
-    return OSMP_FAILURE;
+    if (i == size) {
+        return OSMP_FAILURE;
+    }
+    memcpy(rank, &i, sizeof(int));
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
@@ -420,7 +439,7 @@ int OSMP_Finalize(void) {
         log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
         return OSMP_FAILURE;
     }
-    result = munmap(shm_ptr, SHARED_MEMORY_SIZE);
+    result = munmap(shm_ptr, (size_t)memory_size);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
         return OSMP_FAILURE;
