@@ -22,8 +22,6 @@
 
 typedef void* OSMP_Request;
 
-#define SHARED_MEMORY_SIZE 1024
-
 /**
  * Die maximale Zahl der Nachrichten pro Prozess 
  */

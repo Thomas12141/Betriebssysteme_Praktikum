@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <malloc.h>
+#include <pthread.h>
 
 char *shm_ptr;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
@@ -229,12 +230,15 @@ void OSMP_Init_Runner(int fd, char* shm, int size) {
 
 int calculate_shared_memory_size(int processes) {
     // Größe des SHM berechnen
-    // 2 Ints für Size und Mutex, Ranks, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
-    return 2*(int)sizeof(int) +
-    (int)(sizeof(int))*processes +
-    OSMP_MAX_SLOTS * (int)sizeof(int) +
-    processes* (int)sizeof(int) +
-    (int)sizeof(OSMP_message)*OSMP_MAX_SLOTS + 258;
+    // 2 für Size und Mutex, Ranks, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
+    int size = (int)sizeof(int) +                   // OSMP_Size
+        (int)(sizeof(int))*processes +              // Ranks
+        (int)sizeof(pthread_mutex_t) +              // Mutex
+        OSMP_MAX_SLOTS * (int)sizeof(int) +         // freie Slots
+        processes* (int)sizeof(int) +               // Postfächer
+        (int)sizeof(OSMP_message)*OSMP_MAX_SLOTS +  // Nachrichtenslots
+        258;                                        // Logging-Info
+    return size;
 }
 
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
