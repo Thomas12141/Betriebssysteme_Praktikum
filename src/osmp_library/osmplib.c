@@ -15,7 +15,10 @@
 #include <pthread.h>
 
 char *shm_ptr;
+char * locks_shared_memory;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
+pthread_mutex_t * OSMP_send_mutex;
+pthread_cond_t * OSMP_send_condition;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -268,6 +271,10 @@ int get_OSMP_SUCCESS(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
+    int locks_shared_memory_fd = shm_open("locks_shared_memory", O_RDWR, 0666);
+    locks_shared_memory = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
+    OSMP_send_mutex = (pthread_mutex_t*)locks_shared_memory;
+    OSMP_send_condition = (pthread_cond_t *) OSMP_send_mutex + sizeof(pthread_mutex_t);
     char *shared_memory_name = calloc(256, sizeof(char));
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
@@ -374,20 +381,29 @@ int OSMP_Rank(int *rank) {
     return OSMP_SUCCESS;
 }
 
+int condition_check(int dest){
+    if(get_number_of_messages(dest) >= get_OSMP_MAX_MESSAGES_PROC()){
+        return 0;
+    } else{
+        pthread_cond_broadcast(OSMP_send_condition);
+        return 1;
+    }
+}
+
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Send");
     if(count <= 0) {
         return OSMP_FAILURE;
     }
-    // TODO: Synchronisierung
+    pthread_mutex_lock(OSMP_send_mutex);
     unsigned int datatype_size;
     OSMP_SizeOf(datatype, &datatype_size);
     int length_in_bytes = (int)datatype_size * count;
     int buf_offset = 0;
     do {
         // warten, bis ein Nachrichtenslot für den empfangenden Prozess frei ist
-        while (get_number_of_messages(dest) >= get_OSMP_MAX_MESSAGES_PROC()) {
-            // TODO: blockieren;
+        while (condition_check(dest)) {
+            pthread_cond_wait(OSMP_send_condition, OSMP_send_mutex);
         }
         // Erhalte den Offset (relativ zum Beginn des SHM) zum nächsten freien Slot
         int slot = get_next_free_slot();
@@ -409,6 +425,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         length_in_bytes -= to_copy;
         buf_offset += to_copy;
     } while(length_in_bytes > 0);
+    pthread_mutex_unlock(OSMP_send_mutex);
     return OSMP_SUCCESS;
 }
 

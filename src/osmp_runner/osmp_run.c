@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "../osmp_library/logger.h"
 #include "../osmp_library/osmplib.h"
@@ -231,7 +232,43 @@ void init_shm(char* shm_ptr, int processes, int verbosity) {
     strcpy(shm_ptr+shm_size-2, verbosity_as_str);
 }
 
+void initialize_locks(char * shared_memory){
+    pthread_mutex_t mutex;
+    pthread_cond_t condition;
+    pthread_mutexattr_t att;
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&mutex, &att);
+    pthread_condattr_t condition_attribute;
+    pthread_condattr_init(&condition_attribute);
+    pthread_condattr_setpshared(&condition_attribute, PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&condition, &condition_attribute);
+    pthread_condattr_destroy(&condition_attribute);
+    memcpy(shared_memory, &mutex, sizeof(pthread_mutex_t));
+    memcpy(shared_memory + sizeof(pthread_mutex_t), &condition, sizeof(pthread_cond_t));
+}
+
 int main (int argc, char **argv) {
+    char * locks_shared_memory_string = "locks_shared_memory";
+    int locks_shared_memory_fd = shm_open(locks_shared_memory_string, O_CREAT | O_RDWR, 0666);
+    if (locks_shared_memory_fd == -1){
+        return -1;
+    }
+
+    int locks_ftruncate_result = ftruncate(locks_shared_memory_fd, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t));
+
+    if(locks_ftruncate_result == -1){
+        return -1;
+    }
+
+    char * lcoks_shm_ptr = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
+
+    if (lcoks_shm_ptr == MAP_FAILED){
+        return -1;
+    }
+
+    initialize_locks(lcoks_shm_ptr);
+
     int processes, verbosity = 1, exec_args_index;
     char *log_file = NULL, *executable;
 
