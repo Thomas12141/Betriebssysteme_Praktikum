@@ -18,7 +18,7 @@ int shm_size;
  */
 char* shared_memory_name;
 
-int start_all_executables(int number_of_executables, char* executable, char ** arguments, char * shm_ptr){
+int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr){
     for (int i = 0; i < number_of_executables; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
@@ -33,21 +33,24 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             log_to_file(3, __TIMESTAMP__, "execv failed");
             return -1;
         } else{
-            // Schreibe PIDs in Shared Memory (erster Int ist für Size => i+1)
-            unsigned long offset = (unsigned long) (i + 1) * sizeof(int);
-            memcpy(shm_ptr + offset, &pid, sizeof(int));
+            // Initialisiere Prozess-Infos im Shared Memory
+            // Offset berechnen (alle außer der 0. Prozess-Info gehen über SHM-Struct hinaus)
+            process_info* info = &(shm_ptr->first_process_info) + i;
+            info->rank = i;
+            info->pid = pid;
+            info->postbox = NO_MESSAGE;
         }
     }
     return 0;
 }
 
-int freeAll(int shared_memory, char * shm_ptr){
+int freeAll(int shm_fd, shared_memory* shm_ptr){
     int result = munmap(shm_ptr, (size_t) shm_size);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
         return -1;
     }
-    result = close(shared_memory);
+    result = close(shm_fd);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
         return -1;
@@ -90,6 +93,13 @@ void printUsage(void) {
 }
 
 /**
+ * Gibt einen Hinweis zur maximalen Pfadlänge der Logdatei aus.
+ */
+void print_logfile_condition(void) {
+    printf("Der Pfad zur Logdatei darf nicht länger als %d Zeichen (inkl. Nullbyte) sein.\n", MAX_PATH_LENGTH);
+}
+
+/**
  * Diese Funktion analysiert und parst die Befehlszeilenargumente. Wenn die Argumente nicht dem geforderten Schema
  * ./osmp_run <ProcAnzahl> [-L <PfadZurLogDatei> [-V <LogVerbosität>]] ./<osmp_executable> [<param1> <param2> ...]
  * entsprechen, wird printUsage() aufgerufen und das Programm mit EXIT_FAILURE beendet.
@@ -127,6 +137,11 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
             *log_file = argv[i + 1];
             if(is_whitespace(*log_file)) {
                 log_file = NULL;
+            }
+            // maximal erlaubte Länge des Pfads zur Logdatei überprüfen (Nullbyte einrechnen)
+            if((strlen(*log_file)+1) > MAX_PATH_LENGTH) {
+                print_logfile_condition();
+                exit(EXIT_FAILURE);
             }
             i += 2;
         } else if (strcmp(argv[i], "-V") == 0) {
@@ -171,64 +186,42 @@ void set_shm_name(void)  {
 }
 
 /**
- * Setzt alle initialen Werte im Shared Memory.
+ * Setzt alle initialen Werte im fixen Teil des Shared Memory, außer folgende:
+ * - Der Logging-Mutex wird durch den Logger gesetzt.
+ * - Die Prozess-Infos werden in start_all_executables() gesetzt.
  * @param shm_ptr Pointer auf den Shared Memory.
  * @param processes Anzahl der Prozesse.
  * @param verbosity Logging-Verbosität.
  */
-void init_shm(char* shm_ptr, int processes, int verbosity) {
-    // Anzahl der Prozesse stehen am Anfang des SHM.
-    memcpy(shm_ptr, &processes, sizeof(processes));
+void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
+    shared_memory* shm_struct = (shared_memory*) shm_ptr;
 
-    // PIDs / Ranks werden in start_all_executables() gesetzt
+    shm_struct->size = processes;
+
     // Mutex wird im Logger gesetzt
 
-    // Setze freie Slots
-    // Offset zur Liste der freien Slots: size, pids überspringen => 1+n ints; mutex überspr.
-    int free_slots_list_offset = (1 + processes) * (int)sizeof(int) + (int)sizeof(pthread_mutex_t);
-    // Offset zum ersten Nachrichtenslot:
-    int first_slot_offset = free_slots_list_offset
-            + get_OSMP_MAX_SLOTS() * (int)sizeof(int) // überspringe Liste mit freien Slots
-            + processes * (int)sizeof(int);           // überspringe Postfächer
-    for(int i=0; i<get_OSMP_MAX_SLOTS(); i++) {
-        // Offset zum aktuellen Eintrag in der Liste der freien Slots
-        int current_free_slot_list_offset = free_slots_list_offset + i * (int)sizeof(int);
-        // Offset zum Nachrichtenslot, der eingetragen werden soll
-        int current_slot_offset = first_slot_offset + i * (int)sizeof(OSMP_message);
-        // Trage Nachrichtenslot in Liste ein
-        memcpy(shm_ptr + current_free_slot_list_offset, &current_slot_offset, sizeof(int));
+    // Notiere freie Slots in Liste
+    for(int i=0; i<OSMP_MAX_SLOTS; i++) {
+        shm_struct->free_slots[i] = i;
     }
 
-    // Setze Postfächer auf NO_MESSAGE
-    // Offset zu Postfächern: überspringe Freie-Slot-Liste
-    int postbox_offset = free_slots_list_offset + get_OSMP_MAX_SLOTS() * (int)sizeof(int);
-    // zu kopierende Variable
-    int no_message = NO_MESSAGE;
-    for(int i=0; i<processes; i++) {
-        // Berechne aktuellen Postfach-Offset relativ zum ersten Postfach
-        int current_postbox_offset = postbox_offset + i * (int)sizeof(int);
-        memcpy(shm_ptr + current_postbox_offset, &no_message, sizeof(int));
+    // Initialisiere Slots
+    for(int i=0; i<OSMP_MAX_SLOTS; i++) {
+        shm_struct->slots[i].slot_number = i;
+        shm_struct->slots[i].free = SLOT_FREE;
     }
 
-    // Initialisiere Nachrichtenslots: setze Flag auf SLOT_FREE und nächste Nachr. auf NO_MESSAGE
-    int slot_size = (int)sizeof(OSMP_message);
-    for(int i=0; i<get_OSMP_MAX_SLOTS(); i++) {
-        // Berechne Offset des aktuellen Slots basierend auf erstem Slot
-        int current_slot_offset = first_slot_offset + i * slot_size;
-        // Pointer auf aktuellen Slot
-        char* slot_pointer = shm_ptr + current_slot_offset;
-        // Cast auf Message-Struct
-        OSMP_message* message = (OSMP_message*)(slot_pointer);
-        // Setze Werte
-        message->free = SLOT_FREE;
-        message->next_message = NO_MESSAGE;
-    }
+    // Initialisiere Gather-Slot
+    shm_struct->gather_slot.slot_number = processes;
+    shm_struct->gather_slot.free = SLOT_FREE;
+    memset(shm_struct->gather_slot.payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
+    shm_struct->gather_slot.next_message = NO_MESSAGE;
 
-    // Logging-Info
-    strcpy(shm_ptr+shm_size-258, get_logfile_name());
-    char verbosity_as_str[2];
-    sprintf(verbosity_as_str, "%d", verbosity);
-    strcpy(shm_ptr+shm_size-2, verbosity_as_str);
+    // Setze Logging-Infos
+    strncpy(shm_struct->logfile, get_logfile_name(), MAX_PATH_LENGTH);
+    shm_struct->verbosity = (unsigned int)verbosity;
+
+    // Prozess-Infos werden in start_all_executables() gesetzt
 }
 
 int main (int argc, char **argv) {
@@ -242,25 +235,25 @@ int main (int argc, char **argv) {
     // Größe des SHM berechnen
     shm_size = calculate_shared_memory_size(processes);
 
-
     int shared_memory_fd = shm_open(shared_memory_name, O_CREAT | O_RDWR, 0666);
     if (shared_memory_fd==-1){
         return -1;
     }
 
     int ftruncate_result = ftruncate(shared_memory_fd, shm_size);
-    printf("shm_size: %d\n", shm_size);
+    printf("shm_size: %d B\n", shm_size);
     if(ftruncate_result == -1){
         return -1;
     }
-    char *shm_ptr = mmap(NULL, (size_t) shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    shared_memory *shm_ptr = mmap(NULL, (size_t) shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
     if (shm_ptr == MAP_FAILED){
         return -1;
     }
-    logging_init_parent(shm_ptr, log_file, verbosity, processes);
-    OSMP_Init_Runner(shared_memory_fd, shm_ptr, shm_size);
+    logging_init_parent(shm_ptr, log_file, verbosity);
 
     init_shm(shm_ptr, processes, verbosity);
+
+    OSMP_Init_Runner(shared_memory_fd, shm_ptr, shm_size);
 
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
