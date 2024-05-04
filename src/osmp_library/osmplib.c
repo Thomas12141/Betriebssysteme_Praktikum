@@ -351,13 +351,11 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Size");
     memcpy(size, shm_ptr, sizeof(int));
     return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Rank");
 
     int* rank_ptr = (int*)(shm_ptr + sizeof(int));
     int pid = getpid();
