@@ -105,8 +105,6 @@ void logging_init_child(char *shared_memory, int memory_size) {
     file_name[file_name_length] = '\0';
 
     verbosity = atoi(shared_memory + memory_size - 2);
-
-    printf("Log filename: %s verbosity: %d\n", file_name, verbosity);
 }
 
 
@@ -137,9 +135,8 @@ void log_to_file(int level, char* timestamp, char* message){
     fprintf(logging_file,"%d - %d - %s - %s.\n", level, getpid(), timestamp, message);
     printf("Before unlocking mutex\n");
     return_code = pthread_mutex_unlock(mutex);
-    while (return_code!=0){
+    if (return_code!=0){
         printf("Failed to release lock.\n");
-        return_code = pthread_mutex_unlock(mutex);
     }
 }
 
