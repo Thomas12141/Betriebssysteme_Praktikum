@@ -32,10 +32,11 @@ void init_file(const char *filename) {
 
 /**
  * Initialisiert die Log-Bibliothek. Erzeugt Logdatei, falls sie noch nicht existiert. Diese Methode ist für das Elter, das Kind hat eine eigene Methode.
+ * @param shm           Pointer auf den Shared Memory.
  * @param name          Pfad zur Logdatei.
  * @param log_verbosity Logging-Verbosität (Level 1-3). Bei ungültigem Wert wird das Standard-Level 1 verwendet.
  */
-void logging_init_parent(void * shared_memory, char * name, int log_verbosity, int process_number){
+void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
     pthread_mutexattr_t att;
     pthread_mutexattr_init(&att);
     pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
@@ -46,10 +47,12 @@ void logging_init_parent(void * shared_memory, char * name, int log_verbosity, i
         printf("mutex_result -> %d\n", mutex_result);
         exit(1);
     }
-    memcpy((char *)shared_memory + (unsigned long) (process_number+1) * (sizeof(int)), mutex, sizeof(pthread_mutex_t));
+
+    memcpy(&(shm->logging_mutex), mutex, sizeof(pthread_mutex_t));
     pthread_mutex_destroy(mutex);
     free(mutex);
-    mutex = (pthread_mutex_t *) ((char *) shared_memory + (unsigned long) (process_number + 1) * (sizeof(int)));
+
+    mutex = (pthread_mutex_t *) &(shm->logging_mutex);
     // Erlaubte Werte für Verbosität: 1 bis 3
     // Bei unerlaubtem Wert wird Standard (1) verwendet
     if(log_verbosity > 1 && log_verbosity <= 3) {
@@ -79,27 +82,26 @@ void logging_init_parent(void * shared_memory, char * name, int log_verbosity, i
  * @param shared_memory Pointer auf den Shared Memory
  * @param memory_size   Größe des Shared Memory in Bytes
  */
-void logging_init_child(char *shared_memory, int memory_size) {
-    if (shared_memory == NULL) {
+void logging_init_child(shared_memory* shm) {
+    if (shm == NULL) {
         fprintf(stderr, "Error: shared_memory is NULL\n");
         return;
     }
 
     int process_number;
     OSMP_Size(&process_number);
-    mutex = (pthread_mutex_t *) (shared_memory + (unsigned long) (process_number + 1) * (sizeof(int)));
-    size_t file_name_length = strlen(shared_memory + memory_size - 258);
+    mutex = (pthread_mutex_t *) &(shm->logging_mutex);
+    size_t file_name_length = strlen(shm->logfile);
     file_name = malloc(file_name_length + 1);
     if (file_name == NULL) {
         fprintf(stderr, "Error: Memory allocation failed\n");
         return;
     }
 
-    strncpy(file_name, shared_memory + memory_size - 258, file_name_length);
+    strncpy(file_name, shm->logfile, file_name_length);
     file_name[file_name_length] = '\0';
 
-
-    verbosity = atoi(shared_memory + memory_size - 2);
+    verbosity = (int)shm->verbosity;
 }
 
 
