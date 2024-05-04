@@ -88,12 +88,6 @@ void logging_init_child(char *shared_memory, int memory_size) {
     int process_number;
     OSMP_Size(&process_number);
     mutex = (pthread_mutex_t *) (shared_memory + (unsigned long) (process_number + 1) * (sizeof(int)));
-    pthread_mutexattr_t att;
-    pthread_mutexattr_init(&att);
-    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
-    mutex = malloc(sizeof(pthread_mutex_t));
-    pthread_mutex_init(mutex, &att);
-    pthread_mutexattr_destroy(&att);
     size_t file_name_length = strlen(shared_memory + memory_size - 258);
     file_name = malloc(file_name_length + 1);
     if (file_name == NULL) {
@@ -103,6 +97,8 @@ void logging_init_child(char *shared_memory, int memory_size) {
 
     strncpy(file_name, shared_memory + memory_size - 258, file_name_length);
     file_name[file_name_length] = '\0';
+
+    logging_file = fopen(file_name, "a+");
 
     verbosity = atoi(shared_memory + memory_size - 2);
 }
