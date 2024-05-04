@@ -356,7 +356,6 @@ int OSMP_Size(int *size) {
 }
 
 int OSMP_Rank(int *rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Rank");
 
     int* rank_ptr = (int*)(shm_ptr + sizeof(int));
     int pid = getpid();
