@@ -14,7 +14,7 @@
 #include <malloc.h>
 #include <pthread.h>
 
-char *shm_ptr;
+shared_memory *shm_ptr;
 char * locks_shared_memory;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
 pthread_mutex_t * OSMP_send_mutex;
@@ -36,78 +36,64 @@ void log_osmp_lib_call(char* timestamp, const char* function_name) {
 }
 
 /**
- * Offset (relativ zum Beginn des Shared Memory), ab dem der Postfach- und Nachrichten-Bereich beginnt, einschließlich
- * der Liste der freien Slots (vgl. Struktur des Shared Memory).
- * @return Offset (relativ zum Beginn des Shared Memory), an dem die Liste der freien Postfächer beginnt.
- */
-int get_free_slots_list_offset() {
-    log_osmp_lib_call(__TIMESTAMP__, "get_free_slots_list_offset");
-    int size;
-    OSMP_Size(&size);
-    // 1 Int für Size + 1 Int/Prozess für die Ranks + 1 Int für Mutex
-    return (size+2) *  (int)(sizeof(int));
-}
-
-/**
- * Berechnet den Offset (relativ zum Beginn des Shared Memory), an dem der Bereich der Postfächer beginnt.
- * @return Offset (relativ zum Beginn des SHM), an dem die Postfächer beginnen.
- */
-int get_postboxes_offset() {
-    log_osmp_lib_call(__TIMESTAMP__, "get_postbox_offset");
-    return get_free_slots_list_offset() + get_OSMP_MAX_SLOTS() * (int)sizeof(int);
-}
-
-/**
- * Gibt den Offset (relativ zum Beginn des Shared Memory) zurück, an dem das Postfach des Prozesses mit dem angegebenen
- * Rang liegt.
- * @param rank Der Rang des Prozesses, dem das Postfach gehört.
- * @return Offset (relativ zum Beginn des Shared Memory), an dem das Postfach des aufrufenden Prozesses liegt.
- */
-int get_postbox_offset(int rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_postbox_offset");
-    unsigned int int_size;
-    OSMP_SizeOf(OSMP_INT, &int_size);
-    return get_postboxes_offset() + rank * (int)int_size;
-}
-
-/**
- * Gibt den nächsten freien Nachrichtenslots zurück. Dieser wird aus der Liste der freien Slots gelöscht, alle übrigen
- * Einträge im Array rücken eine Stelle nach vorne.
+ * Gibt die Nummer des nächsten freien Nachrichtenslots zurück. Dieser wird aus der Liste der freien Slots gelöscht,
+ * alle übrigen Einträge im Array rücken eine Stelle nach vorne.
  * Das Flag im Slot selbst wird dadurch noch nicht auf "belegt" gesetzt! Dafür ist der Aufrufende verantwortlich.
- * @return Der Offset (relativ zum Beginn des SHM) des nächsten freien Nachrichtenslots. NO_SLOT, wenn kein Slot frei ist.
+ * @return Die Nummer des nächsten freien Nachrichtenslots. NO_SLOT, wenn kein Slot frei ist.
  */
 int get_next_free_slot() {
     log_osmp_lib_call(__TIMESTAMP__, "get_next_free_slot");
     int slot;
-    char* slot_list;
-    unsigned int int_size;
-    OSMP_SizeOf(OSMP_INT, &int_size);
-    slot_list = shm_ptr + get_postboxes_offset();
-    memcpy(&slot, shm_ptr + get_postboxes_offset(), int_size);
-
+    // verwende ersten freien Slot als Rückgabewert
+    slot = shm_ptr->free_slots[0];
     // alle Elemente eine Stelle nach vorne rücken
-    memmove(slot_list, slot_list+int_size, ((unsigned int) (OSMP_size - 1)) * int_size);
+    for(int i=0; i<(OSMP_MAX_SLOTS-1); i++) {
+        shm_ptr->free_slots[i] = shm_ptr->free_slots[i+1];
+    }
     // letzte Stelle auf NO_SLOT setzen
-    int no_slots = NO_SLOT;
-    char* last_array_element = slot_list + ((unsigned int) (OSMP_size - 1)) * int_size;
-    memcpy(last_array_element, &no_slots, int_size);
+    shm_ptr->free_slots[OSMP_MAX_SLOTS-1] = NO_SLOT;
 
     return slot;
 }
 
 /**
- * Gibt den Offset zu dem Slot zurück, in dem die nächste Nachricht für den aufrufenden Prozess liegt.
- * @return Offset in Bytes zu dem Slot, in dem die nächste Nachricht für den Prozess liegt. NO_MESSAGE, wenn das Postfach leer ist.
+ * Gibt einen Zeiger auf das process_info-Struct des angegebenen Prozesses zurück.
+ * @param rank Rang des Prozesses, dessen process_info angefordert wird.
+ * @return Zeiger auf process_info-Struct des Prozesses mit dem angegebenen Rang.
  */
-int get_next_message_slot(void) {
+process_info* get_process_info(int rank) {
+    log_osmp_lib_call(__TIMESTAMP__, "get_process_info");
+    // Prozess-Info 0
+    process_info* info = &(shm_ptr->first_process_info);
+    // Offset zum passenden Rang
+    info += rank;
+    return info;
+}
+
+/**
+ * Gibt einen Zeiger auf den Nachrichtenslot zurück, in dem die nächste Nachricht für den angegebenen Prozess liegt.
+ * @param rank Rang des Prozesses, dessen erster Nachrichtenslot zurückgegeben werden soll.
+ * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. NULL, wenn das Postfach leer ist.
+ */
+message_slot* get_next_message_slot(int rank) {
     log_osmp_lib_call(__TIMESTAMP__, "get_next_message_slot");
-    int slot, offset;
-    unsigned int int_size;
-    OSMP_SizeOf(OSMP_INT, &int_size);
-    // Offset zum Postfach des aufrufenden Prozesses
-    offset = get_postbox_offset(OSMP_rank);
-    memcpy(&slot, shm_ptr+offset+OSMP_rank, int_size);
-    return slot;
+    process_info* process = get_process_info(rank);
+    int slot_number = process->postbox;
+    if(slot_number == NO_MESSAGE) {
+        return NULL;
+    }
+    return &(shm_ptr->slots[slot_number]);
+}
+
+/**
+ * Gibt die Nummer des Slots, in dem die nächste Nachricht für den angegebenen Prozess liegt.
+ * @param rank Rang des Prozesses, dessen erster Nachrichtenslot zurückgegeben werden soll.
+ * @return Die Nummer des Slots, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. NO_MESSAGE, wenn das Postfach leer ist.
+ */
+int get_next_message_slot_number(int rank) {
+    log_osmp_lib_call(__TIMESTAMP__, "get_next_message_slot");
+    process_info* process = get_process_info(rank);
+    return process->postbox;
 }
 
 /**
@@ -117,131 +103,135 @@ int get_next_message_slot(void) {
  */
 int get_number_of_messages(int rank) {
     log_osmp_lib_call(__TIMESTAMP__, "get_number_of_messages");
-    int number = 0, offset, message_slot;
-    unsigned int int_size;
-    // Offset zum Postfach des fraglichen Prozesses
-    offset = get_postbox_offset(rank);
-    OSMP_SizeOf(OSMP_INT, &int_size);
-    // Iteriere durch alle Nachrichten des Prozesses
-    memcpy(&message_slot, shm_ptr+offset, int_size);
-    while(message_slot != NO_MESSAGE) {
+
+    int number = 0;
+    int next_slot_number = get_next_message_slot_number(rank);
+    while(next_slot_number != NO_MESSAGE) {
         number++;
-        OSMP_message* message = (OSMP_message*)shm_ptr + message_slot;
-        message_slot = message->next_message;
+        next_slot_number = shm_ptr->slots[next_slot_number].next_message;
     }
     return number;
 }
 
 /**
- * Gibt den Offset (relativ zum Beginn des SHM) zurück, an dem die letzte Nachricht für einen Prozess liegt.
+ * Gibt einen Zeiger auf den Nachrichtenslot, in dem die letzte Nachricht für einen Prozess liegt.
  * @param rank Der Rang des Prozesses, dessen letzter Nachrichtenslot gesucht wird.
- * @return Der Offset (relativ zum Beginn des SHM), an dem die letzte Nachricht für den Prozess mit Rang rank liegt. NO_MESSAGE, wenn keine Nachricht für den Prozess bereitliegt.
+ * @return Ein Zeiger auf den Nachrichtenslot, in dem die letzte Nachricht für den Prozess mit Rang rank liegt. NULL, wenn keine Nachricht für den Prozess bereitliegt.
  */
-int get_last_message_slot(int rank) {
+message_slot* get_last_message_slot(int rank) {
     log_osmp_lib_call(__TIMESTAMP__, "get_last_message_slot");
-    int offset, message_slot, old_message_slot;
-    unsigned int int_size;
-    // Offset zum Postfach des fraglichen Prozesses
-    offset = get_postbox_offset(rank);
-    OSMP_SizeOf(OSMP_INT, &int_size);
-    // Betrachte Postfach des Prozesses
-    memcpy(&message_slot, shm_ptr+offset, int_size);
-    old_message_slot = message_slot;
-    // Wenn weitere Nachricht vorhanden ist, prüfe alle weiteren Slots bis zum letzten
-    while(message_slot != NO_MESSAGE) {
-        OSMP_message* message = (OSMP_message*)shm_ptr + message_slot;
-        old_message_slot = message_slot;
-        message_slot = message->next_message;
+
+    int next_slot_number = get_next_message_slot_number(rank);
+    message_slot* slot = NULL;
+    while(next_slot_number != NO_MESSAGE) {
+        slot = &(shm_ptr->slots[next_slot_number]);
+        next_slot_number = slot->next_message;
     }
-    return old_message_slot;
+    return slot;
 }
 
 /**
  * Verweist in der letzten Nachricht auf die neue Nachricht. Wenn der Empfänger aktuell keine anderen Nachrichten hat,
  * wird in seinem Postfach auf die neue Nachricht verwiesen.
- * @param dest Rang des empfangenden Prozesses
- * @param new_message_slot Offset (rel. zum Beginn des SHM) der neuen Nachricht, auf die verwiesen werden soll
+ * @param dest Rang des empfangenden Prozesses.
+ * @param new_message_slot Nummer des Nachrichtenslots, auf den verwiesen werden soll.
  */
-void reference_new_message(int dest, int new_message_slot) {
-    // Erhalte letzte Nachricht des empfangenden Prozesses
-    int last_message_slot = get_last_message_slot(dest);
-    if (last_message_slot == NO_MESSAGE) {
+void reference_new_message(int dest, int new_message_slot_number) {
+    log_osmp_lib_call(__TIMESTAMP__, "reference_new_message");
+
+    // Erhalte Verweis auf letzte Nachricht des empfangenden Prozesses
+    message_slot* last_message_slot = get_last_message_slot(dest);
+    if (last_message_slot == NULL) {
         // vorher noch keine Nachricht vorhanden => schreibe in Postfach
-        int postbox = get_postbox_offset(dest);
-        char* addr = shm_ptr + postbox;
-        unsigned int int_size;
-        OSMP_SizeOf(OSMP_INT, &int_size);
-        memcpy(addr, &new_message_slot, int_size);
+        process_info* process = get_process_info(dest);
+        process->postbox = new_message_slot_number;
     }
     else {
         // vorher schon Nachricht(en) vorhanden => schreibe ans Ende der letzten Nachricht
-        OSMP_message* last_message = (OSMP_message*)(shm_ptr+last_message_slot);
-        last_message->next_message = new_message_slot;
+        last_message_slot->next_message = new_message_slot_number;
     }
 }
+
 /**
  * Setzt Flag im angegebenen Nachrichtenslot auf "frei", die Bytes im Nachrichtenpuffer auf 0 und den Verweis auf
  * die nächste Nachricht auf NO_MESSAGE.
- * @param message_offset Offset (rel. zum SHM) zum Nachrichtenslot, der geleert werden soll.
+ * @param slot_number Nummer des Nachrichtenslots, der geleert werden soll.
  */
-void empty_message_slot(int message_offset) {
+void empty_message_slot(int slot_number) {
     log_osmp_lib_call(__TIMESTAMP__, "empty_message_slot");
-    OSMP_message* message = (OSMP_message*) shm_ptr + message_offset;
-    message->free = SLOT_FREE;
-    memset(message->payload, '\0', (unsigned long) message->len);
-    message->next_message = NO_MESSAGE;
+    message_slot* slot = &(shm_ptr->slots[slot_number]);
+    slot->free = SLOT_FREE;
+    slot->to = NO_MESSAGE;
+    slot->from = NO_MESSAGE;
+    slot->len = 0;
+    memset(slot->payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
+    slot->next_message = NO_MESSAGE;
 }
 
 /**
  * Entfernt Nachricht aus der Nachrichtenkette und setzt die Referenzen davor und danach passend.
  * Der Nachrichtenslot wird außerdem mittels empty_message_slot() geleert.
- * @param message_offset Offset (rel. zum SHM) zum Slot der Nachricht, die entfernt werden soll.
+ * @param slot_number Nummer des Nachrichtenslots, dessen Referenzen entfernt werden soll.
  */
-void remove_message(int message_offset) {
+int remove_message(int slot_number) {
     log_osmp_lib_call(__TIMESTAMP__, "remove_message");
-    OSMP_message* message = (OSMP_message*) shm_ptr + message_offset;
+
+    message_slot* message = &(shm_ptr->slots[slot_number]);
     // Finde Referenz auf diese Nachricht
-    int postbox_offset = get_postbox_offset(message->to);
-    int next_message_offset;
-    // erste Nachricht im Postfach
-    memcpy(&next_message_offset, shm_ptr+postbox_offset, sizeof(int));
-    if(next_message_offset == message_offset) {
+    // Prüfe erste Nachricht im Postfach
+    process_info* process = get_process_info(message->to);
+    int postbox_message_number = process->postbox;
+    if(postbox_message_number == slot_number) {
         // zu entfernende Nachricht war erste Nachricht im Postfach
-        memcpy(shm_ptr+postbox_offset, &(message->next_message), sizeof(int));
-        // Slot leeren
-        empty_message_slot(message_offset);
-        return;
+        // ==> setze Postfach auf nächste Nachricht des zu leerenden Slots
+        process->postbox = message->next_message;
+        // Slot leeren und freigeben
+        empty_message_slot(slot_number);
+        return OSMP_SUCCESS;
     }
     // andernfalls durch verkettete Nachrichten iterieren, bis die passende erreicht wird
-    OSMP_message* previous_message;
-    while(next_message_offset != message_offset) {
-        previous_message = (OSMP_message*)(shm_ptr + next_message_offset);
-        next_message_offset = previous_message->next_message;
+    int previous = postbox_message_number;
+    int next = shm_ptr->slots[postbox_message_number].next_message;
+    while(previous != slot_number && next != NO_MESSAGE) {
+        previous = next;
+        next = shm_ptr->slots[previous].next_message;
     }
-    // Referenz der vorherigen Nachricht auf nachfolgende Nachricht setzen
-    previous_message = (OSMP_message*)(shm_ptr + next_message_offset);
+    if(next == NO_MESSAGE) {
+        // keinen Verweis auf angegebene Nachricht gefunden
+        return OSMP_FAILURE;
+    }
+    // andernfalls: richtige Nachricht gefunden
+    // setze Pointer der vorherigen Nachricht auf gewünschte Nachricht
+    message_slot* previous_message = &(shm_ptr->slots[previous]);
     previous_message->next_message = message->next_message;
-    // Slot leeren
-    empty_message_slot(message_offset);
+    // Slot leeren und freigeben
+    empty_message_slot(slot_number);
+    return OSMP_SUCCESS;
 }
 
-void OSMP_Init_Runner(int fd, char* shm, int size) {
+/**
+ * Setzt die globalen Variablen der OSMP-Bibliothek für den Elternprozess.
+ * @param fd    Shared-Memory-File-Descriptor.
+ * @param shm   Zeiger auf den Beginn des Shared Memory.
+ * @param size  Größe des Shared Memory in Bytes.
+ */
+void OSMP_Init_Runner(int fd, shared_memory* shm, int size) {
     shared_memory_fd = fd;
     memory_size = size;
     shm_ptr = shm;
     OSMP_Size(&OSMP_size);
 }
 
+/**
+ * Berechnet den für den Shared Memory benötigten Speicherplatz in Abhängigkeit von der Anzahl der Prozesse.
+ * @param processes Die Anzahl der Executable-Prozesse, die verwaltet werden.
+ * @return Die Größe des benötigten Speicherplatzes in Bytes.
+ */
 int calculate_shared_memory_size(int processes) {
-    // Größe des SHM berechnen
-    // 2 für Size und Mutex, Ranks, Liste mit freien Slots, 1 Postfach (int) pro Prozess, alle Slots, 258 B für Logging-Info
-    int size = (int)sizeof(int) +                   // OSMP_Size
-        (int)(sizeof(int))*processes +              // Ranks
-        (int)sizeof(pthread_mutex_t) +              // Mutex
-        OSMP_MAX_SLOTS * (int)sizeof(int) +         // freie Slots
-        processes* (int)sizeof(int) +               // Postfächer
-        (int)sizeof(OSMP_message)*OSMP_MAX_SLOTS +  // Nachrichtenslots
-        258;                                        // Logging-Info
+    int size = (int)sizeof(shared_memory);
+    // Das Struct enthält bereits Speicher für einen Prozess; nur der nötige Speicher für die weiteren n-1 Prozesse muss
+    // noch addiert werden.
+    size += (processes-1) * (int)sizeof(process_info);
     return size;
 }
 
@@ -271,6 +261,7 @@ int get_OSMP_SUCCESS(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
+    char *shared_memory_name = calloc(MAX_PATH_LENGTH, sizeof(char));
     int locks_shared_memory_fd = shm_open("locks_shared_memory", O_RDWR, 0666);
     locks_shared_memory = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
     OSMP_send_mutex = (pthread_mutex_t*)locks_shared_memory;
@@ -283,33 +274,31 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-    // Mappe zunächst nur die ersten Bytes, um die Anzahl der Prozesse auszulesen
-    shm_ptr = mmap(NULL, (size_t)sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
+    // Mappe zunächst nur die feste Größe des Shared Memory, um die Anzahl der Prozesse auszulesen
+    shm_ptr = mmap(NULL, (size_t)sizeof(shared_memory), PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
     int processes;
-    // Kopiere Anzahl der Prozesse
-    memcpy(&processes, shm_ptr, (int)sizeof(int));
+    processes = shm_ptr->size;
     // Unmap
-    munmap(shm_ptr, (int)sizeof(int));
+    munmap(shm_ptr, (int)sizeof(shared_memory));
 
     // Berechne die tatsächliche Größe des Shared Memory
     memory_size = calculate_shared_memory_size(processes);
     // Mappe neu mit der passenden Größe
     shm_ptr = mmap(NULL, (size_t)memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, shared_memory_fd, 0);
-    logging_init_child(shm_ptr, memory_size);
+
+    logging_init_child(shm_ptr);
+
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Init");
+    log_to_file(2, __TIMESTAMP__, "Calloc 256 B (shared_memory_name)");
     if(shm_ptr == MAP_FAILED){
         log_to_file(3, __TIMESTAMP__, "Failed to map shared memory.\n");
         return OSMP_FAILURE;
     }
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Init");
-    log_to_file(2, __TIMESTAMP__, "Calloc 256 B (shared_memory_name)");
+
     for (int i = 0; i < *argc; ++i) {
         printf("%s ", (*argv)[i]);
     }
     puts("");
-
-    // Test
-    sleep(3);
-    printf("%s", shm_ptr);
 
     // Setze globale Variablen
     OSMP_Size(&OSMP_size);
@@ -363,22 +352,20 @@ int OSMP_Size(int *size) {
 }
 
 int OSMP_Rank(int *rank) {
-
-    int* rank_ptr = (int*)(shm_ptr + sizeof(int));
     int pid = getpid();
-    int size, i;
-    OSMP_Size(&size);
-    for(i=0; i<size; i++) {
-        int temp_pid = *(rank_ptr + i*(int)sizeof(int));
-        if(temp_pid == pid) {
-            break;
+    int size = shm_ptr->size;
+    // Zeiger auf erste Prozess-Info am Ende des Structs
+    process_info* first_process_info = &(shm_ptr->first_process_info);
+    process_info* process;
+    for(int i=0; i<size; i++) {
+        // Offset über das Struct hinaus
+        process = first_process_info + i;
+        if (process->pid == pid) {
+            *rank = process->rank;
+            return OSMP_SUCCESS;
         }
     }
-    if (i == size) {
-        return OSMP_FAILURE;
-    }
-    memcpy(rank, &i, sizeof(int));
-    return OSMP_SUCCESS;
+    return OSMP_FAILURE;
 }
 
 int condition_check(int dest){
@@ -405,22 +392,21 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         while (condition_check(dest)) {
             pthread_cond_wait(OSMP_send_condition, OSMP_send_mutex);
         }
-        // Erhalte den Offset (relativ zum Beginn des SHM) zum nächsten freien Slot
-        int slot = get_next_free_slot();
-        // Berechne die Adresse dieses Slots
-        char* slot_addr = shm_ptr + slot;
+        // Erhalte Nummer des nächsten freien Slots
+        int slot_number = get_next_free_slot();
+        // Zeiger auf diesen Slot
+        message_slot* slot = &(shm_ptr->slots[slot_number]);
         // zu kopierende Bytes = min(OSMP_MAX_PAYLOAD_LENGTH, length_in_bytes)
         int to_copy = OSMP_MAX_PAYLOAD_LENGTH < length_in_bytes ? OSMP_MAX_PAYLOAD_LENGTH : length_in_bytes;
-        OSMP_message* message = (OSMP_message*) slot_addr;
-        message->free = SLOT_TAKEN;
-        message->to = dest;
-        OSMP_Rank(&(message->from));
-        message->len = to_copy;
-        message->type = datatype;
-        memcpy(message->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
-        message->next_message = NO_MESSAGE;
+        slot->free = SLOT_TAKEN;
+        slot->to = dest;
+        OSMP_Rank(&(slot->from));
+        slot->len = to_copy;
+        slot->type = datatype;
+        memcpy(slot->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
+        slot->next_message = NO_MESSAGE;
         // Verweise in der letzten Nachricht auf diese neue Nachricht
-        reference_new_message(dest, slot);
+        reference_new_message(dest, slot->slot_number);
         // Aktualisiere Variablen für nächsten Schleifendurchlauf
         length_in_bytes -= to_copy;
         buf_offset += to_copy;
@@ -434,33 +420,44 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     if(count <= 0) {
         return OSMP_FAILURE;
     }
+
     // TODO: Synchronisierung
     unsigned int datatype_size;
+    int length_in_bytes, rank;
     OSMP_SizeOf(datatype, &datatype_size);
-    int length_in_bytes = (int)datatype_size * count;
-    int message_offset = get_next_message_slot();
-    if(message_offset == NO_MESSAGE) {
-        // TODO: oder warten, bis eine Nachricht da ist?
-        return OSMP_FAILURE;
+    length_in_bytes = (int)datatype_size * count;
+    OSMP_Rank(&rank);
+    message_slot* slot = get_next_message_slot(rank);
+
+    if(slot == NULL) {
+        // keine Nachricht im Postfach
+        // TODO: warten, bis eine Nachricht da ist
     }
-    OSMP_message* message = (OSMP_message*)(shm_ptr + message_offset);
-    while(message->type != datatype) {
-        message_offset = message->next_message;
-        if(message_offset == NO_MESSAGE) {
-            return OSMP_FAILURE;
+
+    while(slot->type != datatype) {
+        int next_slot = slot->next_message;
+        if (next_slot == NO_MESSAGE) {
+            // keine Nachricht des gewünschten Datentyps vorhanden
+            // TODO: warten, bis eine Nachricht da ist
         }
-        message = (OSMP_message*)(shm_ptr + message_offset);
+        else {
+            slot = &(shm_ptr->slots[next_slot]);
+        }
     }
-    int max_to_copy = length_in_bytes < message->len ? length_in_bytes : message->len;
-    memcpy(buf, message->payload, (unsigned long) max_to_copy);
-    memcpy(source, &(message->from), sizeof(int));
-    memcpy(len, &max_to_copy, sizeof(int));
+
+    // Nachricht gefunden --> kopiere sie in Buffer des Empfängers
+    // zu kopierende Bytes = min(length_in_bytes, slot->len)
+    int max_to_copy = length_in_bytes < slot->len ? length_in_bytes : slot->len;
+    memcpy(buf, slot->payload, (unsigned long) max_to_copy);
+    *source = slot->from;
+    *len = slot->len;
     // Leere Slot und entferne Referenzen auf die Nachricht
-    remove_message(message_offset);
+    remove_message(slot->slot_number);
     return OSMP_SUCCESS;
 }
 
 int OSMP_Finalize(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
     int result = close(shared_memory_fd);
     if(result == -1){
         log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
@@ -471,9 +468,7 @@ int OSMP_Finalize(void) {
         log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
         return OSMP_FAILURE;
     }
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
     logging_close();
-    puts("OSMP_Finalize() not implemented yet");
     return OSMP_SUCCESS;
 }
 
@@ -560,5 +555,5 @@ int OSMP_GetSharedMemoryName(char **name) {
 }
 
 void OSMP_GetSharedMemoryPointer(char **shared_memory) {
-    *shared_memory = shm_ptr;
+    *shared_memory = (char*)shm_ptr;
 }
