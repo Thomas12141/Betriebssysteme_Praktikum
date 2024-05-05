@@ -124,7 +124,6 @@ void log_to_file(int level, char* timestamp, char* message){
     }
 
     return_code = pthread_mutex_lock(mutex);
-    printf("After locking mutex\n");
     logging_file = fopen(file_name, "a+");
     if(return_code!=0){
         printf("Failed to acquire lock.\n");
@@ -132,7 +131,6 @@ void log_to_file(int level, char* timestamp, char* message){
     }
     fprintf(logging_file,"%d - %d - %s - %s.\n", level, getpid(), timestamp, message);
     fclose(logging_file);
-    printf("Before unlocking mutex\n");
     return_code = pthread_mutex_unlock(mutex);
     if (return_code!=0){
         printf("Failed to release lock.\n");
