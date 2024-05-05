@@ -381,7 +381,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         pthread_mutex_lock(OSMP_send_mutex);
         // warten, bis ein Nachrichtenslot für den empfangenden Prozess frei ist
         while (get_number_of_messages(dest) >= get_OSMP_MAX_MESSAGES_PROC()) {
-            pthread_cond_wait(OSMP_send_condition, OSMP_send_mutex);
         }
         // Erhalte Nummer des nächsten freien Slots
         int slot_number = get_next_free_slot();
