@@ -15,10 +15,7 @@
 #include <pthread.h>
 
 shared_memory *shm_ptr;
-char * locks_shared_memory;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
-pthread_mutex_t * OSMP_send_mutex;
-pthread_cond_t * OSMP_send_condition;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
