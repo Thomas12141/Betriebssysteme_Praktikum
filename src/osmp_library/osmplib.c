@@ -259,6 +259,10 @@ int get_OSMP_SUCCESS(void) {
 
 int OSMP_Init(const int *argc, char ***argv) {
     char *shared_memory_name = calloc(MAX_PATH_LENGTH, sizeof(char));
+    int locks_shared_memory_fd = shm_open("locks_shared_memory", O_RDWR, 0666);
+    locks_shared_memory = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
+    OSMP_send_mutex = (pthread_mutex_t*)locks_shared_memory;
+    OSMP_send_condition = (pthread_cond_t *) OSMP_send_mutex + sizeof(pthread_mutex_t);
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
     if(shared_memory_fd == -1){
