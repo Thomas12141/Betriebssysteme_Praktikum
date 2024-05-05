@@ -367,28 +367,20 @@ int OSMP_Rank(int *rank) {
     return OSMP_FAILURE;
 }
 
-int condition_check(int dest){
-    if(get_number_of_messages(dest) >= get_OSMP_MAX_MESSAGES_PROC()){
-        return 0;
-    } else{
-        pthread_cond_broadcast(OSMP_send_condition);
-        return 1;
-    }
-}
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Send");
     if(count <= 0) {
         return OSMP_FAILURE;
     }
-    pthread_mutex_lock(OSMP_send_mutex);
     unsigned int datatype_size;
     OSMP_SizeOf(datatype, &datatype_size);
     int length_in_bytes = (int)datatype_size * count;
     int buf_offset = 0;
     do {
+        pthread_mutex_lock(OSMP_send_mutex);
         // warten, bis ein Nachrichtenslot für den empfangenden Prozess frei ist
-        while (condition_check(dest)) {
+        while (get_number_of_messages(dest) >= get_OSMP_MAX_MESSAGES_PROC()) {
             pthread_cond_wait(OSMP_send_condition, OSMP_send_mutex);
         }
         // Erhalte Nummer des nächsten freien Slots
@@ -403,6 +395,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         slot->len = to_copy;
         slot->type = datatype;
         memcpy(slot->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
+        pthread_mutex_unlock(OSMP_send_mutex);
         slot->next_message = NO_MESSAGE;
         // Verweise in der letzten Nachricht auf diese neue Nachricht
         reference_new_message(dest, slot->slot_number);
@@ -410,7 +403,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         length_in_bytes -= to_copy;
         buf_offset += to_copy;
     } while(length_in_bytes > 0);
-    pthread_mutex_unlock(OSMP_send_mutex);
     return OSMP_SUCCESS;
 }
 
@@ -426,32 +418,33 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     OSMP_SizeOf(datatype, &datatype_size);
     length_in_bytes = (int)datatype_size * count;
     OSMP_Rank(&rank);
-    message_slot* slot = get_next_message_slot(rank);
+    message_slot* slot;
+    do{
+        slot = get_next_message_slot(rank);
+    } while (slot == NULL);
 
-    if(slot == NULL) {
-        // keine Nachricht im Postfach
-        // TODO: warten, bis eine Nachricht da ist
-    }
 
     while(slot->type != datatype) {
         int next_slot = slot->next_message;
         if (next_slot == NO_MESSAGE) {
-            // keine Nachricht des gewünschten Datentyps vorhanden
-            // TODO: warten, bis eine Nachricht da ist
+            do{
+                next_slot = slot->next_message;
+            } while (next_slot == NO_MESSAGE);
         }
         else {
             slot = &(shm_ptr->slots[next_slot]);
         }
     }
-
     // Nachricht gefunden --> kopiere sie in Buffer des Empfängers
     // zu kopierende Bytes = min(length_in_bytes, slot->len)
     int max_to_copy = length_in_bytes < slot->len ? length_in_bytes : slot->len;
+    pthread_mutex_lock(OSMP_send_mutex);
     memcpy(buf, slot->payload, (unsigned long) max_to_copy);
     *source = slot->from;
     *len = slot->len;
     // Leere Slot und entferne Referenzen auf die Nachricht
     remove_message(slot->slot_number);
+    pthread_mutex_unlock(OSMP_send_mutex);
     return OSMP_SUCCESS;
 }
 
