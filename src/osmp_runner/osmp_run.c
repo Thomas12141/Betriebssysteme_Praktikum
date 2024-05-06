@@ -225,19 +225,28 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
 }
 
 void initialize_locks(char * shared_memory){
-    pthread_mutex_t mutex;
+    long unsigned int offset = 0;
+    pthread_mutex_t send_mutex;
     pthread_cond_t condition;
     pthread_mutexattr_t att;
     pthread_mutexattr_init(&att);
     pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&mutex, &att);
+    //pthread_mutex_init(&send_mutex, &att);
     pthread_condattr_t condition_attribute;
     pthread_condattr_init(&condition_attribute);
     pthread_condattr_setpshared(&condition_attribute, PTHREAD_PROCESS_SHARED);
     pthread_cond_init(&condition, &condition_attribute);
+    memcpy(shared_memory + offset, &send_mutex, sizeof(pthread_mutex_t));
+    offset += sizeof(pthread_mutex_t);
+    memcpy(shared_memory + offset, &condition, sizeof(pthread_cond_t));
+    offset += sizeof(pthread_cond_t);
+    pthread_mutex_t barrier_mutex;
+    pthread_mutex_init(&barrier_mutex, &att);
+    memcpy(shared_memory + offset, &barrier_mutex, sizeof(pthread_mutex_t));
+    offset += sizeof(pthread_mutex_t);
     pthread_condattr_destroy(&condition_attribute);
-    memcpy(shared_memory, &mutex, sizeof(pthread_mutex_t));
-    memcpy(shared_memory + sizeof(pthread_mutex_t), &condition, sizeof(pthread_cond_t));
+    int counter = 0;
+    memcpy(shared_memory + offset, &counter, sizeof(int));
 }
 
 int main (int argc, char **argv) {
@@ -246,20 +255,20 @@ int main (int argc, char **argv) {
     if (locks_shared_memory_fd == -1){
         return -1;
     }
-
-    int locks_ftruncate_result = ftruncate(locks_shared_memory_fd, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t));
+    int locks_shared_memory_size = 2048;
+    int locks_ftruncate_result = ftruncate(locks_shared_memory_fd, locks_shared_memory_size);
 
     if(locks_ftruncate_result == -1){
         return -1;
     }
 
-    char * lcoks_shm_ptr = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
+    char * locks_shm_ptr = mmap(NULL, (size_t) locks_shared_memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
 
-    if (lcoks_shm_ptr == MAP_FAILED){
+    if (locks_shm_ptr == MAP_FAILED){
         return -1;
     }
 
-    initialize_locks(lcoks_shm_ptr);
+    initialize_locks(locks_shm_ptr);
 
     int processes, verbosity = 1, exec_args_index;
     char *log_file = NULL, *executable;
@@ -308,12 +317,24 @@ int main (int argc, char **argv) {
         }
     }
 
+
+    // Unmap the shared memory
+    int munmap_result = munmap(locks_shm_ptr, (size_t) locks_shared_memory_size);
+    if (munmap_result == -1) {
+        printf("Couldnt unmap locks.\n");
+    }
+
+// Unlink the shared memory object
+    int unlink_result = shm_unlink(locks_shared_memory_string);
+    if (unlink_result == -1) {
+        printf("Couldnt unlink locks.\n");
+    }
+
     int free_result = freeAll(shared_memory_fd, shm_ptr);
 
     if(free_result == -1){
         return -1;
     }
-
     return 0;
 }
 

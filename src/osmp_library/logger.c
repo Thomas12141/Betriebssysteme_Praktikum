@@ -143,7 +143,7 @@ void log_to_file(int level, char* timestamp, char* message){
 void logging_close(void){
     fclose(logging_file);
     logging_file = NULL;
-    free(file_name);
+    //free(file_name);
 }
 
 /**

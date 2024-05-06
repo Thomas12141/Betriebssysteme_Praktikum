@@ -18,7 +18,9 @@ shared_memory *shm_ptr;
 char * locks_shared_memory;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
 pthread_mutex_t * OSMP_send_mutex;
-pthread_cond_t * OSMP_send_condition;
+pthread_cond_t * OSMP_mutex_condition;
+int * OSMP_barrier_counter;
+pthread_mutex_t * OSMP_barrier_mutex;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -41,7 +43,7 @@ void log_osmp_lib_call(char* timestamp, const char* function_name) {
  * Das Flag im Slot selbst wird dadurch noch nicht auf "belegt" gesetzt! Dafür ist der Aufrufende verantwortlich.
  * @return Die Nummer des nächsten freien Nachrichtenslots. NO_SLOT, wenn kein Slot frei ist.
  */
-int get_next_free_slot() {
+int get_next_free_slot(void) {
     log_osmp_lib_call(__TIMESTAMP__, "get_next_free_slot");
     int slot;
     // verwende ersten freien Slot als Rückgabewert
@@ -261,11 +263,17 @@ int get_OSMP_SUCCESS(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
+    long unsigned int offset = 0;
     char *shared_memory_name = calloc(MAX_PATH_LENGTH, sizeof(char));
     int locks_shared_memory_fd = shm_open("locks_shared_memory", O_RDWR, 0666);
     locks_shared_memory = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
     OSMP_send_mutex = (pthread_mutex_t*)locks_shared_memory;
-    OSMP_send_condition = (pthread_cond_t *) OSMP_send_mutex + sizeof(pthread_mutex_t);
+    offset += sizeof(pthread_mutex_t);
+    OSMP_mutex_condition = (pthread_cond_t *) locks_shared_memory + offset;
+    offset += sizeof(pthread_cond_t);
+    OSMP_barrier_mutex = (pthread_mutex_t *) locks_shared_memory + offset;
+    offset += sizeof(pthread_mutex_t);
+    OSMP_barrier_counter = (int *) locks_shared_memory + offset;
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
     if(shared_memory_fd == -1){
@@ -464,9 +472,16 @@ int OSMP_Finalize(void) {
 }
 
 int OSMP_Barrier(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Barrier");
-    puts("OSMP_Barrier() not implemented yet");
-    return OSMP_FAILURE;
+    pthread_mutex_lock(OSMP_barrier_mutex);
+    (*OSMP_barrier_counter) +=1;
+    printf("In barrier counter %d\n", *OSMP_barrier_counter);
+    while (OSMP_rank>*OSMP_barrier_counter-1){
+        pthread_cond_wait(OSMP_mutex_condition, OSMP_barrier_mutex);
+    }
+    pthread_mutex_unlock(OSMP_barrier_mutex);
+    pthread_cond_broadcast(OSMP_mutex_condition);
+    printf("Test\n");
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
