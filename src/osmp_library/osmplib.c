@@ -15,12 +15,7 @@
 #include <pthread.h>
 
 shared_memory *shm_ptr;
-char * locks_shared_memory;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
-pthread_mutex_t * OSMP_send_mutex;
-pthread_cond_t * OSMP_mutex_condition;
-int * OSMP_barrier_counter;
-pthread_mutex_t * OSMP_barrier_mutex;
 
 /**
  * Lockt den angegebenen Mutex.
@@ -490,10 +485,11 @@ int OSMP_Finalize(void) {
 int OSMP_Barrier(void) {
     semwait(&(shm_ptr->barrier_mutex));
     (shm_ptr->barrier_counter)++;
+    printf("Barrier-Counter: %d\n", shm_ptr->barrier_counter);
     if(shm_ptr->barrier_counter >= shm_ptr->size) {
         // Dieser Prozess war der letzte -> benachrichtigen
         semsignal(&(shm_ptr->barrier_mutex));
-        pthread_cond_broadcast(OSMP_mutex_condition);
+        pthread_cond_broadcast(&(shm_ptr->barrier_condition));
         // TODO: Wer setzt Counter wieder auf 0?
         return OSMP_SUCCESS;
     }
