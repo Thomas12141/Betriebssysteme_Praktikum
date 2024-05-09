@@ -269,11 +269,11 @@ int OSMP_Init(const int *argc, char ***argv) {
     locks_shared_memory = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
     OSMP_send_mutex = (pthread_mutex_t*)locks_shared_memory;
     offset += sizeof(pthread_mutex_t);
-    OSMP_mutex_condition = (pthread_cond_t *) locks_shared_memory + offset;
+    OSMP_mutex_condition = (pthread_cond_t *) (locks_shared_memory + offset);
     offset += sizeof(pthread_cond_t);
-    OSMP_barrier_mutex = (pthread_mutex_t *) locks_shared_memory + offset;
+    OSMP_barrier_mutex = (pthread_mutex_t *) (locks_shared_memory + offset);
     offset += sizeof(pthread_mutex_t);
-    OSMP_barrier_counter = (int *) locks_shared_memory + offset;
+    OSMP_barrier_counter = (int *) (locks_shared_memory + offset);
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
     if(shared_memory_fd == -1){
@@ -458,10 +458,6 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 int OSMP_Finalize(void) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
     int result = close(shared_memory_fd);
-    if(result == -1){
-        log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
-        return OSMP_FAILURE;
-    }
     result = munmap(shm_ptr, (size_t)memory_size);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
@@ -474,8 +470,7 @@ int OSMP_Finalize(void) {
 int OSMP_Barrier(void) {
     pthread_mutex_lock(OSMP_barrier_mutex);
     (*OSMP_barrier_counter) +=1;
-    printf("In barrier counter %d\n", *OSMP_barrier_counter);
-    while (OSMP_rank>*OSMP_barrier_counter-1){
+    while (OSMP_size>*OSMP_barrier_counter){
         pthread_cond_wait(OSMP_mutex_condition, OSMP_barrier_mutex);
     }
     pthread_mutex_unlock(OSMP_barrier_mutex);
