@@ -71,6 +71,18 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             if(mtx_result != OSMP_SUCCESS) {
                 exit(EXIT_FAILURE);
             }
+            // Initialisiere Condition-Variable
+            pthread_cond_t condition;
+            // Attribut anlegen
+            pthread_condattr_t condition_attr;
+            // Attribut initialisieren und verändern
+            pthread_condattr_init(&condition_attr);
+            pthread_condattr_setpshared(&condition_attr, PTHREAD_PROCESS_SHARED);
+            pthread_cond_init(&condition, &condition_attr);
+            // Attribut in Shared Memory kopieren
+            memcpy(&(info->new_message), &condition, sizeof(pthread_cond_t));
+            pthread_cond_destroy(&condition);
+            pthread_condattr_destroy(&condition_attr);
         }
     }
     return 0;
@@ -275,31 +287,6 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     shm_struct->verbosity = (unsigned int)verbosity;
 
     // Prozess-Infos werden in start_all_executables() gesetzt
-}
-
-void initialize_locks(char * shared_memory){
-    long unsigned int offset = 0;
-    pthread_mutex_t send_mutex;
-    pthread_cond_t condition;
-    pthread_mutexattr_t att;
-    pthread_mutexattr_init(&att);
-    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
-    //pthread_mutex_init(&send_mutex, &att);
-    pthread_condattr_t condition_attribute;
-    pthread_condattr_init(&condition_attribute);
-    pthread_condattr_setpshared(&condition_attribute, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&condition, &condition_attribute);
-    memcpy(shared_memory + offset, &send_mutex, sizeof(pthread_mutex_t));
-    offset += sizeof(pthread_mutex_t);
-    memcpy(shared_memory + offset, &condition, sizeof(pthread_cond_t));
-    offset += sizeof(pthread_cond_t);
-    pthread_mutex_t barrier_mutex;
-    pthread_mutex_init(&barrier_mutex, &att);
-    memcpy(shared_memory + offset, &barrier_mutex, sizeof(pthread_mutex_t));
-    offset += sizeof(pthread_mutex_t);
-    pthread_condattr_destroy(&condition_attribute);
-    int counter = 0;
-    memcpy(shared_memory + offset, &counter, sizeof(int));
 }
 
 int main (int argc, char **argv) {

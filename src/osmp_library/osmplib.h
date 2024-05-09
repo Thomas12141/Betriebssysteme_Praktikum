@@ -49,7 +49,7 @@ typedef struct message_slot {
 
     /**
      * @var free
-     * Flag: Slot frei (SLOT_FREE) oer nicht (SLOT_TAKEN)?
+     * Flag: Slot frei (SLOT_FREE) oder nicht (SLOT_TAKEN)?
      */
     int free;
 
@@ -125,6 +125,13 @@ typedef struct process_info {
      * Mutex zur Synchronisierung des Zugriffs auf das Postfach.
      */
     pthread_mutex_t postbox_mutex;
+
+    /**
+     * @var new_message
+     * Condition-Variable, mit der signalisiert werden kann, dass eine neue Nachricht für den Prozess vorliegt,
+     * der mit diesem Struct verwaltet wird.
+     */
+    pthread_cond_t new_message;
 } process_info;
 
 /**
@@ -169,16 +176,16 @@ typedef struct shared_memory {
     message_slot gather_slot;
 
     /**
-     * @var barrier_counter
-     * Counter für die Barrier-Funktion. Gibt die Anzahl der Prozesse zurück, die an der Barriere warten.
-     */
-    int barrier_counter;
-
-    /**
      * @var gather_mutex
      * Mutex für die Synchronisierung des Zugriffs auf das Gather-Postfach.
      */
     pthread_mutex_t gather_mutex;
+
+    /**
+     * @var barrier_counter
+     * Counter für die Barrier-Funktion. Gibt die Anzahl der Prozesse zurück, die an der Barriere warten.
+     */
+    int barrier_counter;
 
     /**
      * @var logfile
@@ -199,10 +206,6 @@ typedef struct shared_memory {
      */
     process_info first_process_info;
 } shared_memory;
-
-int get_free_slots_list_offset();
-
-int get_postboxes_offset();
 
 int calculate_shared_memory_size(int processes);
 

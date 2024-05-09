@@ -23,6 +23,22 @@ int * OSMP_barrier_counter;
 pthread_mutex_t * OSMP_barrier_mutex;
 
 /**
+ * Lockt den angegebenen Mutex.
+ * @param mutex Zeiger auf den Mutex, der zur Synchronisierung verwendet werden soll.
+ */
+void semwait(pthread_mutex_t* mutex) {
+    pthread_mutex_lock(mutex);
+}
+
+/**
+ * Gibt einen Mutex frei.
+ * @param mutex Zeiger auf den freizugebenen Mutex.
+ */
+void semsignal(pthread_mutex_t* mutex) {
+    pthread_mutex_unlock(mutex);
+}
+
+/**
  * Übergibt eine Level-1-Lognachricht an den Logger.
  *
  * @param pid           Die Process ID des aufrufenden Prozesses.
@@ -263,17 +279,7 @@ int get_OSMP_SUCCESS(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
-    long unsigned int offset = 0;
     char *shared_memory_name = calloc(MAX_PATH_LENGTH, sizeof(char));
-    int locks_shared_memory_fd = shm_open("locks_shared_memory", O_RDWR, 0666);
-    locks_shared_memory = mmap(NULL, sizeof(pthread_mutex_t) + sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
-    OSMP_send_mutex = (pthread_mutex_t*)locks_shared_memory;
-    offset += sizeof(pthread_mutex_t);
-    OSMP_mutex_condition = (pthread_cond_t *) locks_shared_memory + offset;
-    offset += sizeof(pthread_cond_t);
-    OSMP_barrier_mutex = (pthread_mutex_t *) locks_shared_memory + offset;
-    offset += sizeof(pthread_mutex_t);
-    OSMP_barrier_counter = (int *) locks_shared_memory + offset;
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
     if(shared_memory_fd == -1){
@@ -386,7 +392,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     int length_in_bytes = (int)datatype_size * count;
     int buf_offset = 0;
     do {
-        pthread_mutex_lock(OSMP_send_mutex);
         // warten, bis ein Nachrichtenslot für den empfangenden Prozess frei ist
         while (get_number_of_messages(dest) >= get_OSMP_MAX_MESSAGES_PROC()) {
         }
@@ -394,6 +399,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         int slot_number = get_next_free_slot();
         // Zeiger auf diesen Slot
         message_slot* slot = &(shm_ptr->slots[slot_number]);
+        // Synchronisiere Zugriff auf den Slot
+        do {
+            semwait(&(slot->slot_mutex));
+        } while(slot->free != SLOT_FREE);
         // zu kopierende Bytes = min(OSMP_MAX_PAYLOAD_LENGTH, length_in_bytes)
         int to_copy = OSMP_MAX_PAYLOAD_LENGTH < length_in_bytes ? OSMP_MAX_PAYLOAD_LENGTH : length_in_bytes;
         slot->free = SLOT_TAKEN;
@@ -402,10 +411,14 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         slot->len = to_copy;
         slot->type = datatype;
         memcpy(slot->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
-        pthread_mutex_unlock(OSMP_send_mutex);
         slot->next_message = NO_MESSAGE;
         // Verweise in der letzten Nachricht auf diese neue Nachricht
         reference_new_message(dest, slot->slot_number);
+        // Gib Mutex-Lock frei
+        semsignal(&(slot->slot_mutex));
+        // Signalisiere gesendete Nachricht
+        process_info* process = get_process_info(dest);
+        pthread_cond_broadcast(&(process->new_message));
         // Aktualisiere Variablen für nächsten Schleifendurchlauf
         length_in_bytes -= to_copy;
         buf_offset += to_copy;
@@ -419,39 +432,46 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
         return OSMP_FAILURE;
     }
 
-    // TODO: Synchronisierung
     unsigned int datatype_size;
     int length_in_bytes, rank;
     OSMP_SizeOf(datatype, &datatype_size);
     length_in_bytes = (int)datatype_size * count;
     OSMP_Rank(&rank);
+    // eigene process info
+    process_info* process = get_process_info(rank);
     message_slot* slot;
-    do{
+    slot = get_next_message_slot(rank);
+
+    // Warte/Stelle sicher, dass eine Nachricht vorhanden ist
+    int next_slot = NO_MESSAGE;
+    while(slot == NULL) {
+        semwait(&(process->postbox_mutex));
+        pthread_cond_wait(&(process->new_message), &(process->postbox_mutex));
         slot = get_next_message_slot(rank);
-    } while (slot == NULL);
-
-
-    while(slot->type != datatype) {
-        int next_slot = slot->next_message;
-        if (next_slot == NO_MESSAGE) {
-            do{
+        if(slot != NULL) {
+            // Nachricht vorhanden --> prüfe auf den richtigen Datentyp
+            while(slot->type != datatype) {
                 next_slot = slot->next_message;
-            } while (next_slot == NO_MESSAGE);
+                if(next_slot == NO_MESSAGE) {
+                    // keine weitere Nachricht
+                    break; // zurück in die äußere while-Schleife --> auf neue Nachr. warten
+                }
+                slot = &(shm_ptr->slots[next_slot]);
+            }
         }
-        else {
-            slot = &(shm_ptr->slots[next_slot]);
-        }
+        semsignal(&(process->postbox_mutex));
     }
-    // Nachricht gefunden --> kopiere sie in Buffer des Empfängers
+
+    // Nachricht des richtigen Typs gefunden --> kopiere sie in Buffer des Empfängers
     // zu kopierende Bytes = min(length_in_bytes, slot->len)
     int max_to_copy = length_in_bytes < slot->len ? length_in_bytes : slot->len;
-    pthread_mutex_lock(OSMP_send_mutex);
+    semwait(&(slot->slot_mutex));
     memcpy(buf, slot->payload, (unsigned long) max_to_copy);
     *source = slot->from;
     *len = slot->len;
     // Leere Slot und entferne Referenzen auf die Nachricht
     remove_message(slot->slot_number);
-    pthread_mutex_unlock(OSMP_send_mutex);
+    semsignal(&(slot->slot_mutex));
     return OSMP_SUCCESS;
 }
 
