@@ -488,13 +488,20 @@ int OSMP_Finalize(void) {
 }
 
 int OSMP_Barrier(void) {
-    pthread_mutex_lock(OSMP_barrier_mutex);
-    (*OSMP_barrier_counter) +=1;
-    while (OSMP_size>*OSMP_barrier_counter){
-        pthread_cond_wait(OSMP_mutex_condition, OSMP_barrier_mutex);
+    semwait(&(shm_ptr->barrier_mutex));
+    (shm_ptr->barrier_counter)++;
+    if(shm_ptr->barrier_counter >= shm_ptr->size) {
+        // Dieser Prozess war der letzte -> benachrichtigen
+        semsignal(&(shm_ptr->barrier_mutex));
+        pthread_cond_broadcast(OSMP_mutex_condition);
+        // TODO: Wer setzt Counter wieder auf 0?
+        return OSMP_SUCCESS;
     }
-    pthread_mutex_unlock(OSMP_barrier_mutex);
-    pthread_cond_broadcast(OSMP_mutex_condition);
+    // Warte, bis alle Prozesse die Barriere erreicht haben
+    while(shm_ptr->size > shm_ptr->barrier_counter) {
+        pthread_cond_wait(&(shm_ptr->barrier_condition), &(shm_ptr->barrier_mutex));
+    }
+    semsignal(&(shm_ptr->barrier_mutex));
     printf("Test\n");
     return OSMP_SUCCESS;
 }

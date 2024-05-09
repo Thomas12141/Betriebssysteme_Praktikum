@@ -182,6 +182,18 @@ typedef struct shared_memory {
     pthread_mutex_t gather_mutex;
 
     /**
+     * @var barrier_mutex
+     * Mutex für die Synchronisierung des Zugriffs auf den Barrier-Counter.
+     */
+     pthread_mutex_t barrier_mutex;
+
+    /**
+     * @var barrier_condition
+     * Condition-Variable, um zu signalisieren, dass alle Prozesse an der Barriere warten.
+     */
+    pthread_cond_t barrier_condition;
+
+    /**
      * @var barrier_counter
      * Counter für die Barrier-Funktion. Gibt die Anzahl der Prozesse zurück, die an der Barriere warten.
      */
