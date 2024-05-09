@@ -88,6 +88,12 @@ typedef struct message_slot {
      * Nummer des slots, in dem die nächste Nachricht für den Empfänger liegt (NO_MESSAGE = keine weitere Nachricht).
      */
     int next_message;
+
+    /**
+     * @var slot_mutex
+     * Mutex zur Synchronisierung des Zugriffs auf diesen Nachrichtenslot.
+     */
+    pthread_mutex_t slot_mutex;
 } message_slot;
 
 /**
@@ -113,6 +119,12 @@ typedef struct process_info {
      * (NO_MESSAGE = keine Nachricht für diesen Prozess).
      */
     int postbox;
+
+    /**
+     * @var postbox_mutex
+     * Mutex zur Synchronisierung des Zugriffs auf das Postfach.
+     */
+    pthread_mutex_t postbox_mutex;
 } process_info;
 
 /**
@@ -139,6 +151,12 @@ typedef struct shared_memory {
     int free_slots[OSMP_MAX_SLOTS];
 
     /**
+     * @var free_slots_mutex
+     * Mutex zur Synchronisierung des Zugriffs auf die Liste der freien Nachrichtenslots.
+     */
+    pthread_mutex_t free_slots_mutex;
+
+    /**
      * @var slots
      * Array mit allen 1:1-Nachrichtenslots.
      */
@@ -149,6 +167,18 @@ typedef struct shared_memory {
      * Slot für eine einzelne Gather-Nachricht.
      */
     message_slot gather_slot;
+
+    /**
+     * @var barrier_counter
+     * Counter für die Barrier-Funktion. Gibt die Anzahl der Prozesse zurück, die an der Barriere warten.
+     */
+    int barrier_counter;
+
+    /**
+     * @var gather_mutex
+     * Mutex für die Synchronisierung des Zugriffs auf das Gather-Postfach.
+     */
+    pthread_mutex_t gather_mutex;
 
     /**
      * @var logfile
