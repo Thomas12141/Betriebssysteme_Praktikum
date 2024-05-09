@@ -18,6 +18,33 @@ int shm_size;
  */
 char* shared_memory_name;
 
+/**
+ * Erzeugt einen Mutex mit dem Attribut "shared" und kopiert ihn an den gewünschten Speicherbereich.
+ * @param mutex_pointer Zeiger auf den Speicherbereich, in den der neu erzeugte Mutex kopiert werden soll.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
+int create_and_copy_shared_mutex(pthread_mutex_t* mutex_pointer) {
+    // Shared-Attribut für Mutex erzeugen
+    pthread_mutexattr_t att;
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
+    // Mutex erstellen
+    pthread_mutex_t* mutex = calloc(1, sizeof(pthread_mutex_t));
+    // Mutex initialisieren
+    int mutex_result = pthread_mutex_init(mutex, &att);
+    if(mutex_result < 0){
+        printf("Mutex result for free_slots_mutex = %d\n", mutex_result);
+        return OSMP_FAILURE;
+    }
+    // Mutex in den angegebenen Bereich kopieren
+    memcpy(mutex_pointer, mutex, sizeof(pthread_mutex_t));
+    // lokale Variablen löschen/freigeben
+    pthread_mutexattr_destroy(&att);
+    pthread_mutex_destroy(mutex);
+    free(mutex);
+    return OSMP_SUCCESS;
+}
+
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr){
     for (int i = 0; i < number_of_executables; ++i) {
         int pid = fork();
@@ -39,6 +66,11 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             info->rank = i;
             info->pid = pid;
             info->postbox = NO_MESSAGE;
+            // Postfach-Mutex initialisieren
+            int mtx_result = create_and_copy_shared_mutex(&(info->postbox_mutex));
+            if(mtx_result != OSMP_SUCCESS) {
+                exit(EXIT_FAILURE);
+            }
         }
     }
     return 0;
@@ -194,21 +226,33 @@ void set_shm_name(void)  {
  * @param verbosity Logging-Verbosität.
  */
 void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
+    int mtx_result;
     shared_memory* shm_struct = (shared_memory*) shm_ptr;
 
     shm_struct->size = processes;
 
-    // Mutex wird im Logger gesetzt
+    // Logging-Mutex wird im Logger gesetzt
 
     // Notiere freie Slots in Liste
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
         shm_struct->free_slots[i] = i;
     }
 
+    // Initialisiere Mutex für die Liste mit freien Slots
+    mtx_result = create_and_copy_shared_mutex(&(shm_struct->free_slots_mutex));
+    if(mtx_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
+
     // Initialisiere Slots
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
         shm_struct->slots[i].slot_number = i;
         shm_struct->slots[i].free = SLOT_FREE;
+        // Initialisiere Mutex im aktuellen Slot
+        mtx_result = create_and_copy_shared_mutex(&(shm_struct->slots[i].slot_mutex));
+        if(mtx_result != OSMP_SUCCESS) {
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Initialisiere Gather-Slot
@@ -216,6 +260,15 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     shm_struct->gather_slot.free = SLOT_FREE;
     memset(shm_struct->gather_slot.payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
     shm_struct->gather_slot.next_message = NO_MESSAGE;
+
+    // Initialisiere Counter für Barrier
+    shm_struct->barrier_counter = 0;
+
+    // Initialisiere Gather-Mutex
+    mtx_result = create_and_copy_shared_mutex(&(shm_struct->gather_mutex));
+    if(mtx_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
 
     // Setze Logging-Infos
     strncpy(shm_struct->logfile, get_logfile_name(), MAX_PATH_LENGTH);
@@ -250,26 +303,6 @@ void initialize_locks(char * shared_memory){
 }
 
 int main (int argc, char **argv) {
-    char * locks_shared_memory_string = "locks_shared_memory";
-    int locks_shared_memory_fd = shm_open(locks_shared_memory_string, O_CREAT | O_RDWR, 0666);
-    if (locks_shared_memory_fd == -1){
-        return -1;
-    }
-    int locks_shared_memory_size = 2048;
-    int locks_ftruncate_result = ftruncate(locks_shared_memory_fd, locks_shared_memory_size);
-
-    if(locks_ftruncate_result == -1){
-        return -1;
-    }
-
-    char * locks_shm_ptr = mmap(NULL, (size_t) locks_shared_memory_size, PROT_READ | PROT_WRITE, MAP_SHARED, locks_shared_memory_fd, 0);
-
-    if (locks_shm_ptr == MAP_FAILED){
-        return -1;
-    }
-
-    initialize_locks(locks_shm_ptr);
-
     int processes, verbosity = 1, exec_args_index;
     char *log_file = NULL, *executable;
 
@@ -315,19 +348,6 @@ int main (int argc, char **argv) {
         if ( WIFEXITED(status)&&WEXITSTATUS(status)!=0 ) {
             printf("Child returned failure code.\n");
         }
-    }
-
-
-    // Unmap the shared memory
-    int munmap_result = munmap(locks_shm_ptr, (size_t) locks_shared_memory_size);
-    if (munmap_result == -1) {
-        printf("Couldnt unmap locks.\n");
-    }
-
-// Unlink the shared memory object
-    int unlink_result = shm_unlink(locks_shared_memory_string);
-    if (unlink_result == -1) {
-        printf("Couldnt unlink locks.\n");
     }
 
     int free_result = freeAll(shared_memory_fd, shm_ptr);
