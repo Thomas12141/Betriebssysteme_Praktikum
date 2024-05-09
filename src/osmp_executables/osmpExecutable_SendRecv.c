@@ -18,13 +18,14 @@ int main(int argc, char *argv[]) {
     }
     rv = OSMP_Size(&size);
     if(rv != 0){
-        printf("OSMP_Size: returned error namuber %d\n", rv);
+        printf("OSMP_Size: returned error number %d\n", rv);
     }
     rv = OSMP_Rank(&rank);
     if(rv != 0){
-        printf("OSMP_Rank: returned error namuber %d\n", rv);
+        printf("OSMP_Rank: returned error number %d\n", rv);
     }
     if (size != 2) {
+        printf("You have to start runner with 2 processes exactly.\n");
         /* Fehlerbehandlung */
     }
     if (rank == 0) {
@@ -32,9 +33,11 @@ int main(int argc, char *argv[]) {
         bufin[0] = 4711;
         bufin[1] = 4712;
         rv = OSMP_Send(bufin, 2, OSMP_INT, 1);
+        printf("OSMP_Send return %d\n",rv);
     } else {
         // OSMP process 1
         rv = OSMP_Recv(bufout, 2, OSMP_INT, &source, &len);
+        printf("OSMP_Recv return %d\n",rv);
         printf("OSMP process %d received %d byte from %d [%d:%d] \n", rank, len, source, bufout[0], bufout[1]);
     }
     rv = OSMP_Finalize();

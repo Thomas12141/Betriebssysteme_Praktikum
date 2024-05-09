@@ -49,7 +49,7 @@ typedef struct message_slot {
 
     /**
      * @var free
-     * Flag: Slot frei (SLOT_FREE) oer nicht (SLOT_TAKEN)?
+     * Flag: Slot frei (SLOT_FREE) oder nicht (SLOT_TAKEN)?
      */
     int free;
 
@@ -88,6 +88,12 @@ typedef struct message_slot {
      * Nummer des slots, in dem die nächste Nachricht für den Empfänger liegt (NO_MESSAGE = keine weitere Nachricht).
      */
     int next_message;
+
+    /**
+     * @var slot_mutex
+     * Mutex zur Synchronisierung des Zugriffs auf diesen Nachrichtenslot.
+     */
+    pthread_mutex_t slot_mutex;
 } message_slot;
 
 /**
@@ -113,6 +119,19 @@ typedef struct process_info {
      * (NO_MESSAGE = keine Nachricht für diesen Prozess).
      */
     int postbox;
+
+    /**
+     * @var postbox_mutex
+     * Mutex zur Synchronisierung des Zugriffs auf das Postfach.
+     */
+    pthread_mutex_t postbox_mutex;
+
+    /**
+     * @var new_message
+     * Condition-Variable, mit der signalisiert werden kann, dass eine neue Nachricht für den Prozess vorliegt,
+     * der mit diesem Struct verwaltet wird.
+     */
+    pthread_cond_t new_message;
 } process_info;
 
 /**
@@ -139,6 +158,12 @@ typedef struct shared_memory {
     int free_slots[OSMP_MAX_SLOTS];
 
     /**
+     * @var free_slots_mutex
+     * Mutex zur Synchronisierung des Zugriffs auf die Liste der freien Nachrichtenslots.
+     */
+    pthread_mutex_t free_slots_mutex;
+
+    /**
      * @var slots
      * Array mit allen 1:1-Nachrichtenslots.
      */
@@ -149,6 +174,30 @@ typedef struct shared_memory {
      * Slot für eine einzelne Gather-Nachricht.
      */
     message_slot gather_slot;
+
+    /**
+     * @var gather_mutex
+     * Mutex für die Synchronisierung des Zugriffs auf das Gather-Postfach.
+     */
+    pthread_mutex_t gather_mutex;
+
+    /**
+     * @var barrier_mutex
+     * Mutex für die Synchronisierung des Zugriffs auf den Barrier-Counter.
+     */
+     pthread_mutex_t barrier_mutex;
+
+    /**
+     * @var barrier_condition
+     * Condition-Variable, um zu signalisieren, dass alle Prozesse an der Barriere warten.
+     */
+    pthread_cond_t barrier_condition;
+
+    /**
+     * @var barrier_counter
+     * Counter für die Barrier-Funktion. Gibt die Anzahl der Prozesse zurück, die an der Barriere warten.
+     */
+    int barrier_counter;
 
     /**
      * @var logfile
@@ -169,10 +218,6 @@ typedef struct shared_memory {
      */
     process_info first_process_info;
 } shared_memory;
-
-int get_free_slots_list_offset();
-
-int get_postboxes_offset();
 
 int calculate_shared_memory_size(int processes);
 

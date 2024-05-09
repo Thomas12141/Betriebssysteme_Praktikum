@@ -18,6 +18,62 @@ int shm_size;
  */
 char* shared_memory_name;
 
+/**
+ * Erzeugt einen Mutex mit dem Attribut "shared" und kopiert ihn an den gewünschten Speicherbereich.
+ * @param mutex_pointer Zeiger auf den Speicherbereich, in den der neu erzeugte Mutex kopiert werden soll.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
+int create_and_copy_shared_mutex(pthread_mutex_t* mutex_pointer) {
+    // Shared-Attribut für Mutex erzeugen
+    pthread_mutexattr_t att;
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
+    // Mutex erstellen
+    pthread_mutex_t* mutex = calloc(1, sizeof(pthread_mutex_t));
+    // Mutex initialisieren
+    int mutex_result = pthread_mutex_init(mutex, &att);
+    if(mutex_result < 0){
+        printf("Result of pthread_mutex_init = %d\n", mutex_result);
+        return OSMP_FAILURE;
+    }
+    // Mutex in den angegebenen Bereich kopieren
+    memcpy(mutex_pointer, mutex, sizeof(pthread_mutex_t));
+    // lokale Variablen löschen/freigeben
+    pthread_mutexattr_destroy(&att);
+    pthread_mutex_destroy(mutex);
+    free(mutex);
+    return OSMP_SUCCESS;
+}
+
+/**
+ * Erzeugt eine Condition-Variable mit dem Attribut "shared" und kopiert sie an den gewünschten Speicherbereich.
+ * @param cond_pointer Zeiger auf den Speicherbereich, in den die neu erzeugte Condition-Variable kopiert werden soll.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
+int create_and_copy_shared_cond_var(pthread_cond_t* cond_pointer) {
+    // Initialisiere Condition-Variable
+    pthread_cond_t condition;
+    // Attribut anlegen
+    pthread_condattr_t condition_attr;
+    // Attribut initialisieren und verändern
+    int condition_result = pthread_condattr_init(&condition_attr);
+    if(condition_result < 0){
+        printf("Result of pthread_condattr_init = %d\n", condition_result);
+        return OSMP_FAILURE;
+    }
+    pthread_condattr_setpshared(&condition_attr, PTHREAD_PROCESS_SHARED);
+    condition_result = pthread_cond_init(&condition, &condition_attr);
+    if(condition_result < 0){
+        printf("Result of pthread_condr_init = %d\n", condition_result);
+        return OSMP_FAILURE;
+    }
+    // Condition-Variable in Shared Memory kopieren
+    memcpy(cond_pointer, &condition, sizeof(pthread_cond_t));
+    pthread_cond_destroy(&condition);
+    pthread_condattr_destroy(&condition_attr);
+    return OSMP_SUCCESS;
+}
+
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr){
     for (int i = 0; i < number_of_executables; ++i) {
         int pid = fork();
@@ -39,6 +95,16 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             info->rank = i;
             info->pid = pid;
             info->postbox = NO_MESSAGE;
+            // Postfach-Mutex initialisieren
+            int mtx_result = create_and_copy_shared_mutex(&(info->postbox_mutex));
+            if(mtx_result != OSMP_SUCCESS) {
+                exit(EXIT_FAILURE);
+            }
+            // Initialisiere Condition-Variable
+            int cond_result = create_and_copy_shared_cond_var(&(info->new_message));
+            if(cond_result != OSMP_SUCCESS) {
+                exit(EXIT_FAILURE);
+            }
         }
     }
     return 0;
@@ -194,21 +260,33 @@ void set_shm_name(void)  {
  * @param verbosity Logging-Verbosität.
  */
 void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
+    int mtx_result, cond_result;
     shared_memory* shm_struct = (shared_memory*) shm_ptr;
 
     shm_struct->size = processes;
 
-    // Mutex wird im Logger gesetzt
+    // Logging-Mutex wird im Logger gesetzt
 
     // Notiere freie Slots in Liste
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
         shm_struct->free_slots[i] = i;
     }
 
+    // Initialisiere Mutex für die Liste mit freien Slots
+    mtx_result = create_and_copy_shared_mutex(&(shm_struct->free_slots_mutex));
+    if(mtx_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
+
     // Initialisiere Slots
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
         shm_struct->slots[i].slot_number = i;
         shm_struct->slots[i].free = SLOT_FREE;
+        // Initialisiere Mutex im aktuellen Slot
+        mtx_result = create_and_copy_shared_mutex(&(shm_struct->slots[i].slot_mutex));
+        if(mtx_result != OSMP_SUCCESS) {
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Initialisiere Gather-Slot
@@ -216,6 +294,27 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     shm_struct->gather_slot.free = SLOT_FREE;
     memset(shm_struct->gather_slot.payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
     shm_struct->gather_slot.next_message = NO_MESSAGE;
+
+    // Initialisiere Barrier-Mutex
+    mtx_result = create_and_copy_shared_mutex(&(shm_struct->barrier_mutex));
+    if(mtx_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialisiere Condition-Variable für Barrier
+    cond_result = create_and_copy_shared_cond_var(&(shm_struct->barrier_condition));
+    if(cond_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialisiere Counter für Barrier
+    shm_struct->barrier_counter = 0;
+
+    // Initialisiere Gather-Mutex
+    mtx_result = create_and_copy_shared_mutex(&(shm_struct->gather_mutex));
+    if(mtx_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
 
     // Setze Logging-Infos
     strncpy(shm_struct->logfile, get_logfile_name(), MAX_PATH_LENGTH);
@@ -277,7 +376,6 @@ int main (int argc, char **argv) {
     if(free_result == -1){
         return -1;
     }
-
     return 0;
 }
 
