@@ -355,7 +355,7 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-    memcpy(size, &(shm_ptr->size), sizeof(int));
+    *size = shm_ptr->size;
     return OSMP_SUCCESS;
 }
 
