@@ -14,25 +14,26 @@ int main(int argc, char *argv[]) {
     rv = OSMP_Init(&argc, &argv);
     rv = OSMP_Size(&size);
     rv = OSMP_Rank(&rank);
-    long bufin[1], bufout[size-1];
+    long bufin[1], bufout[size];
     int recv;
     if (size < 2) {
         printf("Mindestens 2 Prozesse für Gather-Kommunikation benötigt! Vorhandene Prozesse: %d\n", size);
         exit(EXIT_FAILURE);
     }
     if (rank > 0) {
-        // OSMP-Prozesse > 0 (sendende Prozesse)
-        recv = 1;
-        bufin[rank-1] = (long)getpid();
-    } else {
-        // OSMP-Prozess 0 (empfangender Prozess)
+        // OSMP-Prozesse > 0 sind sendende Prozesse
         recv = 0;
+    } else {
+        // OSMP-Prozess 0 ist Root-Prozess (Empfänger)
+        recv = 1;
     }
+    // Verwende eigene PID als Payload
+    bufin[0] = (long)getpid();
     // Sende/Empfange mit OSMP_Gather
-    rv = OSMP_Gather(bufin, 1, OSMP_LONG, bufout, size-1, OSMP_LONG, recv);
-    if (rank == 0) {
-        printf("OSMP process %d received %d messages via Gather:\n", rank, size-1);
-        for(int i=0; i<size-1; i++) {
+    rv = OSMP_Gather(bufin, 1, OSMP_LONG, bufout, size, OSMP_LONG, recv);
+    if (recv) {
+        printf("OSMP process %d received %d messages via Gather:\n", rank, size);
+        for(int i=0; i<size; i++) {
             printf("[%3d] %ld\n", i, bufout[i]);
         }
     }
