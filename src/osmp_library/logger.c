@@ -75,6 +75,7 @@ void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
 
     fprintf(logging_file,"Logfile initialized at %s.\n", __TIMESTAMP__);
     fputs("Log entries follow the scheme <level> - <pid> - <timestamp> - <message>.\n", logging_file);
+    fflush(logging_file);
 }
 
 /**
