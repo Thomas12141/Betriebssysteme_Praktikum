@@ -485,6 +485,7 @@ int OSMP_Finalize(void) {
 }
 
 int OSMP_Barrier(void) {
+    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Barrier");
     semwait(&(shm_ptr->barrier_mutex));
     (shm_ptr->barrier_counter)++;
     printf("Barrier-Counter: %d\n", shm_ptr->barrier_counter);

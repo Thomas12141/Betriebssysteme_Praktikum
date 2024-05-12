@@ -144,11 +144,13 @@ int is_whitespace(const char* string) {
     }
     for(int i=0; string[i] != '\0'; i++) {
         if(string[i] == ' ') {
+            // Leerzeichen => prüfe nächstes Zeichen
             continue;
         }
-        return 1;
+        // kein Leerzeichen => String enthält nicht nur Leerzeichen
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 /**
@@ -191,6 +193,8 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
     // Interpretation der ersten Pflichtangabe
     *processes = atoi(argv[1]);
 
+    printf("# of processes: %d\n", *processes);
+
     int i = 2;
     // Durchlaufen der Argumente
     while (i < argc) {
@@ -202,13 +206,14 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
             // Interpretation der optionalen Log-Datei
             *log_file = argv[i + 1];
             if(is_whitespace(*log_file)) {
-                log_file = NULL;
+                *log_file = NULL;
             }
             // maximal erlaubte Länge des Pfads zur Logdatei überprüfen (Nullbyte einrechnen)
             if((strlen(*log_file)+1) > MAX_PATH_LENGTH) {
                 print_logfile_condition();
                 exit(EXIT_FAILURE);
             }
+            printf("Logfile: %s\n", *log_file);
             i += 2;
         } else if (strcmp(argv[i], "-V") == 0) {
             if (i + 1 >= argc) {
@@ -217,6 +222,7 @@ void parse_args(int argc, char* argv[], int* processes, char** log_file, int* ve
             }
             // Interpretation der optionalen Log-Verbosität
             *verbosity = atoi(argv[i + 1]);
+            printf("Verbosity: %d\n", *verbosity);
             i += 2;
         } else {
             // Wenn kein optionales Argument erkannt wurde, brich die Schleife ab
@@ -325,7 +331,8 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
 
 int main (int argc, char **argv) {
     int processes, verbosity = 1, exec_args_index;
-    char *log_file = NULL, *executable;
+    char* log_file;
+    char* executable;
 
     set_shm_name();
 
