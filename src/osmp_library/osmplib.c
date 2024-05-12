@@ -355,19 +355,17 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-    memcpy(size, shm_ptr, sizeof(int));
+    memcpy(size, &(shm_ptr->size), sizeof(int));
     return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {
     int pid = getpid();
     int size = shm_ptr->size;
-    // Zeiger auf erste Prozess-Info am Ende des Structs
-    process_info* first_process_info = &(shm_ptr->first_process_info);
     process_info* process;
     for(int i=0; i<size; i++) {
-        // Offset über das Struct hinaus
-        process = first_process_info + i;
+        // Iteriere durch alle Prozesse
+        process = get_process_info(i);
         if (process->pid == pid) {
             *rank = process->rank;
             return OSMP_SUCCESS;
@@ -473,6 +471,10 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 int OSMP_Finalize(void) {
     log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
     int result = close(shared_memory_fd);
+    if(result==-1){
+        log_to_file(3, __TIMESTAMP__, "Couldn't close shared memory FD.");
+        return OSMP_FAILURE;
+    }
     result = munmap(shm_ptr, (size_t)memory_size);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
