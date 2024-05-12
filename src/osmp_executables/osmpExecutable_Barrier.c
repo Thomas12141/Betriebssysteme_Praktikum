@@ -20,12 +20,15 @@ int main(int argc, char *argv[]) {
     // Setze wait_time auf eine zufällige Zahl zwischen 1 und 10
     int min = 1;
     int max = 10;
+    int pid = getpid();
     wait_time = min + rand() % (max - min + 1);
     // Warte eine zufällige Zeitspanne
-    printf("Prozess %d wartet %d Sekunden...\n", getpid(), wait_time);
+    printf("Prozess %d wartet %d Sekunden...\n", pid, wait_time);
     sleep((unsigned int)wait_time);
     // Rufe OSMP_Barrier(), um zu warten, bis alle anderen Prozesse ebenfalls an diesem Punkt angelangt sind.
+    printf("Prozess %d ruft Barrier()...\n", pid);
     rv = OSMP_Barrier();
+    printf("Prozess %d: rv von Barrier() = %d\n", pid, rv);
     rv = OSMP_Finalize();
     printf("rv = %d\n", rv);
     return 0;
