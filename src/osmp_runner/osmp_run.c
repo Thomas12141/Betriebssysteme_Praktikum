@@ -82,11 +82,11 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         }
         puts("");
         if (pid < 0) {
-            log_to_file(3, __TIMESTAMP__, "failed to fork");
+            log_to_file(3,"failed to fork");
             return -1;
         } else if (pid == 0) {//Child process.
             execv(executable, arguments);
-            log_to_file(3, __TIMESTAMP__, "execv failed");
+            log_to_file(3,"execv failed");
             return -1;
         } else{
             // Initialisiere Prozess-Infos im Shared Memory
@@ -113,20 +113,20 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
 int freeAll(int shm_fd, shared_memory* shm_ptr){
     int result = munmap(shm_ptr, (size_t) shm_size);
     if(result==-1){
-        log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
+        log_to_file(3, "Couldn't unmap memory.");
         return -1;
     }
     result = close(shm_fd);
     if(result==-1){
-        log_to_file(3, __TIMESTAMP__, "Couldn't close file descriptor memory.");
+        log_to_file(3, "Couldn't close file descriptor memory.");
         return -1;
     }
     result = shm_unlink(shared_memory_name);
     if(result==-1){
-        log_to_file(3, __TIMESTAMP__, "Couldn't unlink file name.");
+        log_to_file(3, "Couldn't unlink file name.");
         return -1;
     }
-    log_to_file(2, __TIMESTAMP__, "Freeing shared_memory_name");
+    log_to_file(2, "Freeing shared_memory_name");
     free(shared_memory_name);
     return 0;
 }
@@ -364,7 +364,7 @@ int main (int argc, char **argv) {
         int status;
         pid_t pid_child =  wait(&status);
         if (pid_child==-1){
-            log_to_file(3, __TIMESTAMP__, "Problem by waiting");
+            log_to_file(3, "Problem by waiting");
         }
         if ( WIFEXITED(status)&&WEXITSTATUS(status)!=0 ) {
             printf("Child returned failure code.\n");
