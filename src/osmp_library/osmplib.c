@@ -471,7 +471,7 @@ int OSMP_Finalize(void) {
     log_osmp_lib_call("OSMP_Finalize");
     int result = close(shared_memory_fd);
     if(result==-1){
-        log_to_file(3, __TIMESTAMP__, "Couldn't close shared memory FD.");
+        log_to_file(3, "Couldn't close shared memory FD.");
         return OSMP_FAILURE;
     }
     result = munmap(shm_ptr, (size_t)memory_size);
@@ -484,7 +484,7 @@ int OSMP_Finalize(void) {
 }
 
 int OSMP_Barrier(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Barrier");
+    log_osmp_lib_call("OSMP_Barrier");
     semwait(&(shm_ptr->barrier_mutex));
     (shm_ptr->barrier_counter)++;
     printf("Barrier-Counter: %d\n", shm_ptr->barrier_counter);
