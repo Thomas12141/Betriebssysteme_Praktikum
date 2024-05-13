@@ -6,7 +6,7 @@
 
 void logging_init_parent(shared_memory* shm, char * name, int log_verbosity);
 
-void log_to_file(int level, char* timestamp, char* message);
+void log_to_file(int level, char* message);
 
 void logging_close(void);
 

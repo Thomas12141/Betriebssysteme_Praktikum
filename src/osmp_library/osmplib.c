@@ -37,15 +37,14 @@ void semsignal(pthread_mutex_t* mutex) {
  * Übergibt eine Level-1-Lognachricht an den Logger.
  *
  * @param pid           Die Process ID des aufrufenden Prozesses.
- * @param timestamp     Der Zeitpunkt des Aufrufs
  * @param function_name Der Name der aufrufenden Funktion.
  */
-void log_osmp_lib_call(char* timestamp, const char* function_name) {
+void log_osmp_lib_call( const char* function_name) {
     // ausreichend großen Buffer für formatierten String erstellen
-    unsigned long string_len = 30 + strlen(timestamp) + strlen(function_name);
+    unsigned long string_len = 30 + strlen(function_name);
     char message[string_len];
     sprintf(message, "OSMP function %s() called", function_name);
-    log_to_file(1, timestamp, message);
+    log_to_file(1, message);
 }
 
 /**
@@ -55,7 +54,7 @@ void log_osmp_lib_call(char* timestamp, const char* function_name) {
  * @return Die Nummer des nächsten freien Nachrichtenslots. NO_SLOT, wenn kein Slot frei ist.
  */
 int get_next_free_slot(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_next_free_slot");
+    log_osmp_lib_call("get_next_free_slot");
     int slot;
     // verwende ersten freien Slot als Rückgabewert
     slot = shm_ptr->free_slots[0];
@@ -75,7 +74,7 @@ int get_next_free_slot(void) {
  * @return Zeiger auf process_info-Struct des Prozesses mit dem angegebenen Rang.
  */
 process_info* get_process_info(int rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_process_info");
+    log_osmp_lib_call("get_process_info");
     // Prozess-Info 0
     process_info* info = &(shm_ptr->first_process_info);
     // Offset zum passenden Rang
@@ -89,7 +88,7 @@ process_info* get_process_info(int rank) {
  * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. NULL, wenn das Postfach leer ist.
  */
 message_slot* get_next_message_slot(int rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_next_message_slot");
+    log_osmp_lib_call("get_next_message_slot");
     process_info* process = get_process_info(rank);
     int slot_number = process->postbox;
     if(slot_number == NO_MESSAGE) {
@@ -104,7 +103,7 @@ message_slot* get_next_message_slot(int rank) {
  * @return Die Nummer des Slots, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. NO_MESSAGE, wenn das Postfach leer ist.
  */
 int get_next_message_slot_number(int rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_next_message_slot");
+    log_osmp_lib_call("get_next_message_slot");
     process_info* process = get_process_info(rank);
     return process->postbox;
 }
@@ -115,7 +114,7 @@ int get_next_message_slot_number(int rank) {
  * @return Die Anzahl der Nachrichten, die für den aufrufenden Prozess bereit sind.
  */
 int get_number_of_messages(int rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_number_of_messages");
+    log_osmp_lib_call("get_number_of_messages");
 
     int number = 0;
     int next_slot_number = get_next_message_slot_number(rank);
@@ -132,7 +131,7 @@ int get_number_of_messages(int rank) {
  * @return Ein Zeiger auf den Nachrichtenslot, in dem die letzte Nachricht für den Prozess mit Rang rank liegt. NULL, wenn keine Nachricht für den Prozess bereitliegt.
  */
 message_slot* get_last_message_slot(int rank) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_last_message_slot");
+    log_osmp_lib_call("get_last_message_slot");
 
     int next_slot_number = get_next_message_slot_number(rank);
     message_slot* slot = NULL;
@@ -150,7 +149,7 @@ message_slot* get_last_message_slot(int rank) {
  * @param new_message_slot Nummer des Nachrichtenslots, auf den verwiesen werden soll.
  */
 void reference_new_message(int dest, int new_message_slot_number) {
-    log_osmp_lib_call(__TIMESTAMP__, "reference_new_message");
+    log_osmp_lib_call("reference_new_message");
 
     // Erhalte Verweis auf letzte Nachricht des empfangenden Prozesses
     message_slot* last_message_slot = get_last_message_slot(dest);
@@ -171,7 +170,7 @@ void reference_new_message(int dest, int new_message_slot_number) {
  * @param slot_number Nummer des Nachrichtenslots, der geleert werden soll.
  */
 void empty_message_slot(int slot_number) {
-    log_osmp_lib_call(__TIMESTAMP__, "empty_message_slot");
+    log_osmp_lib_call("empty_message_slot");
     message_slot* slot = &(shm_ptr->slots[slot_number]);
     slot->free = SLOT_FREE;
     slot->to = NO_MESSAGE;
@@ -187,7 +186,7 @@ void empty_message_slot(int slot_number) {
  * @param slot_number Nummer des Nachrichtenslots, dessen Referenzen entfernt werden soll.
  */
 int remove_message(int slot_number) {
-    log_osmp_lib_call(__TIMESTAMP__, "remove_message");
+    log_osmp_lib_call("remove_message");
 
     message_slot* message = &(shm_ptr->slots[slot_number]);
     // Finde Referenz auf diese Nachricht
@@ -249,27 +248,27 @@ int calculate_shared_memory_size(int processes) {
 }
 
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_PAYLOAD_LENGTH");
+    log_osmp_lib_call("get_OSMP_MAX_PAYLOAD_LENGTH");
     return OSMP_MAX_PAYLOAD_LENGTH;
 }
 
 int get_OSMP_MAX_SLOTS(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_SLOTS");
+    log_osmp_lib_call("get_OSMP_MAX_SLOTS");
     return OSMP_MAX_SLOTS;
 }
 
 int get_OSMP_MAX_MESSAGES_PROC(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_MAX_MESSAGES_PROC");
+    log_osmp_lib_call("get_OSMP_MAX_MESSAGES_PROC");
     return OSMP_MAX_MESSAGES_PROC;
 }
 
 int get_OSMP_FAILURE(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_FAILURE");
+    log_osmp_lib_call("get_OSMP_FAILURE");
     return OSMP_FAILURE;
 }
 
 int get_OSMP_SUCCESS(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "get_OSMP_SUCCESS");
+    log_osmp_lib_call("get_OSMP_SUCCESS");
     return OSMP_SUCCESS;
 }
 
@@ -296,10 +295,10 @@ int OSMP_Init(const int *argc, char ***argv) {
 
     logging_init_child(shm_ptr);
 
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Init");
-    log_to_file(2, __TIMESTAMP__, "Calloc 256 B (shared_memory_name)");
+    log_osmp_lib_call("OSMP_Init");
+    log_to_file(2, "Calloc 256 B (shared_memory_name)");
     if(shm_ptr == MAP_FAILED){
-        log_to_file(3, __TIMESTAMP__, "Failed to map shared memory.\n");
+        log_to_file(3, "Failed to map shared memory.\n");
         return OSMP_FAILURE;
     }
 
@@ -313,13 +312,13 @@ int OSMP_Init(const int *argc, char ***argv) {
     OSMP_Rank(&OSMP_rank);
 
     free(shared_memory_name);
-    log_to_file(2, __TIMESTAMP__, "Free 256 B (shared_memory_name)");
+    log_to_file(2, "Free 256 B (shared_memory_name)");
 
     return OSMP_SUCCESS;
 }
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_SizeOf");
+    log_osmp_lib_call("OSMP_SizeOf");
     if(datatype == OSMP_SHORT){
         *size = sizeof(short int);
         return OSMP_SUCCESS;
@@ -376,7 +375,7 @@ int OSMP_Rank(int *rank) {
 
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Send");
+    log_osmp_lib_call("OSMP_Send");
     if(count <= 0) {
         return OSMP_FAILURE;
     }
@@ -420,7 +419,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Recv");
+    log_osmp_lib_call("OSMP_Recv");
     if(count <= 0) {
         return OSMP_FAILURE;
     }
@@ -469,7 +468,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 }
 
 int OSMP_Finalize(void) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Finalize");
+    log_osmp_lib_call("OSMP_Finalize");
     int result = close(shared_memory_fd);
     if(result==-1){
         log_to_file(3, __TIMESTAMP__, "Couldn't close shared memory FD.");
@@ -477,7 +476,7 @@ int OSMP_Finalize(void) {
     }
     result = munmap(shm_ptr, (size_t)memory_size);
     if(result==-1){
-        log_to_file(3, __TIMESTAMP__, "Couldn't unmap memory.");
+        log_to_file(3, "Couldn't unmap memory.");
         return OSMP_FAILURE;
     }
     logging_close();
@@ -506,7 +505,7 @@ int OSMP_Barrier(void) {
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Gather");
+    log_osmp_lib_call("OSMP_Gather");
     puts("OSMP_Gather() not implemented yet");
     UNUSED(sendbuf);
     UNUSED(sendcount);
@@ -519,7 +518,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
 }
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_ISend");
+    log_osmp_lib_call("OSMP_ISend");
     puts("OSMP_ISend() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
@@ -530,7 +529,7 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_IRecv");
+    log_osmp_lib_call("OSMP_IRecv");
     puts("OSMP_IRecv() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
@@ -542,7 +541,7 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Test");
+    log_osmp_lib_call("OSMP_Test");
     puts("OSMP_Test not implemented yet");
     UNUSED(request);
     UNUSED(flag);
@@ -550,21 +549,21 @@ int OSMP_Test(OSMP_Request request, int *flag) {
 }
 
 int OSMP_Wait(OSMP_Request request) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_Wait");
+    log_osmp_lib_call("OSMP_Wait");
     puts("OSMP_Wait() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_CreateRequest");
+    log_osmp_lib_call("OSMP_CreateRequest");
     puts("OSMP_CreateRequest() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
-    log_osmp_lib_call(__TIMESTAMP__, "OSMP_RemoveRequest");
+    log_osmp_lib_call("OSMP_RemoveRequest");
     puts("OSMP_RemoveRequest) not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;

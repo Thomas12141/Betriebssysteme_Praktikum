@@ -72,8 +72,13 @@ void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
         printf("Couldn't open logging file.\n");
         exit(EXIT_FAILURE);
     }
+    time_t raw_time;
+    struct tm * time_info;
 
-    fprintf(logging_file,"Logfile initialized at %s.\n", __TIMESTAMP__);
+    time ( &raw_time );
+    time_info = localtime ( &raw_time );
+
+    fprintf(logging_file,"Logfile initialized at %s.\n", asctime (time_info) );
     fputs("Log entries follow the scheme <level> - <pid> - <timestamp> - <message>.\n", logging_file);
     fflush(logging_file);
 }
@@ -112,7 +117,7 @@ void logging_init_child(shared_memory* shm) {
  * @param level     Logging-Level des Eintrags (1-3).
  * @param message   Zu loggende Nachricht.
  */
-void log_to_file(int level, char* timestamp, char* message){
+void log_to_file(int level, char* message){
     int return_code;
     if(file_name == NULL){
         printf("You must first initialize the logger.\n");
@@ -130,7 +135,11 @@ void log_to_file(int level, char* timestamp, char* message){
         printf("Failed to acquire lock.\n");
         return;
     }
-    fprintf(logging_file,"%d - %d - %s - %s.\n", level, getpid(), timestamp, message);
+    time_t raw_time;
+    struct tm * time_info;
+    time ( &raw_time );
+    time_info = localtime (&raw_time );
+    fprintf(logging_file, "%d - %d - %s - %s.\n", level, getpid(), asctime (time_info), message);
     fclose(logging_file);
     return_code = pthread_mutex_unlock(mutex);
     if (return_code!=0){
@@ -152,12 +161,12 @@ void logging_close(void){
  * @param function_name Der Name der aufrufenden Funktion
  * @param message       Zusätzliche Nachricht.
  */
-void log_memory_function(char* function_name, char* message, char* timestamp) {
+void log_memory_function(char* function_name, char* message) {
     unsigned long string_len = strlen(function_name) + strlen(message);
     // Ausreichend großen Buffer erstellen
     char string[30 + string_len];
     sprintf(string, "%s() used memory function: %s", function_name, message);
-    log_to_file(2, timestamp, string);
+    log_to_file(2, string);
 }
 
 /**
