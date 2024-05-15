@@ -203,6 +203,12 @@ typedef struct shared_memory {
     message_slot gather_slot;
 
     /**
+     * @var gather_t
+     * Der struct, um gather Funktion zu realisieren.
+     */
+    gather_struct gather_t;
+
+    /**
      * @var barrier_mutex
      * Mutex für die Synchronisierung des Zugriffs auf den Barrier-Counter.
      */
@@ -231,12 +237,6 @@ typedef struct shared_memory {
      * Logging-Verbosität.
      */
     unsigned int verbosity;
-
-    /**
-     * @var gather_t
-     * Der struct, um gather Funktion zu realisieren.
-     */
-    gather_struct gather_t;
 
     /**
      * @var process_info
