@@ -309,6 +309,11 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         if(mtx_result != OSMP_SUCCESS) {
             exit(EXIT_FAILURE);
         }
+        // Initialisiere Condition-Variable im aktuellen Slot
+        mtx_result = create_and_copy_shared_cond_var(&(shm_struct->slots[i].slot_emptied));
+        if(mtx_result != OSMP_SUCCESS) {
+            exit(EXIT_FAILURE);
+        }
     }
 
     // Initialisiere Gather-Slot

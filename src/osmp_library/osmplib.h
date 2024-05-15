@@ -94,6 +94,13 @@ typedef struct message_slot {
      * Mutex zur Synchronisierung des Zugriffs auf diesen Nachrichtenslot.
      */
     pthread_mutex_t slot_mutex;
+
+    /**
+     * @var slot_emptied
+     * Condition-Variable, mit der signalisiert werden kann, dass ein Slot geleert wurde und somit eine neue Nachricht
+     * aufnehmen kann.
+     */
+    pthread_cond_t slot_emptied;
 } message_slot;
 
 typedef struct{

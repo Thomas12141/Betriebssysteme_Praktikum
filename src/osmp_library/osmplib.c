@@ -391,10 +391,11 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         int slot_number = get_next_free_slot();
         // Zeiger auf diesen Slot
         message_slot* slot = &(shm_ptr->slots[slot_number]);
-        // Synchronisiere Zugriff auf den Slot
-        do {
-            semwait(&(slot->slot_mutex));
-        } while(slot->free != SLOT_FREE);
+        // Synchronisiere Zugriff auf den Slot (warten auf Bedingung)
+        semwait(&(slot->slot_mutex));
+        while(slot->free != SLOT_FREE) {
+            pthread_cond_wait(&(slot->slot_emptied), &(slot->slot_mutex));
+        }
         // zu kopierende Bytes = min(OSMP_MAX_PAYLOAD_LENGTH, length_in_bytes)
         int to_copy = OSMP_MAX_PAYLOAD_LENGTH < length_in_bytes ? OSMP_MAX_PAYLOAD_LENGTH : length_in_bytes;
         slot->free = SLOT_TAKEN;
