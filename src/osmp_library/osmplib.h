@@ -96,6 +96,26 @@ typedef struct message_slot {
     pthread_mutex_t slot_mutex;
 } message_slot;
 
+typedef struct{
+    /**
+     * @var mutex
+     * Mutex für den Zugriff auf shared Variable.
+     */
+    pthread_mutex_t mutex;
+
+    /**
+     * @var condition_variable
+     * Condition-Variable, um zu signalisieren, dass alle Prozesse, die an der Schlange sind, immer noch warten müssen.
+     */
+    pthread_cond_t condition_variable;
+
+    /**
+     * @var counter
+     * Ein counter, der signalisiert, wer an der Reihe ist.
+     */
+    int counter;
+} gather_struct;
+
 /**
  * @struct process_info
  * @brief Struct für Informationen zu einem Prozess
@@ -176,12 +196,6 @@ typedef struct shared_memory {
     message_slot gather_slot;
 
     /**
-     * @var gather_mutex
-     * Mutex für die Synchronisierung des Zugriffs auf das Gather-Postfach.
-     */
-    pthread_mutex_t gather_mutex;
-
-    /**
      * @var barrier_mutex
      * Mutex für die Synchronisierung des Zugriffs auf den Barrier-Counter.
      */
@@ -212,12 +226,23 @@ typedef struct shared_memory {
     unsigned int verbosity;
 
     /**
+     * @var gather_t
+     * Der struct, um gather Funktion zu realisieren.
+     */
+    gather_struct gather_t;
+
+    /**
      * @var process_info
      * Info zu Prozess 0. Speicher für weitere Prozess-Infos muss über die fixe Struct-Größe hinaus
      * dynamisch berechnet werden.
      */
     process_info first_process_info;
 } shared_memory;
+
+/**
+ * @struct gather_struct
+ * @brief struct für alle benötigte Teile, um gather zu realisieren.
+ */
 
 int calculate_shared_memory_size(int processes);
 

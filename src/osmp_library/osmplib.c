@@ -505,6 +505,16 @@ int OSMP_Barrier(void) {
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
+    pthread_mutex_lock(&(shm_ptr->gather_t.mutex));
+    while (OSMP_rank!=shm_ptr->gather_t.counter){
+        pthread_cond_wait(&(shm_ptr->gather_t.condition_variable), &(shm_ptr->gather_t.mutex));
+    }
+    //TODO: Receive the data
+    (shm_ptr->gather_t.counter)++;
+    pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
+    if(shm_ptr->gather_t.counter==OSMP_rank){
+        shm_ptr->gather_t.counter = 0;
+    }
     log_osmp_lib_call("OSMP_Gather");
     puts("OSMP_Gather() not implemented yet");
     UNUSED(sendbuf);

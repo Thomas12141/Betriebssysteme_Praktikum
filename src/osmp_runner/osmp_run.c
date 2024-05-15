@@ -284,6 +284,22 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         exit(EXIT_FAILURE);
     }
 
+    // Initialisiere Mutex für gather
+    mtx_result = create_and_copy_shared_mutex(&(shm_struct->gather_t.mutex));
+    if(mtx_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialisiere Counter für gather
+    shm_struct->gather_t.counter = 0;
+
+
+    // Initialisiere Condition-Variable für Gather
+    cond_result = create_and_copy_shared_cond_var(&(shm_struct->gather_t.condition_variable));
+    if(cond_result != OSMP_SUCCESS) {
+        exit(EXIT_FAILURE);
+    }
+
     // Initialisiere Slots
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
         shm_struct->slots[i].slot_number = i;
@@ -316,11 +332,6 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     // Initialisiere Counter für Barrier
     shm_struct->barrier_counter = 0;
 
-    // Initialisiere Gather-Mutex
-    mtx_result = create_and_copy_shared_mutex(&(shm_struct->gather_mutex));
-    if(mtx_result != OSMP_SUCCESS) {
-        exit(EXIT_FAILURE);
-    }
 
     // Setze Logging-Infos
     strncpy(shm_struct->logfile, get_logfile_name(), MAX_PATH_LENGTH);
