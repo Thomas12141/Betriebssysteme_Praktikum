@@ -55,15 +55,18 @@ void log_osmp_lib_call( const char* function_name) {
  */
 int get_next_free_slot(void) {
     log_osmp_lib_call("get_next_free_slot");
+    //Das Ergebnis.
     int slot;
-    // verwende ersten freien Slot als Rückgabewert
-    slot = shm_ptr->free_slots[0];
-    // alle Elemente eine Stelle nach vorne rücken
-    for(int i=0; i<(OSMP_MAX_SLOTS-1); i++) {
-        shm_ptr->free_slots[i] = shm_ptr->free_slots[i+1];
-    }
-    // letzte Stelle auf NO_SLOT setzen
-    shm_ptr->free_slots[OSMP_MAX_SLOTS-1] = NO_SLOT;
+    //Index für den Freien Slots Array.
+    int index;
+    //Kritischer Abschnitt
+    semwait(&shm_ptr->free_slots_mutex);
+    //Den index für den Array.
+    sem_getvalue(&shm_ptr->sem_shm_free_slots, &index);
+    //Runterzählen
+    sem_post(&shm_ptr->sem_shm_free_slots);
+    slot = shm_ptr->free_slots[index];
+    semsignal(&shm_ptr->free_slots_mutex);
 
     return slot;
 }
@@ -486,7 +489,8 @@ int OSMP_Finalize(void) {
 
 int OSMP_Barrier(void) {
     log_osmp_lib_call("OSMP_Barrier");
-    semwait(&(shm_ptr->barrier_mutex));
+    semwait(&(shm_ptr->barrier.mutex));
+    if(getpid()==gettid())
     (shm_ptr->barrier_counter)++;
     printf("Barrier-Counter: %d\n", shm_ptr->barrier_counter);
     if(shm_ptr->barrier_counter >= shm_ptr->size) {
