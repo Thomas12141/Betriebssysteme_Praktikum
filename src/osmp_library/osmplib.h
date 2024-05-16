@@ -2,6 +2,7 @@
 #define BETRIEBSSYSTEME_OSMPLIB_H
 #include <stdio.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "OSMP.h"
 
@@ -42,24 +43,6 @@
  */
 typedef struct message_slot {
     /**
-     * @var slot_number
-     * Nummer des Slots.
-     */
-    int slot_number;
-
-    /**
-     * @var free
-     * Flag: Slot frei (SLOT_FREE) oder nicht (SLOT_TAKEN)?
-     */
-    int free;
-
-    /**
-     * @var to
-     * Rang des empfangenden Prozesses.
-     */
-    int to;
-
-    /**
      * @var from
      * Rang des sendenden Prozesses.
      */
@@ -82,25 +65,6 @@ typedef struct message_slot {
      * Inhalt der Nachricht.
      */
     char payload[OSMP_MAX_PAYLOAD_LENGTH];
-
-    /**
-     * @var next_message
-     * Nummer des slots, in dem die nächste Nachricht für den Empfänger liegt (NO_MESSAGE = keine weitere Nachricht).
-     */
-    int next_message;
-
-    /**
-     * @var slot_mutex
-     * Mutex zur Synchronisierung des Zugriffs auf diesen Nachrichtenslot.
-     */
-    pthread_mutex_t slot_mutex;
-
-    /**
-     * @var slot_emptied
-     * Condition-Variable, mit der signalisiert werden kann, dass ein Slot geleert wurde und somit eine neue Nachricht
-     * aufnehmen kann.
-     */
-    pthread_cond_t slot_emptied;
 } message_slot;
 
 typedef struct{
@@ -123,6 +87,50 @@ typedef struct{
     int counter;
 } gather_struct;
 
+typedef struct {
+    /**
+     * @var postbox
+     * Array, das alle Nachrichten für den Prozess enthält (als Index des Nachrichtenslots).
+     */
+    int postbox[OSMP_MAX_MESSAGES_PROC];
+
+    /**
+     * @var in_index
+     * Index, das auf den nächsten freien Platz im Postfach zeigt.
+     */
+    int in_index;
+
+    /**
+     * @var mutex_proc_in
+     * Mutex für die Synchronisierung der in_index-Variable.
+     */
+    pthread_mutex_t mutex_proc_in;
+
+    /**
+     * @var out_index
+     * Index, der auf die nächste Nachricht im Postfach zeigt.
+     */
+    int out_index;
+
+    /**
+     * @var mutex_proc_out
+     * Mutex für die Synchronisierung der out_index-Variable.
+     */
+    pthread_mutex_t mutex_proc_out;
+
+    /**
+     * @var sem_proc_empty
+     * Semaphore für freie Plätze im Postfach.
+     */
+    sem_t sem_proc_empty;
+
+    /**
+     * @var sem_proc_full
+     * Semaphore für belegte Plätze im Postfach.
+     */
+    sem_t sem_proc_full;
+} postbox_utilities;
+
 /**
  * @struct process_info
  * @brief Struct für Informationen zu einem Prozess
@@ -142,24 +150,25 @@ typedef struct process_info {
 
     /**
      * @var postbox
-     * Nummer des Slots, in dem die erste Nachricht für diesen Prozess liegt
-     * (NO_MESSAGE = keine Nachricht für diesen Prozess).
+     * Postfach des Prozesses.
      */
-    int postbox;
+    postbox_utilities postbox;
 
     /**
-     * @var postbox_mutex
-     * Mutex zur Synchronisierung des Zugriffs auf das Postfach.
+     * @var gather_slot
+     * Der Gather-Slot des Prozesses.
      */
-    pthread_mutex_t postbox_mutex;
-
-    /**
-     * @var new_message
-     * Condition-Variable, mit der signalisiert werden kann, dass eine neue Nachricht für den Prozess vorliegt,
-     * der mit diesem Struct verwaltet wird.
-     */
-    pthread_cond_t new_message;
+    message_slot gather_slot;
 } process_info;
+
+/* Datentyp zur Beschreibung einer Barriere. */
+typedef struct {
+    pthread_mutex_t mutex; /* Zugriffskontrolle */
+    pthread_cond_t convar; /* Warten auf Barriere */
+    int valid; /* gesetzt, wenn Barriere initalisiert */
+    int counter; /* Threads zaehlen */
+    int cycle; /* Flag ob Barriere aktiv ist */
+} barrier_t;
 
 /**
  * @struct shared_memory
@@ -185,6 +194,12 @@ typedef struct shared_memory {
     int free_slots[OSMP_MAX_SLOTS];
 
     /**
+     * @var sem_shm_free_slots;
+     * Semaphore für die Vergabe von Nachrichtenslots.
+     */
+    sem_t sem_shm_free_slots;
+
+    /**
      * @var free_slots_mutex
      * Mutex zur Synchronisierung des Zugriffs auf die Liste der freien Nachrichtenslots.
      */
@@ -197,34 +212,16 @@ typedef struct shared_memory {
     message_slot slots[OSMP_MAX_SLOTS];
 
     /**
-     * @var gather_slot
-     * Slot für eine einzelne Gather-Nachricht.
-     */
-    message_slot gather_slot;
-
-    /**
      * @var gather_t
      * Der struct, um gather Funktion zu realisieren.
      */
     gather_struct gather_t;
 
     /**
-     * @var barrier_mutex
-     * Mutex für die Synchronisierung des Zugriffs auf den Barrier-Counter.
+     * @var barrier
+     * Barriere.
      */
-     pthread_mutex_t barrier_mutex;
-
-    /**
-     * @var barrier_condition
-     * Condition-Variable, um zu signalisieren, dass alle Prozesse an der Barriere warten.
-     */
-    pthread_cond_t barrier_condition;
-
-    /**
-     * @var barrier_counter
-     * Counter für die Barrier-Funktion. Gibt die Anzahl der Prozesse zurück, die an der Barriere warten.
-     */
-    int barrier_counter;
+    barrier_t barrier;
 
     /**
      * @var logfile
