@@ -112,7 +112,7 @@ message_slot* get_next_message_slot(int rank) {
     sem_post(&process->postbox.sem_proc_empty);
     memcpy(slot, &shm_ptr->slots[message_offset], sizeof(message_slot));
     //TODO: Wie macht man das?
-    shm_ptr->slots[message_offset] = NULL;
+    memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
     semwait(&shm_ptr->free_slots_mutex);
     int free_slot_index;
     int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
