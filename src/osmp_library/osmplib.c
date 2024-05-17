@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <malloc.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 shared_memory *shm_ptr;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
@@ -86,24 +87,39 @@ process_info* get_process_info(int rank) {
 }
 
 /**
- * Gibt einen Zeiger auf den Nachrichtenslot zurück, in dem die nächste Nachricht für den angegebenen Prozess liegt.
+ * Gibt einen Zeiger auf den Nachrichtenslot zurück, in dem die nächste Nachricht für den angegebenen Prozess liegt, Diese Speicher muss am Ende gefreit werden.
  * @param rank Rang des Prozesses, dessen erster Nachrichtenslot zurückgegeben werden soll.
- * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. NULL, wenn das Postfach leer ist.
+ * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. Bei einem Fehler von malloc wird das Prozess mit OSMP_FAILURE abgebrochen.
  */
 message_slot* get_next_message_slot(int rank) {
     log_osmp_lib_call("get_next_message_slot");
+    message_slot* slot = malloc(sizeof(message_slot));
+    if(slot == NULL){
+        log_osmp_lib_call("get_next_message_slot");
+        exit(OSMP_FAILURE);
+    }
     process_info* process = get_process_info(rank);
     sem_wait(&process->postbox.sem_proc_full);
     semwait(&process->postbox.mutex_proc_out);
     int out_index = process->postbox.out_index;
-    message_slot* slot = &shm_ptr->slots[out_index];
+    int message_offset = process->postbox.postbox[out_index];
+    process->postbox.postbox[out_index] = NO_MESSAGE;
     --process->postbox.out_index;
     if(process->postbox.out_index<0){
         process->postbox.out_index= OSMP_MAX_MESSAGES_PROC-1;
     }
     semsignal(&process->postbox.mutex_proc_out);
-
-    return &(shm_ptr->slots[in]);
+    sem_post(&process->postbox.sem_proc_empty);
+    memcpy(slot, &shm_ptr->slots[message_offset], sizeof(message_slot));
+    //TODO: Wie macht man das?
+    shm_ptr->slots[message_offset] = NULL;
+    semwait(&shm_ptr->free_slots_mutex);
+    int free_slot_index;
+    int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
+    shm_ptr->free_slots[free_slot_index] = message_offset;
+    semsignal(&shm_ptr->free_slots_mutex);
+    sem_post(&shm_ptr->sem_shm_free_slots);
+    return slot;
 }
 
 /**
