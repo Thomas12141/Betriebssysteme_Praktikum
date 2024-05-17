@@ -93,11 +93,17 @@ process_info* get_process_info(int rank) {
 message_slot* get_next_message_slot(int rank) {
     log_osmp_lib_call("get_next_message_slot");
     process_info* process = get_process_info(rank);
-    int slot_number = process->postbox;
-    if(slot_number == NO_MESSAGE) {
-        return NULL;
+    sem_wait(&process->postbox.sem_proc_full);
+    semwait(&process->postbox.mutex_proc_out);
+    int out_index = process->postbox.out_index;
+    message_slot* slot = &shm_ptr->slots[out_index];
+    --process->postbox.out_index;
+    if(process->postbox.out_index<0){
+        process->postbox.out_index= OSMP_MAX_MESSAGES_PROC-1;
     }
-    return &(shm_ptr->slots[slot_number]);
+    semsignal(&process->postbox.mutex_proc_out);
+
+    return &(shm_ptr->slots[in]);
 }
 
 /**
