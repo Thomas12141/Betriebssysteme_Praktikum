@@ -111,7 +111,7 @@ void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
 void logging_init_child(shared_memory* shm) {
     if (shm == NULL) {
         fprintf(stderr, "Error: shared_memory is NULL\n");
-        return;
+        exit(OSMP_FAILURE);
     }
 
     int process_number;
