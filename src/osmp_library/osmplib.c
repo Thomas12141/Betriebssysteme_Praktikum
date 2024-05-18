@@ -2,6 +2,7 @@
  * In dieser Quelltext-Datei sind Implementierungen der OSMP Bibliothek zu finden.
  */
 #define SHARED_MEMORY_NAME "/shared_memory"
+#define _GNU_SOURCE
 
 #include "osmplib.h"
 #include "logger.h"
@@ -301,6 +302,10 @@ int get_OSMP_SUCCESS(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     char *shared_memory_name = calloc(MAX_PATH_LENGTH, sizeof(char));
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
@@ -346,6 +351,10 @@ int OSMP_Init(const int *argc, char ***argv) {
 }
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_SizeOf");
     if(datatype == OSMP_SHORT){
         *size = sizeof(short int);
@@ -382,11 +391,19 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     *size = shm_ptr->size;
     return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     int pid = getpid();
     int size = shm_ptr->size;
     process_info* process;
@@ -403,6 +420,10 @@ int OSMP_Rank(int *rank) {
 
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Send");
     if(count <= 0) {
         return OSMP_FAILURE;
@@ -448,6 +469,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Recv");
     if(count <= 0) {
         return OSMP_FAILURE;
@@ -513,6 +538,10 @@ int OSMP_Finalize(void) {
 }
 
 int OSMP_Barrier(void) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Barrier");
     semwait(&(shm_ptr->barrier.mutex));
     if(getpid()==gettid())
@@ -535,6 +564,10 @@ int OSMP_Barrier(void) {
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     pthread_mutex_lock(&(shm_ptr->gather_t.mutex));
     while (OSMP_rank!=shm_ptr->gather_t.counter){
         pthread_cond_wait(&(shm_ptr->gather_t.condition_variable), &(shm_ptr->gather_t.mutex));
@@ -558,6 +591,10 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
 }
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_ISend");
     puts("OSMP_ISend() not implemented yet");
     UNUSED(buf);
@@ -569,6 +606,10 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_IRecv");
     puts("OSMP_IRecv() not implemented yet");
     UNUSED(buf);
@@ -581,6 +622,10 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Test");
     puts("OSMP_Test not implemented yet");
     UNUSED(request);
@@ -589,6 +634,10 @@ int OSMP_Test(OSMP_Request request, int *flag) {
 }
 
 int OSMP_Wait(OSMP_Request request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Wait");
     puts("OSMP_Wait() not implemented yet");
     UNUSED(request);
@@ -596,6 +645,10 @@ int OSMP_Wait(OSMP_Request request) {
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_CreateRequest");
     puts("OSMP_CreateRequest() not implemented yet");
     UNUSED(request);
@@ -603,6 +656,10 @@ int OSMP_CreateRequest(OSMP_Request *request) {
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_RemoveRequest");
     puts("OSMP_RemoveRequest) not implemented yet");
     UNUSED(request);
