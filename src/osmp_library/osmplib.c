@@ -95,7 +95,7 @@ message_slot* get_next_message_slot(int rank) {
     log_osmp_lib_call("get_next_message_slot");
     message_slot* slot = malloc(sizeof(message_slot));
     if(slot == NULL){
-        log_osmp_lib_call("get_next_message_slot");
+        log_to_file(3, "Failure of malloc in get_next_message_slot\n");
         exit(OSMP_FAILURE);
     }
     process_info* process = get_process_info(rank);
@@ -111,11 +111,14 @@ message_slot* get_next_message_slot(int rank) {
     semsignal(&process->postbox.mutex_proc_out);
     sem_post(&process->postbox.sem_proc_empty);
     memcpy(slot, &shm_ptr->slots[message_offset], sizeof(message_slot));
-    //TODO: Wie macht man das?
     memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
     semwait(&shm_ptr->free_slots_mutex);
     int free_slot_index;
     int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
+    if(free_slot_index_result<0){
+        log_to_file(3, "Fail of  sem_getvalue in get_next_message_slot\n");
+        exit(OSMP_FAILURE);
+    }
     shm_ptr->free_slots[free_slot_index] = message_offset;
     semsignal(&shm_ptr->free_slots_mutex);
     sem_post(&shm_ptr->sem_shm_free_slots);
