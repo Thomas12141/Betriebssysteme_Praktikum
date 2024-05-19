@@ -460,29 +460,30 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     if(count <= 0) {
         return OSMP_FAILURE;
     }
-    unsigned int datatype_size;
-    int length_in_bytes, rank;
-    OSMP_SizeOf(datatype, &datatype_size);
-    length_in_bytes = (int)datatype_size * count;
-    OSMP_Rank(&rank);
-    int message_offset;
-    message_slot* message_slot = get_next_message_slot(OSMP_rank, &message_offset);
-    int max_to_copy = length_in_bytes < message_slot->len ? length_in_bytes : message_slot->len;
-    memcpy(buf, message_slot->payload, (unsigned long) max_to_copy);
-    *source = message_slot->from;
-    *len = message_slot->len;
-    memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
-    semwait(&shm_ptr->free_slots_mutex);
-    int free_slot_index;
-    int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
-    if(free_slot_index_result<0){
-        log_to_file(3, "Fail of sem_getvalue in OSMP_Recv\n");
-        exit(OSMP_FAILURE);
+    for (int i = 0; i < count; ++i) {
+        unsigned int datatype_size;
+        int length_in_bytes, rank;
+        OSMP_SizeOf(datatype, &datatype_size);
+        length_in_bytes = (int)datatype_size * count;
+        OSMP_Rank(&rank);
+        int message_offset;
+        message_slot* message_slot = get_next_message_slot(OSMP_rank, &message_offset);
+        int max_to_copy = length_in_bytes < message_slot->len ? length_in_bytes : message_slot->len;
+        memcpy(buf, message_slot->payload, (unsigned long) max_to_copy);
+        *source = message_slot->from;
+        *len = message_slot->len;
+        memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
+        semwait(&shm_ptr->free_slots_mutex);
+        int free_slot_index;
+        int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
+        if(free_slot_index_result<0){
+            log_to_file(3, "Fail of sem_getvalue in OSMP_Recv\n");
+            exit(OSMP_FAILURE);
+        }
+        shm_ptr->free_slots[free_slot_index - 1] = message_offset;
+        semsignal(&shm_ptr->free_slots_mutex);
+        sem_post(&shm_ptr->sem_shm_free_slots);
     }
-    shm_ptr->free_slots[free_slot_index] = message_offset;
-    semsignal(&shm_ptr->free_slots_mutex);
-    sem_post(&shm_ptr->sem_shm_free_slots);
-    *source = message_slot->from;
     return OSMP_SUCCESS;
 }
 
