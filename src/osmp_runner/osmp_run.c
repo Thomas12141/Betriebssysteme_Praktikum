@@ -23,7 +23,7 @@ char* shared_memory_name;
  * @param mutex_pointer Zeiger auf den Speicherbereich, in den der neu erzeugte Mutex kopiert werden soll.
  * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
  */
-int create_and_copy_shared_mutex(pthread_mutex_t* mutex_pointer) {
+int init_shared_mutex(pthread_mutex_t* mutex_pointer) {
     // Shared-Attribut für Mutex erzeugen
     pthread_mutexattr_t att;
     pthread_mutexattr_init(&att);
@@ -50,7 +50,7 @@ int create_and_copy_shared_mutex(pthread_mutex_t* mutex_pointer) {
  * @param cond_pointer Zeiger auf den Speicherbereich, in den die neu erzeugte Condition-Variable kopiert werden soll.
  * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
  */
-int create_and_copy_shared_cond_var(pthread_cond_t* cond_pointer) {
+int init_shared_cond_var(pthread_cond_t* cond_pointer) {
     // Initialisiere Condition-Variable
     pthread_cond_t condition;
     // Attribut anlegen
@@ -75,6 +75,7 @@ int create_and_copy_shared_cond_var(pthread_cond_t* cond_pointer) {
 }
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr){
+    // TODO: Initialisierung von Postboxen refactoren (es muss nur noch die PID gesetzt werden, Rest ist schon in init_shm() erledigt)
     for (int i = 0; i < number_of_executables; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
@@ -96,12 +97,12 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             info->pid = pid;
             info->postbox = NO_MESSAGE;
             // Postfach-Mutex initialisieren
-            int mtx_result = create_and_copy_shared_mutex(&(info->postbox_mutex));
+            int mtx_result = init_shared_mutex(&(info->postbox_mutex));
             if(mtx_result != OSMP_SUCCESS) {
                 exit(EXIT_FAILURE);
             }
             // Initialisiere Condition-Variable
-            int cond_result = create_and_copy_shared_cond_var(&(info->new_message));
+            int cond_result = init_shared_cond_var(&(info->new_message));
             if(cond_result != OSMP_SUCCESS) {
                 exit(EXIT_FAILURE);
             }
@@ -257,6 +258,48 @@ void set_shm_name(void)  {
     snprintf(shared_memory_name, total_length, "/shared_memory_%d", pid);
 }
 
+/** Initialisiert barrier mit der angegebenen Größe count und allen Standardwerten.
+ *
+ * @param barrier Zeiger auf die Barrier, die initialisiert werden soll.
+ * @param count   Anzahl der Prozesse, die an der Barriere warten können/müssen.
+ * @return        OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
+int barrier_init(barrier_t *barrier, int count) {
+    int return_value;
+
+    return_value = init_shared_mutex(&(barrier->mutex));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Couldn't initialize barrier mutex.");
+        return OSMP_FAILURE;
+    }
+
+    return_value = init_shared_cond_var(&(barrier->convar));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Couldn't initialize barrier condition var.");
+        return OSMP_FAILURE;
+    }
+
+    barrier->counter = count;
+    barrier->cycle = 0;
+    barrier->valid = 1;
+    return OSMP_SUCCESS;
+}
+
+/**
+ * Hilfsmethode, um formatierte Strings als Fehlermeldungen bei der Initialisierung von postbox_utiliites zu loggen.
+ * @param format_str   Formatierungsstring für die Fehlermeldung (muss genau ein %d als Formatierungsanweisung enthalten).
+ * @param process_rank Rang des Prozesses, bei dessen Initialisierung ein Fehler auftritt (wird für %d eingesetzt).
+ */
+void log_pb_util_init_error(const char* format_str, int process_rank) {
+    // Ermittle nötige String-Länge
+    int len = snprintf(NULL, 0, format_str, process_rank);
+    // Setze Fehlernachricht zusammen
+    char buf[len];
+    snprintf(buf, (unsigned long)len, format_str, process_rank);
+    // Logge Nachricht
+    log_to_file(3, buf);
+}
+
 /**
  * Setzt alle initialen Werte im fixen Teil des Shared Memory, außer folgende:
  * - Der Logging-Mutex wird durch den Logger gesetzt.
@@ -266,83 +309,112 @@ void set_shm_name(void)  {
  * @param verbosity Logging-Verbosität.
  */
 void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
-    int mtx_result, cond_result;
-    shared_memory* shm_struct = (shared_memory*) shm_ptr;
+    int return_value;
 
-    shm_struct->size = processes;
+    shm_ptr->size = processes;
 
     // Logging-Mutex wird im Logger gesetzt
 
     // Notiere freie Slots in Liste
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
-        shm_struct->free_slots[i] = i;
+        shm_ptr->free_slots[i] = i;
+    }
+
+    // Initialisiere shared Semaphore für freie Slots
+    return_value = sem_init(&(shm_ptr->sem_shm_free_slots), 1, OSMP_MAX_SLOTS);
+    if(return_value != 0) {
+        log_to_file(3, "Error on initializing Semaphore sem_shm_free_slots.");
+        exit(EXIT_FAILURE);
     }
 
     // Initialisiere Mutex für die Liste mit freien Slots
-    mtx_result = create_and_copy_shared_mutex(&(shm_struct->free_slots_mutex));
-    if(mtx_result != OSMP_SUCCESS) {
-        exit(EXIT_FAILURE);
-    }
-
-    // Initialisiere Mutex für gather
-    mtx_result = create_and_copy_shared_mutex(&(shm_struct->gather_t.mutex));
-    if(mtx_result != OSMP_SUCCESS) {
-        exit(EXIT_FAILURE);
-    }
-
-    // Initialisiere Counter für gather
-    shm_struct->gather_t.counter = 0;
-
-
-    // Initialisiere Condition-Variable für Gather
-    cond_result = create_and_copy_shared_cond_var(&(shm_struct->gather_t.condition_variable));
-    if(cond_result != OSMP_SUCCESS) {
+    return_value = init_shared_mutex(&(shm_ptr->mutex_shm_free_slots));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Error on initializing Mutex mutex_shm_free_slots.");
         exit(EXIT_FAILURE);
     }
 
     // Initialisiere Slots
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
-        shm_struct->slots[i].slot_number = i;
-        shm_struct->slots[i].free = SLOT_FREE;
-        // Initialisiere Mutex im aktuellen Slot
-        mtx_result = create_and_copy_shared_mutex(&(shm_struct->slots[i].slot_mutex));
-        if(mtx_result != OSMP_SUCCESS) {
-            exit(EXIT_FAILURE);
-        }
-        // Initialisiere Condition-Variable im aktuellen Slot
-        mtx_result = create_and_copy_shared_cond_var(&(shm_struct->slots[i].slot_emptied));
-        if(mtx_result != OSMP_SUCCESS) {
-            exit(EXIT_FAILURE);
-        }
+        memset(&(shm_ptr->slots[i]), '\0', sizeof(message_slot));
     }
 
-    // Initialisiere Gather-Slot
-    shm_struct->gather_slot.slot_number = processes;
-    shm_struct->gather_slot.free = SLOT_FREE;
-    memset(shm_struct->gather_slot.payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
-    shm_struct->gather_slot.next_message = NO_MESSAGE;
-
-    // Initialisiere Barrier-Mutex
-    mtx_result = create_and_copy_shared_mutex(&(shm_struct->barrier_mutex));
-    if(mtx_result != OSMP_SUCCESS) {
+    // Initialisiere Mutex für gather
+    return_value = init_shared_mutex(&(shm_ptr->gather_t.mutex));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Couldn't initialize Mutex for gather");
         exit(EXIT_FAILURE);
     }
 
-    // Initialisiere Condition-Variable für Barrier
-    cond_result = create_and_copy_shared_cond_var(&(shm_struct->barrier_condition));
-    if(cond_result != OSMP_SUCCESS) {
+    // Initialisiere Condition-Variable für Gather
+    return_value = init_shared_cond_var(&(shm_ptr->gather_t.condition_variable));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Couldn't initialize condition var for gather");
         exit(EXIT_FAILURE);
     }
 
-    // Initialisiere Counter für Barrier
-    shm_struct->barrier_counter = 0;
+    // Initialisiere Counter für gather
+    shm_ptr->gather_t.counter = 0;
 
+    // Initialisiere Barrier
+    return_value = barrier_init(&(shm_ptr->barrier), processes);
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Couldn't initialize barrier");
+        exit(EXIT_FAILURE);
+    }
 
     // Setze Logging-Infos
-    strncpy(shm_struct->logfile, get_logfile_name(), MAX_PATH_LENGTH);
-    shm_struct->verbosity = (unsigned int)verbosity;
+    strncpy(shm_ptr->logfile, get_logfile_name(), MAX_PATH_LENGTH);
+    shm_ptr->verbosity = (unsigned int)verbosity;
 
-    // Prozess-Infos werden in start_all_executables() gesetzt
+    // Setze Process Infos
+    process_info* info = &(shm_ptr->first_process_info);
+    for(int i=0; i<processes; i++) {
+        info->rank = i;
+        // PID wird in start_all_executables() gesetzt
+
+        // Initialisiere postbox_utilities
+        postbox_utilities* pb_util;
+
+        for(int j=0; j<OSMP_MAX_MESSAGES_PROC; j++) {
+            pb_util->postbox[j] = NO_MESSAGE;
+        }
+
+        pb_util->in_index = 0;
+
+        return_value = init_shared_mutex(&(pb_util->mutex_proc_in));
+        if(return_value != OSMP_SUCCESS) {
+            log_pb_util_init_error("Couldn't initialize mutex_proc_in in postbox_utilities of process # %d", i);
+        }
+
+        pb_util->out_index = OSMP_MAX_MESSAGES_PROC;
+
+        return_value = init_shared_mutex(&(pb_util->mutex_proc_out));
+        if(return_value != OSMP_SUCCESS) {
+            log_pb_util_init_error("Couldn't initialize mutex_proc_out in postbox_utilities of process # %d", i);
+        }
+
+        return_value = sem_init(&(pb_util->sem_proc_empty), 1, OSMP_MAX_MESSAGES_PROC);
+        if(return_value != 0) {
+            log_pb_util_init_error("Couldn't initialize sem_proc_empty in postbox_utilities of process # %d", i);
+        }
+
+        return_value = sem_init(&(pb_util->sem_proc_full), 1, OSMP_MAX_MESSAGES_PROC);
+        if(return_value != 0) {
+            log_pb_util_init_error("Couldn't initialize sem_proc_full in postbox_utilities of process # %d", i);
+        }
+
+        // Semaphore muss anfangs blockieren, bis zu lesende Nachrichten vorliegen
+        for(int j=0; j<OSMP_MAX_MESSAGES_PROC; j++) {
+            sem_wait(&(pb_util->sem_proc_full));
+        }
+
+        // Initialisiere Gather-Slot
+        memset(&(info->gather_slot), '\0', sizeof(message_slot));
+
+        // Setze Zeiger auf nächste Process-Info
+        info++;
+    }
 }
 
 int main (int argc, char **argv) {

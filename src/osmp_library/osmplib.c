@@ -62,13 +62,13 @@ int get_next_free_slot(void) {
     //Index für den Freien Slots Array.
     int index;
     //Kritischer Abschnitt
-    semwait(&shm_ptr->free_slots_mutex);
+    semwait(&shm_ptr->mutex_shm_free_slots);
     //Den index für den Array.
     sem_getvalue(&shm_ptr->sem_shm_free_slots, &index);
     //Runterzählen
     sem_post(&shm_ptr->sem_shm_free_slots);
     slot = shm_ptr->free_slots[index];
-    semsignal(&shm_ptr->free_slots_mutex);
+    semsignal(&shm_ptr->mutex_shm_free_slots);
 
     return slot;
 }
@@ -415,7 +415,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     OSMP_SizeOf(datatype, &datatype_size);
     int length_in_bytes = (int)datatype_size * count;
     process_info * process_info = get_process_info(dest);
-    semwait(&shm_ptr->free_slots_mutex);
+    semwait(&shm_ptr->mutex_shm_free_slots);
     sem_wait(&process_info->postbox.sem_proc_empty);
     sem_wait(&shm_ptr->sem_shm_free_slots);
     int index;
@@ -424,7 +424,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         log_to_file(3, "Fail of sem_getvalue in OSMP_Send\n");
         exit(OSMP_FAILURE);
     }
-    semsignal(&shm_ptr->free_slots_mutex);
+    semsignal(&shm_ptr->mutex_shm_free_slots);
     mempcpy(&shm_ptr->slots[index], buf, (unsigned int)length_in_bytes);
     semwait(&process_info->postbox.mutex_proc_in);
     int process_in_index = process_info->postbox.in_index;
@@ -460,7 +460,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     *source = message_slot->from;
     *len = message_slot->len;
     memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
-    semwait(&shm_ptr->free_slots_mutex);
+    semwait(&shm_ptr->mutex_shm_free_slots);
     int free_slot_index;
     int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
     if(free_slot_index_result<0){
@@ -468,7 +468,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
         exit(OSMP_FAILURE);
     }
     shm_ptr->free_slots[free_slot_index] = message_offset;
-    semsignal(&shm_ptr->free_slots_mutex);
+    semsignal(&shm_ptr->mutex_shm_free_slots);
     sem_post(&shm_ptr->sem_shm_free_slots);
     *source = message_slot->from;
     return OSMP_SUCCESS;

@@ -67,7 +67,7 @@ typedef struct message_slot {
     char payload[OSMP_MAX_PAYLOAD_LENGTH];
 } message_slot;
 
-typedef struct{
+typedef struct gather_struct{
     /**
      * @var mutex
      * Mutex für den Zugriff auf shared Variable.
@@ -96,7 +96,7 @@ typedef struct {
 
     /**
      * @var in_index
-     * Index, das auf den nächsten freien Platz im Postfach zeigt.
+     * Index, der auf den nächsten freien Platz im Postfach zeigt.
      */
     int in_index;
 
@@ -162,7 +162,7 @@ typedef struct process_info {
 } process_info;
 
 /* Datentyp zur Beschreibung einer Barriere. */
-typedef struct {
+typedef struct barrier_t {
     pthread_mutex_t mutex; /* Zugriffskontrolle */
     pthread_cond_t convar; /* Warten auf Barriere */
     int valid; /* gesetzt, wenn Barriere initalisiert */
@@ -200,10 +200,10 @@ typedef struct shared_memory {
     sem_t sem_shm_free_slots;
 
     /**
-     * @var free_slots_mutex
+     * @var mutex_shm_free_slots
      * Mutex zur Synchronisierung des Zugriffs auf die Liste der freien Nachrichtenslots.
      */
-    pthread_mutex_t free_slots_mutex;
+    pthread_mutex_t mutex_shm_free_slots;
 
     /**
      * @var slots
