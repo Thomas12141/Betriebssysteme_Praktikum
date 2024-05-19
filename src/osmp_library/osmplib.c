@@ -460,12 +460,12 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     if(count <= 0) {
         return OSMP_FAILURE;
     }
+    unsigned int datatype_size;
+    int length_in_bytes, rank;
+    OSMP_SizeOf(datatype, &datatype_size);
+    length_in_bytes = (int)datatype_size * count;
+    OSMP_Rank(&rank);
     for (int i = 0; i < count; ++i) {
-        unsigned int datatype_size;
-        int length_in_bytes, rank;
-        OSMP_SizeOf(datatype, &datatype_size);
-        length_in_bytes = (int)datatype_size * count;
-        OSMP_Rank(&rank);
         int message_offset;
         message_slot* message_slot = get_next_message_slot(OSMP_rank, &message_offset);
         int max_to_copy = length_in_bytes < message_slot->len ? length_in_bytes : message_slot->len;
