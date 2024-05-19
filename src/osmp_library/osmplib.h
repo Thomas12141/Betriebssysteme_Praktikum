@@ -38,6 +38,16 @@
 #define BARRIER_VALID 1
 
 /**
+ * Flag, um singlanisieren, dass der Reciever nicht alle Nachrichten in Gather gespeichert hat.
+ */
+#define NOT_SAVED 1
+
+/**
+ * Flag, um singlanisieren, dass der Reciever alle Nachrichten in Gather gespeichert hat.
+ */
+#define SAVED 1
+
+/**
  * Maximal erlaubte Länge des Pfads zur Logdatei, inkl. terminierendem Nullbyte.
  */
 #define MAX_PATH_LENGTH 256
@@ -86,10 +96,10 @@ typedef struct gather_struct{
     pthread_cond_t condition_variable;
 
     /**
-     * @var counter
-     * Ein counter, der signalisiert, wer an der Reihe ist.
+     * @var flag
+    * Ein flag, der signalisiert, wenn der Reciever alle Nachrichten gespeichert hat.
      */
-    int counter;
+    int flag;
 } gather_struct;
 
 typedef struct {

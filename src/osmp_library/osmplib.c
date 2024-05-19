@@ -557,12 +557,14 @@ void write_to_gather_part(void){
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
+    log_osmp_lib_call("OSMP_Gather");
     if(gettid() != getpid()){
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
+    shm_ptr->gather_t.flag = NOT_SAVED;
     unsigned int datatype_size;
-    unsigned int length_in_bytes, rank;
+    unsigned int length_in_bytes;
     OSMP_SizeOf(sendtype, &datatype_size);
     length_in_bytes = datatype_size * (unsigned int) sendcount;
     OSMP_Barrier();
@@ -570,24 +572,24 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     mempcpy(&process->gather_slot, sendbuf, length_in_bytes);
     OSMP_Barrier();
     semwait(&shm_ptr->gather_t.mutex);
-    if(OSMP_rank!=recv){
-        pthread_cond_wait(&shm_ptr->gather_t.condition_variable, &shm_ptr->gather_t.mutex);
-    }else{
-        pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
+    while (shm_ptr->gather_t.flag == NOT_SAVED){
+        if(OSMP_rank!=recv){
+            pthread_cond_wait(&shm_ptr->gather_t.condition_variable, &shm_ptr->gather_t.mutex);
+        }else{
+            OSMP_SizeOf(recvtype, &datatype_size);
+            length_in_bytes = datatype_size * (unsigned int) recvcount;
+            for (int i = 0; i < OSMP_rank; ++i) {
+                process_info * process_to_read_from = get_process_info(i);
+                char * temp = recvbuf;
+                temp += (unsigned int) i * length_in_bytes;
+
+                mempcpy(temp, &process_to_read_from->gather_slot, length_in_bytes);
+            }
+            shm_ptr->gather_t.flag = SAVED;
+            pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
+        }
     }
-    if(shm_ptr->gather_t.counter==OSMP_rank){
-        shm_ptr->gather_t.counter = 0;
-    }
-    log_osmp_lib_call("OSMP_Gather");
-    puts("OSMP_Gather() not implemented yet");
-    UNUSED(sendbuf);
-    UNUSED(sendcount);
-    UNUSED(sendtype);
-    UNUSED(recvbuf);
-    UNUSED(recvcount);
-    UNUSED(recvtype);
-    UNUSED(recv);
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {

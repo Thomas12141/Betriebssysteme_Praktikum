@@ -343,7 +343,7 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     }
 
     // Initialisiere Counter für gather
-    shm_ptr->gather_t.counter = 0;
+    shm_ptr->gather_t.flag = 0;
 
     // Initialisiere Barrier
     return_value = barrier_init(&(shm_ptr->barrier), processes);
