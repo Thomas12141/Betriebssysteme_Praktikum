@@ -88,22 +88,17 @@ process_info* get_process_info(int rank) {
 }
 
 /**
- * Gibt einen Zeiger auf den Nachrichtenslot zurück, in dem die nächste Nachricht für den angegebenen Prozess liegt, Diese Speicher muss am Ende gefreit werden.
+ * Gibt einen Zeiger auf den Nachrichtenslot zurück, in dem die nächste Nachricht für den angegebenen Prozess liegt.
  * @param rank Rang des Prozesses, dessen erster Nachrichtenslot zurückgegeben werden soll.
  * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. Bei einem Fehler von malloc wird das Prozess mit OSMP_FAILURE abgebrochen.
  */
-message_slot* get_next_message_slot(int rank) {
+message_slot* get_next_message_slot(int rank, int * message_offset) {
     log_osmp_lib_call("get_next_message_slot");
-    message_slot* slot = malloc(sizeof(message_slot));
-    if(slot == NULL){
-        log_to_file(3, "Failure of malloc in get_next_message_slot\n");
-        exit(OSMP_FAILURE);
-    }
     process_info* process = get_process_info(rank);
     sem_wait(&process->postbox.sem_proc_full);
     semwait(&process->postbox.mutex_proc_out);
     int out_index = process->postbox.out_index;
-    int message_offset = process->postbox.postbox[out_index];
+    *message_offset = process->postbox.postbox[out_index];
     process->postbox.postbox[out_index] = NO_MESSAGE;
     --process->postbox.out_index;
     if(process->postbox.out_index<0){
@@ -111,19 +106,7 @@ message_slot* get_next_message_slot(int rank) {
     }
     semsignal(&process->postbox.mutex_proc_out);
     sem_post(&process->postbox.sem_proc_empty);
-    memcpy(slot, &shm_ptr->slots[message_offset], sizeof(message_slot));
-    memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
-    semwait(&shm_ptr->free_slots_mutex);
-    int free_slot_index;
-    int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
-    if(free_slot_index_result<0){
-        log_to_file(3, "Fail of  sem_getvalue in get_next_message_slot\n");
-        exit(OSMP_FAILURE);
-    }
-    shm_ptr->free_slots[free_slot_index] = message_offset;
-    semsignal(&shm_ptr->free_slots_mutex);
-    sem_post(&shm_ptr->sem_shm_free_slots);
-    return slot;
+    return &shm_ptr->slots[*message_offset];
 }
 
 /**
@@ -477,47 +460,29 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     if(count <= 0) {
         return OSMP_FAILURE;
     }
-
     unsigned int datatype_size;
     int length_in_bytes, rank;
     OSMP_SizeOf(datatype, &datatype_size);
     length_in_bytes = (int)datatype_size * count;
     OSMP_Rank(&rank);
-    // eigene process info
-    process_info* process = get_process_info(rank);
-    message_slot* slot;
-    slot = get_next_message_slot(rank);
-
-    // Warte/Stelle sicher, dass eine Nachricht vorhanden ist
-    int next_slot = NO_MESSAGE;
-    while(slot == NULL) {
-        semwait(&(process->postbox_mutex));
-        pthread_cond_wait(&(process->new_message), &(process->postbox_mutex));
-        slot = get_next_message_slot(rank);
-        if(slot != NULL) {
-            // Nachricht vorhanden --> prüfe auf den richtigen Datentyp
-            while(slot->type != datatype) {
-                next_slot = slot->next_message;
-                if(next_slot == NO_MESSAGE) {
-                    // keine weitere Nachricht
-                    break; // zurück in die äußere while-Schleife --> auf neue Nachr. warten
-                }
-                slot = &(shm_ptr->slots[next_slot]);
-            }
-        }
-        semsignal(&(process->postbox_mutex));
+    int message_offset;
+    message_slot* message_slot = get_next_message_slot(OSMP_rank, &message_offset);
+    int max_to_copy = length_in_bytes < message_slot->len ? length_in_bytes : message_slot->len;
+    memcpy(buf, message_slot->payload, (unsigned long) max_to_copy);
+    *source = message_slot->from;
+    *len = message_slot->len;
+    memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
+    semwait(&shm_ptr->free_slots_mutex);
+    int free_slot_index;
+    int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
+    if(free_slot_index_result<0){
+        log_to_file(3, "Fail of sem_getvalue in OSMP_Recv\n");
+        exit(OSMP_FAILURE);
     }
-
-    // Nachricht des richtigen Typs gefunden --> kopiere sie in Buffer des Empfängers
-    // zu kopierende Bytes = min(length_in_bytes, slot->len)
-    int max_to_copy = length_in_bytes < slot->len ? length_in_bytes : slot->len;
-    semwait(&(slot->slot_mutex));
-    memcpy(buf, slot->payload, (unsigned long) max_to_copy);
-    *source = slot->from;
-    *len = slot->len;
-    // Leere Slot und entferne Referenzen auf die Nachricht
-    remove_message(slot->slot_number);
-    semsignal(&(slot->slot_mutex));
+    shm_ptr->free_slots[free_slot_index] = message_offset;
+    semsignal(&shm_ptr->free_slots_mutex);
+    sem_post(&shm_ptr->sem_shm_free_slots);
+    *source = message_slot->from;
     return OSMP_SUCCESS;
 }
 
