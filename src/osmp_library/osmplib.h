@@ -33,6 +33,11 @@
 #define SLOT_TAKEN 0
 
 /**
+ * Flag, um eine korrekt initialisierte Barrier zu kennzeichnen.
+ */
+#define BARRIER_VALID 1
+
+/**
  * Maximal erlaubte Länge des Pfads zur Logdatei, inkl. terminierendem Nullbyte.
  */
 #define MAX_PATH_LENGTH 256

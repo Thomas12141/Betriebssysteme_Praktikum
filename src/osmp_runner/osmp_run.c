@@ -254,6 +254,8 @@ void set_shm_name(void)  {
 int barrier_init(barrier_t *barrier, int count) {
     int return_value;
 
+    barrier->valid = !BARRIER_VALID;
+
     return_value = init_shared_mutex(&(barrier->mutex));
     if(return_value != OSMP_SUCCESS) {
         log_to_file(3, "Couldn't initialize barrier mutex.");
@@ -268,7 +270,7 @@ int barrier_init(barrier_t *barrier, int count) {
 
     barrier->counter = count;
     barrier->cycle = 0;
-    barrier->valid = 1;
+    barrier->valid = BARRIER_VALID;
     return OSMP_SUCCESS;
 }
 

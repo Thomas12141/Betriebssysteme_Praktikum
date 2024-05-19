@@ -259,6 +259,57 @@ int calculate_shared_memory_size(int processes) {
     return size;
 }
 
+/**
+ * Interne Implementierung der OSMP_Barrier()-Funktion. Der Hauptteil wird mithilfe der Posix-Funktion
+ * pthread_cond_wait() implementiert, die eine Voraussetzung (Prediction) und eine Bedingung (Condition) benötigt.
+ * @param barrier Zeiger auf die Barriere, an der gewartet werden soll.
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE.
+ */
+int barrier_wait(barrier_t* barrier) {
+    int status, cancel, tmp, cycle;
+
+    if(barrier->valid != BARRIER_VALID) {
+        log_to_file(3, "Barrier not yet initialized, can't wait at barrier!");
+        return OSMP_FAILURE;
+    }
+
+    status = pthread_mutex_lock(&(barrier->mutex));
+    if(status != 0) {
+        log_to_file(3, "Failed to lock barrier mutex!");
+        return OSMP_FAILURE;
+    }
+
+    cycle = barrier->cycle; // aktuellen Zyklus merken
+
+    // Thread-Safety: nur die Hauptthreads der ursprünglichen OSMP-Prozesse dürfen den Counter beeinflussen
+    if(getpid()==gettid()) {
+        (barrier->counter)--;
+    }
+    if(barrier->counter== 0) {
+        // Der letzte Thread in der Barriere initialisiert die Barrier für den nächsten Durchlauf.
+        barrier->counter = OSMP_size;
+        (barrier->cycle)++;
+        pthread_cond_broadcast(&(barrier->convar));
+    } else {
+        // Da barrier_wait() kein Abbruchpunkt sein sollte, wird Abbruch deaktiviert.
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel);
+
+        /* Warten, bis sich die Zyklusnummer der Voraussetzung (Prediction) ändert, was bedeutet, dass nicht länger
+         * gewartet werden soll und die Bedingung (Condition) erfüllt ist. */
+        while(cycle == barrier->cycle) {
+            status = pthread_cond_wait(&(barrier->convar), &(barrier->mutex));
+            if(status != 0) {
+                break;
+            }
+        }
+
+        pthread_setcancelstate(cancel, &tmp);
+    }
+
+    pthread_mutex_unlock(&(barrier->mutex));
+    return OSMP_SUCCESS;
+}
+
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
     log_osmp_lib_call("get_OSMP_MAX_PAYLOAD_LENGTH");
     return OSMP_MAX_PAYLOAD_LENGTH;
@@ -491,29 +542,8 @@ int OSMP_Finalize(void) {
 }
 
 int OSMP_Barrier(void) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_Barrier");
-    semwait(&(shm_ptr->barrier.mutex));
-    if(getpid()==gettid())
-    (shm_ptr->barrier_counter)++;
-    printf("Barrier-Counter: %d\n", shm_ptr->barrier_counter);
-    if(shm_ptr->barrier_counter >= shm_ptr->size) {
-        // Dieser Prozess war der letzte -> benachrichtigen
-        semsignal(&(shm_ptr->barrier_mutex));
-        pthread_cond_broadcast(&(shm_ptr->barrier_condition));
-        // TODO: Wer setzt Counter wieder auf 0?
-        return OSMP_SUCCESS;
-    }
-    // Warte, bis alle Prozesse die Barriere erreicht haben
-    while(shm_ptr->size > shm_ptr->barrier_counter) {
-        pthread_cond_wait(&(shm_ptr->barrier_condition), &(shm_ptr->barrier_mutex));
-    }
-    semsignal(&(shm_ptr->barrier_mutex));
-    printf("Test\n");
-    return OSMP_SUCCESS;
+    return barrier_wait(&(shm_ptr->barrier));
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
