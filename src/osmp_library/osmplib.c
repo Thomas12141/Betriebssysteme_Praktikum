@@ -516,18 +516,35 @@ int OSMP_Barrier(void) {
     return OSMP_SUCCESS;
 }
 
+void write_to_gather_part(void){
+
+    int in_index = process->postbox.in_index;
+    int out_index = process->postbox.out_index;
+    int counter = 0;
+    while (out_index!=in_index){
+        mempcpy(&process->gather_slot[counter], )
+    }
+}
+
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
     if(gettid() != getpid()){
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
-    pthread_mutex_lock(&(shm_ptr->gather_t.mutex));
-    while (OSMP_rank!=shm_ptr->gather_t.counter){
-        pthread_cond_wait(&(shm_ptr->gather_t.condition_variable), &(shm_ptr->gather_t.mutex));
+    unsigned int datatype_size;
+    unsigned int length_in_bytes, rank;
+    OSMP_SizeOf(sendtype, &datatype_size);
+    length_in_bytes = datatype_size * (unsigned int) sendcount;
+    OSMP_Barrier();
+    process_info * process = get_process_info(OSMP_rank);
+    mempcpy(&process->gather_slot, sendbuf, length_in_bytes);
+    OSMP_Barrier();
+    semwait(&shm_ptr->gather_t.mutex);
+    if(OSMP_rank!=recv){
+        pthread_cond_wait(&shm_ptr->gather_t.condition_variable, &shm_ptr->gather_t.mutex);
+    }else{
+        pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
     }
-    //TODO: Receive the data
-    (shm_ptr->gather_t.counter)++;
-    pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
     if(shm_ptr->gather_t.counter==OSMP_rank){
         shm_ptr->gather_t.counter = 0;
     }
