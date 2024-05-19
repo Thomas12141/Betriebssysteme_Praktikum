@@ -420,17 +420,7 @@ int OSMP_Finalize(void) {
 int OSMP_Barrier(void) {
     log_osmp_lib_call("OSMP_Barrier");
     return barrier_wait(&(shm_ptr->barrier));
-}
-
-void write_to_gather_part(void){
-
-    int in_index = process->postbox.in_index;
-    int out_index = process->postbox.out_index;
-    int counter = 0;
-    while (out_index!=in_index){
-        mempcpy(&process->gather_slot[counter], )
-    }
-}
+}   
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
     log_osmp_lib_call("OSMP_Gather");
