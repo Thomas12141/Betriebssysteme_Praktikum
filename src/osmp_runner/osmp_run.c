@@ -361,7 +361,7 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         // PID wird in start_all_executables() gesetzt
 
         // Initialisiere postbox_utilities
-        postbox_utilities* pb_util;
+        postbox_utilities* pb_util = &(info->postbox);
 
         for(int j=0; j<OSMP_MAX_MESSAGES_PROC; j++) {
             pb_util->postbox[j] = NO_MESSAGE;
