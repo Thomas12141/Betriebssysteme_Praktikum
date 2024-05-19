@@ -75,7 +75,6 @@ int init_shared_cond_var(pthread_cond_t* cond_pointer) {
 }
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr){
-    // TODO: Initialisierung von Postboxen refactoren (es muss nur noch die PID gesetzt werden, Rest ist schon in init_shm() erledigt)
     for (int i = 0; i < number_of_executables; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
@@ -90,22 +89,10 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             log_to_file(3,"execv failed");
             return -1;
         } else{
-            // Initialisiere Prozess-Infos im Shared Memory
+            // Setze PID in Process Info im Shared Memory
             // Offset berechnen (alle außer der 0. Prozess-Info gehen über SHM-Struct hinaus)
             process_info* info = &(shm_ptr->first_process_info) + i;
-            info->rank = i;
             info->pid = pid;
-            info->postbox = NO_MESSAGE;
-            // Postfach-Mutex initialisieren
-            int mtx_result = init_shared_mutex(&(info->postbox_mutex));
-            if(mtx_result != OSMP_SUCCESS) {
-                exit(EXIT_FAILURE);
-            }
-            // Initialisiere Condition-Variable
-            int cond_result = init_shared_cond_var(&(info->new_message));
-            if(cond_result != OSMP_SUCCESS) {
-                exit(EXIT_FAILURE);
-            }
         }
     }
     return 0;
