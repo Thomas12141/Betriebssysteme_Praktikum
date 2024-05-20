@@ -267,4 +267,6 @@ int calculate_shared_memory_size(int processes);
 
 void OSMP_Init_Runner(int fd, shared_memory* shm, int size);
 
+process_info* get_process_info(int rank);
+
 #endif //BETRIEBSSYSTEME_OSMPLIB_H

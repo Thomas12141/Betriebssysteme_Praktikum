@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "../osmp_library/logger.h"
-#include "../osmp_library/osmplib.h"
 
 int shm_size;
 
@@ -74,31 +73,7 @@ int init_shared_cond_var(pthread_cond_t* cond_pointer) {
     return OSMP_SUCCESS;
 }
 
-int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr){
-    for (int i = 0; i < number_of_executables; ++i) {
-        int pid = fork();
-        for(int j = 0; arguments[j] != NULL; j++) {
-            printf("%s ", arguments[j]);
-        }
-        puts("");
-        if (pid < 0) {
-            log_to_file(3,"failed to fork");
-            return -1;
-        } else if (pid == 0) {//Child process.
-            execv(executable, arguments);
-            log_to_file(3,"execv failed");
-            return -1;
-        } else{
-            // Setze PID in Process Info im Shared Memory
-            // Offset berechnen (alle außer der 0. Prozess-Info gehen über SHM-Struct hinaus)
-            process_info* info = &(shm_ptr->first_process_info) + i;
-            info->pid = pid;
-        }
-    }
-    return 0;
-}
-
-int freeAll(int shm_fd, shared_memory* shm_ptr){
+int free_all(int shm_fd, shared_memory* shm_ptr){
     int result = munmap(shm_ptr, (size_t) shm_size);
     if(result==-1){
         log_to_file(3, "Couldn't unmap memory.");
@@ -118,6 +93,67 @@ int freeAll(int shm_fd, shared_memory* shm_ptr){
     free(shared_memory_name);
     return 0;
 }
+
+void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
+    for (int i = 0; i < count; ++i) {
+        process_info * process_info = get_process_info(i);
+        kill(process_info->pid, SIGTERM);
+    }
+    free_all(shared_memory_fd, shm_ptr);
+}
+
+void* monitor_children(void * args){
+    monitor_args* mon_args = (monitor_args*)args;
+    int status;
+    for (int i = 0; i < mon_args->number_of_executables; ++i) {
+        wait(&status);
+        if(status == OSMP_FAILURE){
+            kill_threads(i, mon_args->shared_memory_fd, mon_args->shm_ptr);
+        } else if(mon_args->flag == OSMP_FAILURE){
+            kill_threads(i+1, mon_args->shared_memory_fd, mon_args->shm_ptr);
+        }
+    }
+    return NULL;
+}
+
+int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr, int shared_memory_fd){
+    int pids[number_of_executables];
+    for (int i = 0; i < number_of_executables; ++i) {
+        pids[i] = 0;
+    }
+    pthread_t monitor_thread;
+    monitor_args mon_args;
+    mon_args.flag = OSMP_SUCCESS;
+    mon_args.number_of_executables = number_of_executables;
+    mon_args.shared_memory_fd = shared_memory_fd;
+    mon_args.shm_ptr = shm_ptr;
+    pthread_create(&monitor_thread, NULL, monitor_children, &mon_args);
+    for (int i = 0; i < number_of_executables; ++i) {
+        int pid = fork();
+        for(int j = 0; arguments[j] != NULL; j++) {
+            printf("%s ", arguments[j]);
+        }
+        puts("");
+        if (pid < 0) {
+            log_to_file(3,"failed to fork");
+            mon_args.flag = OSMP_FAILURE;
+            pthread_join(monitor_thread, NULL);
+            return OSMP_FAILURE;
+        } else if (pid == 0) {//Child process.
+            execv(executable, arguments);
+            log_to_file(3,"execv failed");
+            return -1;
+        } else{
+            // Setze PID in Process Info im Shared Memory
+            // Offset berechnen (alle außer der 0. Prozess-Info gehen über SHM-Struct hinaus)
+            process_info* info = &(shm_ptr->first_process_info) + i;
+            info->pid = pid;
+        }
+    }
+    return 0;
+}
+
+
 
 /**
  * Überprüft, ob ein String nur Leerzeichen enthält.
@@ -440,7 +476,7 @@ int main (int argc, char **argv) {
 
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
-    int starting_result = start_all_executables(processes, executable, arguments, shm_ptr);
+    int starting_result = start_all_executables(processes, executable, arguments, shm_ptr, shared_memory_fd);
     if(starting_result!=0){
         return -1;
     }
@@ -455,7 +491,7 @@ int main (int argc, char **argv) {
         }
     }
 
-    int free_result = freeAll(shared_memory_fd, shm_ptr);
+    int free_result = free_all(shared_memory_fd, shm_ptr);
 
     if(free_result == -1){
         return -1;
