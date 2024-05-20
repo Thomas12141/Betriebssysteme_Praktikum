@@ -141,7 +141,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         } else if (pid == 0) {//Child process.
             execv(executable, arguments);
             log_to_file(3,"execv failed");
-            return -1;
+            return OSMP_FAILURE;
         } else{
             // Setze PID in Process Info im Shared Memory
             // Offset berechnen (alle außer der 0. Prozess-Info gehen über SHM-Struct hinaus)
