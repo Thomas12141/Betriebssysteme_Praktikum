@@ -73,25 +73,32 @@ int init_shared_cond_var(pthread_cond_t* cond_pointer) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Schließt den Shared Memory (Unmapping des SHM, Schließen des FDs, Unlinken des SHM, manuell allozierten Speicherplatz
+ * für SHM-Namen freigeben).
+ * @param shm_fd  File Descriptor des Shared Memorys.
+ * @param shm_ptr Zeiger auf den Shared Memory.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
 int free_all(int shm_fd, shared_memory* shm_ptr){
     int result = munmap(shm_ptr, (size_t) shm_size);
     if(result==-1){
         log_to_file(3, "Couldn't unmap memory.");
-        return -1;
+        return OSMP_FAILURE;
     }
     result = close(shm_fd);
     if(result==-1){
         log_to_file(3, "Couldn't close file descriptor memory.");
-        return -1;
+        return OSMP_FAILURE;
     }
     result = shm_unlink(shared_memory_name);
     if(result==-1){
         log_to_file(3, "Couldn't unlink file name.");
-        return -1;
+        return OSMP_FAILURE;
     }
     log_to_file(2, "Freeing shared_memory_name");
     free(shared_memory_name);
-    return 0;
+    return OSMP_SUCCESS;
 }
 
 void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
@@ -153,8 +160,6 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
     pthread_join(monitor_thread, NULL);
     return 0;
 }
-
-
 
 /**
  * Überprüft, ob ein String nur Leerzeichen enthält.
@@ -312,6 +317,29 @@ int barrier_init(barrier_t *barrier, int count) {
 }
 
 /**
+ * Zerstört die Synchronisierungselemente (Mutex und Condition-Variable) einer Barrier.
+ * @param barrier Zeiger auf die Barrier, deren Mutex und Condition-Variable zerstört werden sollen.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
+int barrier_destroy(barrier_t* barrier) {
+    int rv;
+
+    rv = pthread_mutex_destroy(&(barrier->mutex));
+    if(rv != 0) {
+        log_to_file(3, "Error in destroying barrier mutex");
+        return OSMP_FAILURE;
+    }
+
+    rv = pthread_cond_destroy(&(barrier->convar));
+    if(rv != 0) {
+        log_to_file(3, "Error in destroying barrier condition variable");
+        return OSMP_FAILURE;
+    }
+
+    return OSMP_SUCCESS;
+}
+
+/**
  * Hilfsmethode, um formatierte Strings als Fehlermeldungen bei der Initialisierung von postbox_utiliites zu loggen.
  * @param format_str   Formatierungsstring für die Fehlermeldung (muss genau ein %d als Formatierungsanweisung enthalten).
  * @param process_rank Rang des Prozesses, bei dessen Initialisierung ein Fehler auftritt (wird für %d eingesetzt).
@@ -329,7 +357,7 @@ void log_pb_util_init_error(const char* format_str, int process_rank) {
 /**
  * Setzt alle initialen Werte im fixen Teil des Shared Memory, außer folgende:
  * - Der Logging-Mutex wird durch den Logger gesetzt.
- * - Die Prozess-Infos werden in start_all_executables() gesetzt.
+ * - Die PIDs werden in start_all_executables() gesetzt.
  * @param shm_ptr Pointer auf den Shared Memory.
  * @param processes Anzahl der Prozesse.
  * @param verbosity Logging-Verbosität.
@@ -433,6 +461,90 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     }
 }
 
+/**
+ * Zerstört die Mutexe und Semaphoren eines postbox_utilities-Structs.
+ * @param postbox Zeiger auf die postbox_utilities, deren Mutexe und Semaphoren zerstört werden sollen.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
+int destroy_postbox_utilities(postbox_utilities* postbox) {
+    int rv;
+
+    rv = pthread_mutex_destroy(&(postbox->mutex_proc_in));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy mutex_proc_in");
+        return OSMP_FAILURE;
+    }
+
+    rv = pthread_mutex_destroy(&(postbox->mutex_proc_out));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy mutex mutex_proc_out");
+        return OSMP_FAILURE;
+    }
+
+    rv = sem_destroy(&(postbox->sem_proc_empty));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy semaphore sem_proc_empty");
+        return OSMP_FAILURE;
+    }
+
+    rv = sem_destroy(&(postbox->sem_proc_full));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy semaphore sem_proc_full");
+        return OSMP_FAILURE;
+    }
+
+    return OSMP_SUCCESS;
+}
+
+/**
+ * Zerstört alle Mutexe, Semaphoren und Condition-Variablen in einem Shared Memory.
+ * @param shm_ptr Zeiger auf den Shared Memory.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
+int cleanup_shm(shared_memory* shm_ptr) {
+    int rv;
+
+    rv = sem_destroy(&(shm_ptr->sem_shm_free_slots));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy semaphore sem_shm_free_slots");
+        return OSMP_FAILURE;
+    }
+
+    rv = pthread_mutex_destroy(&(shm_ptr->mutex_shm_free_slots));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy mutex mutex_shm_free_slots");
+        return OSMP_FAILURE;
+    }
+
+    rv = pthread_mutex_destroy(&(shm_ptr->gather_mutex));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy mutex gather_mutex");
+        return OSMP_FAILURE;
+    }
+
+    rv = barrier_destroy(&(shm_ptr->barrier));
+    if(rv != OSMP_SUCCESS) {
+        return rv;
+    }
+
+    process_info* process;
+    for(int i=0; i<shm_ptr->size; i++) {
+        process = get_process_info(i);
+        rv = destroy_postbox_utilities(&(process->postbox));
+        if(rv != OSMP_SUCCESS) {
+            return rv;
+        }
+    }
+
+    // Zerstöre den Logging-Mutex zuletzt
+    rv = pthread_mutex_destroy(&(shm_ptr->logging_mutex));
+    if(rv != 0) {
+        puts("Couldn't destroy mutex logging_mutex");
+        return OSMP_FAILURE;
+    }
+    return OSMP_SUCCESS;
+}
+
 int main (int argc, char **argv) {
     int processes, verbosity = 1, exec_args_index;
     char* log_file;
@@ -469,10 +581,13 @@ int main (int argc, char **argv) {
     char ** arguments = argv + exec_args_index -1;
     int starting_result = start_all_executables(processes, executable, arguments, shm_ptr, shared_memory_fd);
 
-
     if(starting_result == -1){
         return -1;
     }
+
+    cleanup_shm(shm_ptr);
+    free_all(shared_memory_fd, shm_ptr);
+
     return 0;
 }
 
