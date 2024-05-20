@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "../osmp_library/OSMP.h"
 
@@ -15,6 +16,7 @@ int main(int argc, char *argv[]) {
     rv = OSMP_Size(&size);
     rv = OSMP_Rank(&rank);
     long bufin[1], bufout[size];
+    memset(bufout, '\0', sizeof(long) * (unsigned long) size);
     int recv;
     if (size < 2) {
         printf("Mindestens 2 Prozesse für Gather-Kommunikation benötigt! Vorhandene Prozesse: %d\n", size);

@@ -2,6 +2,7 @@
  * In dieser Quelltext-Datei sind Implementierungen der OSMP Bibliothek zu finden.
  */
 #define SHARED_MEMORY_NAME "/shared_memory"
+#define _GNU_SOURCE
 
 #include "osmplib.h"
 #include "logger.h"
@@ -13,6 +14,7 @@
 #include <fcntl.h>
 #include <malloc.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 shared_memory *shm_ptr;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
@@ -55,15 +57,18 @@ void log_osmp_lib_call( const char* function_name) {
  */
 int get_next_free_slot(void) {
     log_osmp_lib_call("get_next_free_slot");
+    //Das Ergebnis.
     int slot;
-    // verwende ersten freien Slot als Rückgabewert
-    slot = shm_ptr->free_slots[0];
-    // alle Elemente eine Stelle nach vorne rücken
-    for(int i=0; i<(OSMP_MAX_SLOTS-1); i++) {
-        shm_ptr->free_slots[i] = shm_ptr->free_slots[i+1];
-    }
-    // letzte Stelle auf NO_SLOT setzen
-    shm_ptr->free_slots[OSMP_MAX_SLOTS-1] = NO_SLOT;
+    //Index für den Freien Slots Array.
+    int index;
+    //Kritischer Abschnitt
+    semwait(&shm_ptr->mutex_shm_free_slots);
+    //Den index für den Array.
+    sem_getvalue(&shm_ptr->sem_shm_free_slots, &index);
+    //Runterzählen
+    sem_post(&shm_ptr->sem_shm_free_slots);
+    slot = shm_ptr->free_slots[index];
+    semsignal(&shm_ptr->mutex_shm_free_slots);
 
     return slot;
 }
@@ -85,140 +90,23 @@ process_info* get_process_info(int rank) {
 /**
  * Gibt einen Zeiger auf den Nachrichtenslot zurück, in dem die nächste Nachricht für den angegebenen Prozess liegt.
  * @param rank Rang des Prozesses, dessen erster Nachrichtenslot zurückgegeben werden soll.
- * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. NULL, wenn das Postfach leer ist.
+ * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. Bei einem Fehler von malloc wird das Prozess mit OSMP_FAILURE abgebrochen.
  */
-message_slot* get_next_message_slot(int rank) {
+message_slot* get_next_message_slot(int rank, int * message_offset) {
     log_osmp_lib_call("get_next_message_slot");
     process_info* process = get_process_info(rank);
-    int slot_number = process->postbox;
-    if(slot_number == NO_MESSAGE) {
-        return NULL;
+    sem_wait(&process->postbox.sem_proc_full);
+    semwait(&process->postbox.mutex_proc_out);
+    int out_index = process->postbox.out_index;
+    *message_offset = process->postbox.postbox[out_index];
+    process->postbox.postbox[out_index] = NO_MESSAGE;
+    --process->postbox.out_index;
+    if(process->postbox.out_index<0){
+        process->postbox.out_index= OSMP_MAX_MESSAGES_PROC-1;
     }
-    return &(shm_ptr->slots[slot_number]);
-}
-
-/**
- * Gibt die Nummer des Slots, in dem die nächste Nachricht für den angegebenen Prozess liegt.
- * @param rank Rang des Prozesses, dessen erster Nachrichtenslot zurückgegeben werden soll.
- * @return Die Nummer des Slots, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. NO_MESSAGE, wenn das Postfach leer ist.
- */
-int get_next_message_slot_number(int rank) {
-    log_osmp_lib_call("get_next_message_slot");
-    process_info* process = get_process_info(rank);
-    return process->postbox;
-}
-
-/**
- * Prüft das Postfach des Prozesses mit dem angegeben Rang auf die Anzahl der für ihn bereiten Nachrichten.
- * @param rank Der Rang des Prozesses, dessen Postfach überprüft werden soll.
- * @return Die Anzahl der Nachrichten, die für den aufrufenden Prozess bereit sind.
- */
-int get_number_of_messages(int rank) {
-    log_osmp_lib_call("get_number_of_messages");
-
-    int number = 0;
-    int next_slot_number = get_next_message_slot_number(rank);
-    while(next_slot_number != NO_MESSAGE) {
-        number++;
-        next_slot_number = shm_ptr->slots[next_slot_number].next_message;
-    }
-    return number;
-}
-
-/**
- * Gibt einen Zeiger auf den Nachrichtenslot, in dem die letzte Nachricht für einen Prozess liegt.
- * @param rank Der Rang des Prozesses, dessen letzter Nachrichtenslot gesucht wird.
- * @return Ein Zeiger auf den Nachrichtenslot, in dem die letzte Nachricht für den Prozess mit Rang rank liegt. NULL, wenn keine Nachricht für den Prozess bereitliegt.
- */
-message_slot* get_last_message_slot(int rank) {
-    log_osmp_lib_call("get_last_message_slot");
-
-    int next_slot_number = get_next_message_slot_number(rank);
-    message_slot* slot = NULL;
-    while(next_slot_number != NO_MESSAGE) {
-        slot = &(shm_ptr->slots[next_slot_number]);
-        next_slot_number = slot->next_message;
-    }
-    return slot;
-}
-
-/**
- * Verweist in der letzten Nachricht auf die neue Nachricht. Wenn der Empfänger aktuell keine anderen Nachrichten hat,
- * wird in seinem Postfach auf die neue Nachricht verwiesen.
- * @param dest Rang des empfangenden Prozesses.
- * @param new_message_slot Nummer des Nachrichtenslots, auf den verwiesen werden soll.
- */
-void reference_new_message(int dest, int new_message_slot_number) {
-    log_osmp_lib_call("reference_new_message");
-
-    // Erhalte Verweis auf letzte Nachricht des empfangenden Prozesses
-    message_slot* last_message_slot = get_last_message_slot(dest);
-    if (last_message_slot == NULL) {
-        // vorher noch keine Nachricht vorhanden => schreibe in Postfach
-        process_info* process = get_process_info(dest);
-        process->postbox = new_message_slot_number;
-    }
-    else {
-        // vorher schon Nachricht(en) vorhanden => schreibe ans Ende der letzten Nachricht
-        last_message_slot->next_message = new_message_slot_number;
-    }
-}
-
-/**
- * Setzt Flag im angegebenen Nachrichtenslot auf "frei", die Bytes im Nachrichtenpuffer auf 0 und den Verweis auf
- * die nächste Nachricht auf NO_MESSAGE.
- * @param slot_number Nummer des Nachrichtenslots, der geleert werden soll.
- */
-void empty_message_slot(int slot_number) {
-    log_osmp_lib_call("empty_message_slot");
-    message_slot* slot = &(shm_ptr->slots[slot_number]);
-    slot->free = SLOT_FREE;
-    slot->to = NO_MESSAGE;
-    slot->from = NO_MESSAGE;
-    slot->len = 0;
-    memset(slot->payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
-    slot->next_message = NO_MESSAGE;
-}
-
-/**
- * Entfernt Nachricht aus der Nachrichtenkette und setzt die Referenzen davor und danach passend.
- * Der Nachrichtenslot wird außerdem mittels empty_message_slot() geleert.
- * @param slot_number Nummer des Nachrichtenslots, dessen Referenzen entfernt werden soll.
- */
-int remove_message(int slot_number) {
-    log_osmp_lib_call("remove_message");
-
-    message_slot* message = &(shm_ptr->slots[slot_number]);
-    // Finde Referenz auf diese Nachricht
-    // Prüfe erste Nachricht im Postfach
-    process_info* process = get_process_info(message->to);
-    int postbox_message_number = process->postbox;
-    if(postbox_message_number == slot_number) {
-        // zu entfernende Nachricht war erste Nachricht im Postfach
-        // ==> setze Postfach auf nächste Nachricht des zu leerenden Slots
-        process->postbox = message->next_message;
-        // Slot leeren und freigeben
-        empty_message_slot(slot_number);
-        return OSMP_SUCCESS;
-    }
-    // andernfalls durch verkettete Nachrichten iterieren, bis die passende erreicht wird
-    int previous = postbox_message_number;
-    int next = shm_ptr->slots[postbox_message_number].next_message;
-    while(previous != slot_number && next != NO_MESSAGE) {
-        previous = next;
-        next = shm_ptr->slots[previous].next_message;
-    }
-    if(next == NO_MESSAGE) {
-        // keinen Verweis auf angegebene Nachricht gefunden
-        return OSMP_FAILURE;
-    }
-    // andernfalls: richtige Nachricht gefunden
-    // setze Pointer der vorherigen Nachricht auf gewünschte Nachricht
-    message_slot* previous_message = &(shm_ptr->slots[previous]);
-    previous_message->next_message = message->next_message;
-    // Slot leeren und freigeben
-    empty_message_slot(slot_number);
-    return OSMP_SUCCESS;
+    semsignal(&process->postbox.mutex_proc_out);
+    sem_post(&process->postbox.sem_proc_empty);
+    return &shm_ptr->slots[*message_offset];
 }
 
 /**
@@ -247,6 +135,57 @@ int calculate_shared_memory_size(int processes) {
     return size;
 }
 
+/**
+ * Interne Implementierung der OSMP_Barrier()-Funktion. Der Hauptteil wird mithilfe der Posix-Funktion
+ * pthread_cond_wait() implementiert, die eine Voraussetzung (Prediction) und eine Bedingung (Condition) benötigt.
+ * @param barrier Zeiger auf die Barriere, an der gewartet werden soll.
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE.
+ */
+int barrier_wait(barrier_t* barrier) {
+    int status, cancel, tmp, cycle;
+
+    if(barrier->valid != BARRIER_VALID) {
+        log_to_file(3, "Barrier not yet initialized, can't wait at barrier!");
+        return OSMP_FAILURE;
+    }
+
+    status = pthread_mutex_lock(&(barrier->mutex));
+    if(status != 0) {
+        log_to_file(3, "Failed to lock barrier mutex!");
+        return OSMP_FAILURE;
+    }
+
+    cycle = barrier->cycle; // aktuellen Zyklus merken
+
+    // Thread-Safety: nur die Hauptthreads der ursprünglichen OSMP-Prozesse dürfen den Counter beeinflussen
+    if(getpid()==gettid()) {
+        (barrier->counter)--;
+    }
+    if(barrier->counter== 0) {
+        // Der letzte Thread in der Barriere initialisiert die Barrier für den nächsten Durchlauf.
+        barrier->counter = OSMP_size;
+        (barrier->cycle)++;
+        pthread_cond_broadcast(&(barrier->convar));
+    } else {
+        // Da barrier_wait() kein Abbruchpunkt sein sollte, wird Abbruch deaktiviert.
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel);
+
+        /* Warten, bis sich die Zyklusnummer der Voraussetzung (Prediction) ändert, was bedeutet, dass nicht länger
+         * gewartet werden soll und die Bedingung (Condition) erfüllt ist. */
+        while(cycle == barrier->cycle) {
+            status = pthread_cond_wait(&(barrier->convar), &(barrier->mutex));
+            if(status != 0) {
+                break;
+            }
+        }
+
+        pthread_setcancelstate(cancel, &tmp);
+    }
+
+    pthread_mutex_unlock(&(barrier->mutex));
+    return OSMP_SUCCESS;
+}
+
 int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
     log_osmp_lib_call("get_OSMP_MAX_PAYLOAD_LENGTH");
     return OSMP_MAX_PAYLOAD_LENGTH;
@@ -273,6 +212,10 @@ int get_OSMP_SUCCESS(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     char *shared_memory_name = calloc(MAX_PATH_LENGTH, sizeof(char));
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
@@ -318,6 +261,10 @@ int OSMP_Init(const int *argc, char ***argv) {
 }
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_SizeOf");
     if(datatype == OSMP_SHORT){
         *size = sizeof(short int);
@@ -354,11 +301,19 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     *size = shm_ptr->size;
     return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     int pid = getpid();
     int size = shm_ptr->size;
     process_info* process;
@@ -375,6 +330,10 @@ int OSMP_Rank(int *rank) {
 
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Send");
     if(count <= 0) {
         return OSMP_FAILURE;
@@ -382,89 +341,64 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     unsigned int datatype_size;
     OSMP_SizeOf(datatype, &datatype_size);
     int length_in_bytes = (int)datatype_size * count;
-    int buf_offset = 0;
-    do {
-        // warten, bis ein Nachrichtenslot für den empfangenden Prozess frei ist
-        while (get_number_of_messages(dest) >= get_OSMP_MAX_MESSAGES_PROC()) {
-        }
-        // Erhalte Nummer des nächsten freien Slots
-        int slot_number = get_next_free_slot();
-        // Zeiger auf diesen Slot
-        message_slot* slot = &(shm_ptr->slots[slot_number]);
-        // Synchronisiere Zugriff auf den Slot (warten auf Bedingung)
-        semwait(&(slot->slot_mutex));
-        while(slot->free != SLOT_FREE) {
-            pthread_cond_wait(&(slot->slot_emptied), &(slot->slot_mutex));
-        }
-        // zu kopierende Bytes = min(OSMP_MAX_PAYLOAD_LENGTH, length_in_bytes)
-        int to_copy = OSMP_MAX_PAYLOAD_LENGTH < length_in_bytes ? OSMP_MAX_PAYLOAD_LENGTH : length_in_bytes;
-        slot->free = SLOT_TAKEN;
-        slot->to = dest;
-        OSMP_Rank(&(slot->from));
-        slot->len = to_copy;
-        slot->type = datatype;
-        memcpy(slot->payload, (char*)buf + buf_offset, (unsigned long) to_copy);
-        slot->next_message = NO_MESSAGE;
-        // Verweise in der letzten Nachricht auf diese neue Nachricht
-        reference_new_message(dest, slot->slot_number);
-        // Gib Mutex-Lock frei
-        semsignal(&(slot->slot_mutex));
-        // Signalisiere gesendete Nachricht
-        process_info* process = get_process_info(dest);
-        pthread_cond_broadcast(&(process->new_message));
-        // Aktualisiere Variablen für nächsten Schleifendurchlauf
-        length_in_bytes -= to_copy;
-        buf_offset += to_copy;
-    } while(length_in_bytes > 0);
+    process_info * process_info = get_process_info(dest);
+    semwait(&shm_ptr->mutex_shm_free_slots);
+    sem_wait(&process_info->postbox.sem_proc_empty);
+    sem_wait(&shm_ptr->sem_shm_free_slots);
+    int index;
+    int get_value_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &index);
+    if(get_value_result!=0){
+        log_to_file(3, "Fail of sem_getvalue in OSMP_Send\n");
+        exit(OSMP_FAILURE);
+    }
+    semsignal(&shm_ptr->mutex_shm_free_slots);
+    mempcpy(&shm_ptr->slots[index].payload, buf, (unsigned int)length_in_bytes);
+    shm_ptr->slots[index].len = length_in_bytes;
+    semwait(&process_info->postbox.mutex_proc_in);
+    int process_in_index = process_info->postbox.in_index;
+    process_info->postbox.postbox[process_in_index] = index;
+    ++process_in_index;
+    if (process_in_index==OSMP_MAX_MESSAGES_PROC){
+        process_in_index=0;
+    }
+    process_info->postbox.in_index = process_in_index;
+    semsignal(&process_info->postbox.mutex_proc_in);
+    sem_post(&process_info->postbox.sem_proc_full);
     return OSMP_SUCCESS;
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Recv");
     if(count <= 0) {
         return OSMP_FAILURE;
     }
-
     unsigned int datatype_size;
     int length_in_bytes, rank;
     OSMP_SizeOf(datatype, &datatype_size);
     length_in_bytes = (int)datatype_size * count;
     OSMP_Rank(&rank);
-    // eigene process info
-    process_info* process = get_process_info(rank);
-    message_slot* slot;
-    slot = get_next_message_slot(rank);
-
-    // Warte/Stelle sicher, dass eine Nachricht vorhanden ist
-    int next_slot = NO_MESSAGE;
-    while(slot == NULL) {
-        semwait(&(process->postbox_mutex));
-        pthread_cond_wait(&(process->new_message), &(process->postbox_mutex));
-        slot = get_next_message_slot(rank);
-        if(slot != NULL) {
-            // Nachricht vorhanden --> prüfe auf den richtigen Datentyp
-            while(slot->type != datatype) {
-                next_slot = slot->next_message;
-                if(next_slot == NO_MESSAGE) {
-                    // keine weitere Nachricht
-                    break; // zurück in die äußere while-Schleife --> auf neue Nachr. warten
-                }
-                slot = &(shm_ptr->slots[next_slot]);
-            }
-        }
-        semsignal(&(process->postbox_mutex));
+    int message_offset;
+    message_slot* message_slot = get_next_message_slot(OSMP_rank, &message_offset);
+    int max_to_copy = length_in_bytes < message_slot->len ? length_in_bytes : message_slot->len;
+    memcpy(buf, message_slot->payload, (unsigned long) max_to_copy);
+    *source = message_slot->from;
+    *len = message_slot->len;
+    memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
+    semwait(&shm_ptr->mutex_shm_free_slots);
+    int free_slot_index;
+    int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
+    if(free_slot_index_result<0){
+        log_to_file(3, "Fail of sem_getvalue in OSMP_Recv\n");
+        exit(OSMP_FAILURE);
     }
-
-    // Nachricht des richtigen Typs gefunden --> kopiere sie in Buffer des Empfängers
-    // zu kopierende Bytes = min(length_in_bytes, slot->len)
-    int max_to_copy = length_in_bytes < slot->len ? length_in_bytes : slot->len;
-    semwait(&(slot->slot_mutex));
-    memcpy(buf, slot->payload, (unsigned long) max_to_copy);
-    *source = slot->from;
-    *len = slot->len;
-    // Leere Slot und entferne Referenzen auf die Nachricht
-    remove_message(slot->slot_number);
-    semsignal(&(slot->slot_mutex));
+    shm_ptr->free_slots[free_slot_index] = message_offset;
+    semsignal(&shm_ptr->mutex_shm_free_slots);
+    sem_post(&shm_ptr->sem_shm_free_slots);
+    *source = message_slot->from;
     return OSMP_SUCCESS;
 }
 
@@ -486,49 +420,55 @@ int OSMP_Finalize(void) {
 
 int OSMP_Barrier(void) {
     log_osmp_lib_call("OSMP_Barrier");
-    semwait(&(shm_ptr->barrier_mutex));
-    (shm_ptr->barrier_counter)++;
-    printf("Barrier-Counter: %d\n", shm_ptr->barrier_counter);
-    if(shm_ptr->barrier_counter >= shm_ptr->size) {
-        // Dieser Prozess war der letzte -> benachrichtigen
-        semsignal(&(shm_ptr->barrier_mutex));
-        pthread_cond_broadcast(&(shm_ptr->barrier_condition));
-        // TODO: Wer setzt Counter wieder auf 0?
-        return OSMP_SUCCESS;
+    return barrier_wait(&(shm_ptr->barrier));
+}   
+
+int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
+    log_osmp_lib_call("OSMP_Gather");
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed for Gather\n");
+        exit(0);
     }
-    // Warte, bis alle Prozesse die Barriere erreicht haben
-    while(shm_ptr->size > shm_ptr->barrier_counter) {
-        pthread_cond_wait(&(shm_ptr->barrier_condition), &(shm_ptr->barrier_mutex));
+    unsigned int datatype_size;
+    unsigned int length_in_bytes;
+    OSMP_SizeOf(sendtype, &datatype_size);
+    length_in_bytes = datatype_size * (unsigned int) sendcount;
+    process_info * process = get_process_info(OSMP_rank);
+    // Kopiere zu sendene Nachricht in den eigenen Gather-Slot
+    mempcpy(&(process->gather_slot.payload), sendbuf, length_in_bytes);
+    process->gather_slot.len = (int) length_in_bytes;
+    // Warte, bis alle Prozesse geschrieben haben
+    OSMP_Barrier();
+    // Nur der Root-Prozess (empfangender Prozess) sammelt alle Nachrichten
+    if(recv) {
+        pthread_mutex_lock(&shm_ptr->gather_mutex);
+        OSMP_SizeOf(recvtype, &datatype_size);
+        char * temp = recvbuf;
+        int written = 0;
+        for (int i = 0; i < OSMP_size; ++i) {
+            process_info * process_to_read_from = get_process_info(i);
+            int to_copy = process_to_read_from->gather_slot.len;
+            if(to_copy > (recvcount - written)) {
+                // recv-Buffer ist nicht groß genug für die folgende Nachricht
+                break;
+            }
+            mempcpy(temp, &(process_to_read_from->gather_slot.payload),
+                    (unsigned long) to_copy);
+            temp += to_copy;
+            written += to_copy;
+        }
+        pthread_mutex_unlock(&shm_ptr->gather_mutex);
     }
-    semsignal(&(shm_ptr->barrier_mutex));
-    printf("Test\n");
+    // Warte, bis Root gelesen hat
+    OSMP_Barrier();
     return OSMP_SUCCESS;
 }
 
-int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
-    pthread_mutex_lock(&(shm_ptr->gather_t.mutex));
-    while (OSMP_rank!=shm_ptr->gather_t.counter){
-        pthread_cond_wait(&(shm_ptr->gather_t.condition_variable), &(shm_ptr->gather_t.mutex));
-    }
-    //TODO: Receive the data
-    (shm_ptr->gather_t.counter)++;
-    pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
-    if(shm_ptr->gather_t.counter==OSMP_rank){
-        shm_ptr->gather_t.counter = 0;
-    }
-    log_osmp_lib_call("OSMP_Gather");
-    puts("OSMP_Gather() not implemented yet");
-    UNUSED(sendbuf);
-    UNUSED(sendcount);
-    UNUSED(sendtype);
-    UNUSED(recvbuf);
-    UNUSED(recvcount);
-    UNUSED(recvtype);
-    UNUSED(recv);
-    return OSMP_FAILURE;
-}
-
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_ISend");
     puts("OSMP_ISend() not implemented yet");
     UNUSED(buf);
@@ -540,6 +480,10 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_IRecv");
     puts("OSMP_IRecv() not implemented yet");
     UNUSED(buf);
@@ -552,6 +496,10 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Test");
     puts("OSMP_Test not implemented yet");
     UNUSED(request);
@@ -560,6 +508,10 @@ int OSMP_Test(OSMP_Request request, int *flag) {
 }
 
 int OSMP_Wait(OSMP_Request request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_Wait");
     puts("OSMP_Wait() not implemented yet");
     UNUSED(request);
@@ -567,6 +519,10 @@ int OSMP_Wait(OSMP_Request request) {
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_CreateRequest");
     puts("OSMP_CreateRequest() not implemented yet");
     UNUSED(request);
@@ -574,6 +530,10 @@ int OSMP_CreateRequest(OSMP_Request *request) {
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
+    if(gettid() != getpid()){
+        printf("Initializing of threads is not allowed\n");
+        exit(0);
+    }
     log_osmp_lib_call("OSMP_RemoveRequest");
     puts("OSMP_RemoveRequest) not implemented yet");
     UNUSED(request);

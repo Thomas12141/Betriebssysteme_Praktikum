@@ -38,18 +38,38 @@ void init_file(const char *filename) {
  */
 void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
     pthread_mutexattr_t att;
-    pthread_mutexattr_init(&att);
-    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
+    int result = pthread_mutexattr_init(&att);
+    if (result != 0){
+        perror("pthread_mutex_attr_init() error\n");
+        exit(OSMP_FAILURE);
+    }
+    result = pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
+    if (result != 0){
+        pthread_mutexattr_destroy(&att);
+        perror("pthread_mutexattr_setpshared() error\n");
+        exit(OSMP_FAILURE);
+    }
     mutex = malloc(sizeof(pthread_mutex_t));
-    int mutex_result = pthread_mutex_init(mutex, &att);
-    pthread_mutexattr_destroy(&att);
-    if(mutex_result < 0){
-        printf("mutex_result -> %d\n", mutex_result);
-        exit(1);
+    result = pthread_mutex_init(mutex, &att);
+    if(result < 0){
+        pthread_mutexattr_destroy(&att);
+        perror("pthread_mutex_init() error\n");
+        exit(OSMP_FAILURE);
+    }
+    result = pthread_mutexattr_destroy(&att);
+    if (result != 0){
+        pthread_mutexattr_destroy(&att);
+        perror("pthread_mutexattr_destroy() error\n");
+        exit(OSMP_FAILURE);
     }
 
     memcpy(&(shm->logging_mutex), mutex, sizeof(pthread_mutex_t));
-    pthread_mutex_destroy(mutex);
+    result = pthread_mutex_destroy(mutex);
+    if (result != 0){
+        pthread_mutexattr_destroy(&att);
+        perror("pthread_mutex_destroy() error\n");
+        exit(OSMP_FAILURE);
+    }
     free(mutex);
 
     mutex = (pthread_mutex_t *) &(shm->logging_mutex);
@@ -69,7 +89,7 @@ void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
     logging_file = fopen(file_name, "a+");
 
     if(logging_file == NULL ){
-        printf("Couldn't open logging file.\n");
+        perror("Couldn't open logging file.\n");
         exit(EXIT_FAILURE);
     }
     time_t raw_time;
@@ -91,7 +111,7 @@ void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
 void logging_init_child(shared_memory* shm) {
     if (shm == NULL) {
         fprintf(stderr, "Error: shared_memory is NULL\n");
-        return;
+        exit(OSMP_FAILURE);
     }
 
     int process_number;
