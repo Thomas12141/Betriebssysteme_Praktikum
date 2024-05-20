@@ -117,10 +117,6 @@ void* monitor_children(void * args){
 }
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr, int shared_memory_fd){
-    int pids[number_of_executables];
-    for (int i = 0; i < number_of_executables; ++i) {
-        pids[i] = 0;
-    }
     pthread_t monitor_thread;
     monitor_args mon_args;
     mon_args.flag = OSMP_SUCCESS;
