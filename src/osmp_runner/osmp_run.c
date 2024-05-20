@@ -107,7 +107,8 @@ void* monitor_children(void * args){
     int status;
     for (int i = 0; i < mon_args->number_of_executables; ++i) {
         wait(&status);
-        if(status == OSMP_FAILURE){
+        if(WIFEXITED(status)&&WEXITSTATUS(status)!=0){
+            mon_args->flag = OSMP_FAILURE;
             kill_threads(i, mon_args->shared_memory_fd, mon_args->shm_ptr);
         } else if(mon_args->flag == OSMP_FAILURE){
             kill_threads(i+1, mon_args->shared_memory_fd, mon_args->shm_ptr);
@@ -125,6 +126,9 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
     mon_args.shm_ptr = shm_ptr;
     pthread_create(&monitor_thread, NULL, monitor_children, &mon_args);
     for (int i = 0; i < number_of_executables; ++i) {
+        if(mon_args.flag == OSMP_FAILURE){
+            break;
+        }
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
             printf("%s ", arguments[j]);
@@ -133,7 +137,6 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         if (pid < 0) {
             log_to_file(3,"failed to fork");
             mon_args.flag = OSMP_FAILURE;
-            pthread_join(monitor_thread, NULL);
             return OSMP_FAILURE;
         } else if (pid == 0) {//Child process.
             execv(executable, arguments);
@@ -146,6 +149,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             info->pid = pid;
         }
     }
+    pthread_join(monitor_thread, NULL);
     return 0;
 }
 
@@ -473,23 +477,9 @@ int main (int argc, char **argv) {
     // Erstes Argument muss gemäß Konvention (execv-Manpage) Name der auszuführenden Datei sein.
     char ** arguments = argv + exec_args_index -1;
     int starting_result = start_all_executables(processes, executable, arguments, shm_ptr, shared_memory_fd);
-    if(starting_result!=0){
-        return -1;
-    }
-    for (int j = 0; j < processes; ++j) {
-        int status;
-        pid_t pid_child =  wait(&status);
-        if (pid_child==-1){
-            log_to_file(3, "Problem by waiting");
-        }
-        if ( WIFEXITED(status)&&WEXITSTATUS(status)!=0 ) {
-            printf("Child returned failure code.\n");
-        }
-    }
 
-    int free_result = free_all(shared_memory_fd, shm_ptr);
 
-    if(free_result == -1){
+    if(starting_result == -1){
         return -1;
     }
     return 0;
