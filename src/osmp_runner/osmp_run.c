@@ -73,25 +73,32 @@ int init_shared_cond_var(pthread_cond_t* cond_pointer) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Schließt den Shared Memory (Unmapping des SHM, Schließen des FDs, Unlinken des SHM, manuell allozierten Speicherplatz
+ * für SHM-Namen freigeben).
+ * @param shm_fd  File Descriptor des Shared Memorys.
+ * @param shm_ptr Zeiger auf den Shared Memory.
+ * @return OSMP_SUCCESS im Erfolgsfall, sonst OSMP_FAILURE.
+ */
 int free_all(int shm_fd, shared_memory* shm_ptr){
     int result = munmap(shm_ptr, (size_t) shm_size);
     if(result==-1){
         log_to_file(3, "Couldn't unmap memory.");
-        return -1;
+        return OSMP_FAILURE;
     }
     result = close(shm_fd);
     if(result==-1){
         log_to_file(3, "Couldn't close file descriptor memory.");
-        return -1;
+        return OSMP_FAILURE;
     }
     result = shm_unlink(shared_memory_name);
     if(result==-1){
         log_to_file(3, "Couldn't unlink file name.");
-        return -1;
+        return OSMP_FAILURE;
     }
     log_to_file(2, "Freeing shared_memory_name");
     free(shared_memory_name);
-    return 0;
+    return OSMP_SUCCESS;
 }
 
 void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
@@ -579,6 +586,7 @@ int main (int argc, char **argv) {
     }
 
     cleanup_shm(shm_ptr);
+    free_all(shared_memory_fd, shm_ptr);
 
     return 0;
 }
