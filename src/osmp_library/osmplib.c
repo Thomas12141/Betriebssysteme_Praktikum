@@ -444,12 +444,10 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     if(recv) {
         pthread_mutex_lock(&shm_ptr->gather_t.mutex);
         OSMP_SizeOf(recvtype, &datatype_size);
-        //length_in_bytes = datatype_size * (unsigned int) recvcount;
         char * temp = recvbuf;
         int written = 0;
         for (int i = 0; i < OSMP_size; ++i) {
             process_info * process_to_read_from = get_process_info(i);
-            //temp += i * OSMP_MAX_PAYLOAD_LENGTH;
             int to_copy = process_to_read_from->gather_slot.len;
             if(to_copy > (recvcount - written)) {
                 // recv-Buffer ist nicht groß genug für die folgende Nachricht
