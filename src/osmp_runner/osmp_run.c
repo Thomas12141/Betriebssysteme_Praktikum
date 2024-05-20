@@ -413,7 +413,7 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
             log_pb_util_init_error("Couldn't initialize mutex_proc_in in postbox_utilities of process # %d", i);
         }
 
-        pb_util->out_index = OSMP_MAX_MESSAGES_PROC;
+        pb_util->out_index = 0;
 
         return_value = init_shared_mutex(&(pb_util->mutex_proc_out));
         if(return_value != OSMP_SUCCESS) {
