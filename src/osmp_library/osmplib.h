@@ -82,26 +82,6 @@ typedef struct message_slot {
     char payload[OSMP_MAX_PAYLOAD_LENGTH];
 } message_slot;
 
-typedef struct gather_struct{
-    /**
-     * @var mutex
-     * Mutex für den Zugriff auf shared Variable.
-     */
-    pthread_mutex_t mutex;
-
-    /**
-     * @var condition_variable
-     * Condition-Variable, um zu signalisieren, dass alle Prozesse, die an der Schlange sind, immer noch warten müssen.
-     */
-    pthread_cond_t condition_variable;
-
-    /**
-     * @var flag
-    * Ein flag, der signalisiert, wenn der Reciever alle Nachrichten gespeichert hat.
-     */
-    int flag;
-} gather_struct;
-
 typedef struct {
     /**
      * @var postbox
@@ -227,10 +207,10 @@ typedef struct shared_memory {
     message_slot slots[OSMP_MAX_SLOTS];
 
     /**
-     * @var gather_t
-     * Der struct, um gather Funktion zu realisieren.
+     * @var gather_mutex
+     * Mutex für den Zugriff auf alle Gather-Slots durch ein und denselben Prozess (lesender Gather-Root-Prozess).
      */
-    gather_struct gather_t;
+    pthread_mutex_t gather_mutex;
 
     /**
      * @var barrier

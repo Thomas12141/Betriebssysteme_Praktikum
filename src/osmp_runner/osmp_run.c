@@ -365,22 +365,12 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         memset(&(shm_ptr->slots[i]), '\0', sizeof(message_slot));
     }
 
-    // Initialisiere Mutex für gather
-    return_value = init_shared_mutex(&(shm_ptr->gather_t.mutex));
+    // Initialisiere Gather-Mutex
+    return_value = init_shared_mutex(&(shm_ptr->gather_mutex));
     if(return_value != OSMP_SUCCESS) {
         log_to_file(3, "Couldn't initialize Mutex for gather");
         exit(EXIT_FAILURE);
     }
-
-    // Initialisiere Condition-Variable für Gather
-    return_value = init_shared_cond_var(&(shm_ptr->gather_t.condition_variable));
-    if(return_value != OSMP_SUCCESS) {
-        log_to_file(3, "Couldn't initialize condition var for gather");
-        exit(EXIT_FAILURE);
-    }
-
-    // Initialisiere Counter für gather
-    shm_ptr->gather_t.flag = 0;
 
     // Initialisiere Barrier
     return_value = barrier_init(&(shm_ptr->barrier), processes);

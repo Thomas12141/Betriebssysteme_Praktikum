@@ -429,7 +429,6 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
         printf("Initializing of threads is not allowed for Gather\n");
         exit(0);
     }
-    //shm_ptr->gather_t.flag = NOT_SAVED;
     unsigned int datatype_size;
     unsigned int length_in_bytes;
     OSMP_SizeOf(sendtype, &datatype_size);
@@ -442,7 +441,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     OSMP_Barrier();
     // Nur der Root-Prozess (empfangender Prozess) sammelt alle Nachrichten
     if(recv) {
-        pthread_mutex_lock(&shm_ptr->gather_t.mutex);
+        pthread_mutex_lock(&shm_ptr->gather_mutex);
         OSMP_SizeOf(recvtype, &datatype_size);
         char * temp = recvbuf;
         int written = 0;
@@ -458,8 +457,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
             temp += to_copy;
             written += to_copy;
         }
-        //shm_ptr->gather_t.flag = SAVED;
-        pthread_mutex_unlock(&shm_ptr->gather_t.mutex);
+        pthread_mutex_unlock(&shm_ptr->gather_mutex);
     }
     // Warte, bis Root gelesen hat
     OSMP_Barrier();
