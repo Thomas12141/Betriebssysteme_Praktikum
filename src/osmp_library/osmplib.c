@@ -426,37 +426,44 @@ int OSMP_Barrier(void) {
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
     log_osmp_lib_call("OSMP_Gather");
     if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
+        printf("Initializing of threads is not allowed for Gather\n");
         exit(0);
     }
-    shm_ptr->gather_t.flag = NOT_SAVED;
+    //shm_ptr->gather_t.flag = NOT_SAVED;
     unsigned int datatype_size;
     unsigned int length_in_bytes;
     OSMP_SizeOf(sendtype, &datatype_size);
     length_in_bytes = datatype_size * (unsigned int) sendcount;
-    OSMP_Barrier();
     process_info * process = get_process_info(OSMP_rank);
-    mempcpy(&process->gather_slot.payload, sendbuf, length_in_bytes);
+    // Kopiere zu sendene Nachricht in den eigenen Gather-Slot
+    mempcpy(&(process->gather_slot.payload), sendbuf, length_in_bytes);
+    process->gather_slot.len = (int) length_in_bytes;
+    // Warte, bis alle Prozesse geschrieben haben
     OSMP_Barrier();
-    semwait(&shm_ptr->gather_t.mutex);
-    while (shm_ptr->gather_t.flag == NOT_SAVED){
-        if(OSMP_rank!=recv){
-            pthread_cond_wait(&shm_ptr->gather_t.condition_variable, &shm_ptr->gather_t.mutex);
-        }else{
-            OSMP_SizeOf(recvtype, &datatype_size);
-            length_in_bytes = datatype_size * (unsigned int) recvcount;
-            for (int i = 0; i < OSMP_rank; ++i) {
-                process_info * process_to_read_from = get_process_info(i);
-                char * temp = recvbuf;
-                temp += (unsigned int) i * length_in_bytes;
-
-                mempcpy(temp, &process_to_read_from->gather_slot.payload, length_in_bytes);
+    // Nur der Root-Prozess (empfangender Prozess) sammelt alle Nachrichten
+    if(recv) {
+        pthread_mutex_lock(&shm_ptr->gather_t.mutex);
+        OSMP_SizeOf(recvtype, &datatype_size);
+        //length_in_bytes = datatype_size * (unsigned int) recvcount;
+        char * temp = recvbuf;
+        int written = 0;
+        for (int i = 0; i < OSMP_size; ++i) {
+            process_info * process_to_read_from = get_process_info(i);
+            //temp += i * OSMP_MAX_PAYLOAD_LENGTH;
+            int to_copy = process_to_read_from->gather_slot.len;
+            if(to_copy > (recvcount - written)) {
+                // recv-Buffer ist nicht groß genug für die folgende Nachricht
+                break;
             }
-            shm_ptr->gather_t.flag = SAVED;
-            semsignal(&shm_ptr->gather_t.mutex);
-            pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
+            mempcpy(temp, &(process_to_read_from->gather_slot.payload),
+                    (unsigned long) to_copy);
+            temp += to_copy;
         }
+        //shm_ptr->gather_t.flag = SAVED;
+        pthread_mutex_unlock(&shm_ptr->gather_t.mutex);
     }
+    // Warte, bis Root gelesen hat
+    OSMP_Barrier();
     return OSMP_SUCCESS;
 }
 
