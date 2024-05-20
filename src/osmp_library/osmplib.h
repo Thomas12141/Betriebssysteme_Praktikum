@@ -45,7 +45,7 @@
 /**
  * Flag, um singlanisieren, dass der Reciever alle Nachrichten in Gather gespeichert hat.
  */
-#define SAVED 1
+#define SAVED 0
 
 /**
  * Maximal erlaubte Länge des Pfads zur Logdatei, inkl. terminierendem Nullbyte.

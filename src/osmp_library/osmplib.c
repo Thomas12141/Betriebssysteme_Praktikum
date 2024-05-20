@@ -424,7 +424,6 @@ int OSMP_Barrier(void) {
 }   
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
-    --recv;
     log_osmp_lib_call("OSMP_Gather");
     if(gettid() != getpid()){
         printf("Initializing of threads is not allowed\n");
@@ -454,6 +453,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
                 mempcpy(temp, &process_to_read_from->gather_slot.payload, length_in_bytes);
             }
             shm_ptr->gather_t.flag = SAVED;
+            semsignal(&shm_ptr->gather_t.mutex);
             pthread_cond_broadcast(&(shm_ptr->gather_t.condition_variable));
         }
     }
