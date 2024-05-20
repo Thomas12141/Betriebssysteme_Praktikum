@@ -456,6 +456,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
             mempcpy(temp, &(process_to_read_from->gather_slot.payload),
                     (unsigned long) to_copy);
             temp += to_copy;
+            written += to_copy;
         }
         //shm_ptr->gather_t.flag = SAVED;
         pthread_mutex_unlock(&shm_ptr->gather_t.mutex);
