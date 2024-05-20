@@ -434,21 +434,25 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     OSMP_SizeOf(sendtype, &datatype_size);
     length_in_bytes = datatype_size * (unsigned int) sendcount;
     process_info * process = get_process_info(OSMP_rank);
+
     // Kopiere zu sendene Nachricht in den eigenen Gather-Slot
     mempcpy(&(process->gather_slot.payload), sendbuf, length_in_bytes);
     process->gather_slot.len = (int) length_in_bytes;
     // Warte, bis alle Prozesse geschrieben haben
     OSMP_Barrier();
+
     // Nur der Root-Prozess (empfangender Prozess) sammelt alle Nachrichten
     if(recv) {
+        int max_bytes = (int)(datatype_size) * recvcount;
         pthread_mutex_lock(&shm_ptr->gather_mutex);
         OSMP_SizeOf(recvtype, &datatype_size);
         char * temp = recvbuf;
         int written = 0;
+
         for (int i = 0; i < OSMP_size; ++i) {
             process_info * process_to_read_from = get_process_info(i);
             int to_copy = process_to_read_from->gather_slot.len;
-            if(to_copy > (recvcount - written)) {
+            if(to_copy > (max_bytes - written)) {
                 // recv-Buffer ist nicht groß genug für die folgende Nachricht
                 break;
             }
@@ -457,6 +461,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
             temp += to_copy;
             written += to_copy;
         }
+        
         pthread_mutex_unlock(&shm_ptr->gather_mutex);
     }
     // Warte, bis Root gelesen hat
