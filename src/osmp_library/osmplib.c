@@ -352,7 +352,8 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         exit(OSMP_FAILURE);
     }
     semsignal(&shm_ptr->mutex_shm_free_slots);
-    mempcpy(&shm_ptr->slots[index], buf, (unsigned int)length_in_bytes);
+    mempcpy(&shm_ptr->slots[index].payload, buf, (unsigned int)length_in_bytes);
+    shm_ptr->slots[index].len = length_in_bytes;
     semwait(&process_info->postbox.mutex_proc_in);
     int process_in_index = process_info->postbox.in_index;
     process_info->postbox.postbox[process_in_index] = index;

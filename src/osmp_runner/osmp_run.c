@@ -103,6 +103,7 @@ void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
 }
 
 void* monitor_children(void * args){
+    sleep(1);
     monitor_args* mon_args = (monitor_args*)args;
     int status;
     for (int i = 0; i < mon_args->number_of_executables; ++i) {
