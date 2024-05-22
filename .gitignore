@@ -66,6 +66,9 @@ Makefile
 # CMake
 cmake-build-*/
 
+# log file
+log.log
+
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
 
