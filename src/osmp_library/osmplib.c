@@ -401,11 +401,16 @@ int OSMP_Finalize(void) {
 
     // Prüfe, ob noch Nachrichten vorhanden sind
     result = sem_getvalue(&(info->postbox.sem_proc_full), &semval);
-    if(result > 0) {
+    if(result != 0) {
+        log_to_file(3, "Call to sem_getvalue() from OSMP_Finalize failed");
+        return OSMP_FAILURE;
+    }
+
+    if(semval > 0) {
         // lies alle restlichen Nachrichten
         char* buffer[OSMP_MAX_PAYLOAD_LENGTH];
         int source, len;
-        for(int i=0; i<result; i++) {
+        for(int i=0; i<semval; i++) {
             result = OSMP_Recv(buffer, OSMP_MAX_PAYLOAD_LENGTH, OSMP_BYTE, &source, &len);
             if(result != OSMP_SUCCESS) {
                 log_to_file(3, "Call to OSMP_Recv from OSMP_Finalize failed");
