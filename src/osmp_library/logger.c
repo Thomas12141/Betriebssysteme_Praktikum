@@ -150,11 +150,12 @@ void log_to_file(int level, char* message){
     }
 
     return_code = pthread_mutex_lock(mutex);
-    logging_file = fopen(file_name, "a+");
     if(return_code!=0){
-        printf("Failed to acquire lock.\n");
+        printf("Failed to acquire lock, error: %d\n", return_code);
         return;
     }
+    logging_file = fopen(file_name, "a+");
+
     time_t raw_time;
     struct tm * time_info;
     time ( &raw_time );
@@ -163,7 +164,7 @@ void log_to_file(int level, char* message){
     fclose(logging_file);
     return_code = pthread_mutex_unlock(mutex);
     if (return_code!=0){
-        printf("Failed to release lock.\n");
+        printf("Failed to release lock, error: %d\n", return_code);
     }
 }
 
