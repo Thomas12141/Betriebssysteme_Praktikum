@@ -1,5 +1,5 @@
 #00 Sind alle Testprogramme lt. Anleitung zusammen mit der OSMP-Lib fehlerfrei kompilierbar und ausführbar?
-
+    Ja.
 #01 Was passiert, wenn OSM OSMP-Funktionen ohne vorheriges OSMP_Init, oder nach OSMP_Finalize aufgerufen werden, oder wenn die Funktionen fehlschlagen?
     Nach heutigem Stand werden die Funktionen nicht laufen bzw. blockierend/fehllaufen. Es kann ein Flag gemacht werden, der wird bei jedem Prozess im struct sein, wenn dieser auf 1 ist, wird init aufgerufen.
     Nach dem Aufruf zu 0 ändern.
