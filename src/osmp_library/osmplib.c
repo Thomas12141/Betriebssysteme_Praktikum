@@ -20,22 +20,6 @@ shared_memory *shm_ptr;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
 
 /**
- * Lockt den angegebenen Mutex.
- * @param mutex Zeiger auf den Mutex, der zur Synchronisierung verwendet werden soll.
- */
-void semwait(pthread_mutex_t* mutex) {
-    pthread_mutex_lock(mutex);
-}
-
-/**
- * Gibt einen Mutex frei.
- * @param mutex Zeiger auf den freizugebenen Mutex.
- */
-void semsignal(pthread_mutex_t* mutex) {
-    pthread_mutex_unlock(mutex);
-}
-
-/**
  * Übergibt eine Level-1-Lognachricht an den Logger.
  *
  * @param pid           Die Process ID des aufrufenden Prozesses.
@@ -62,13 +46,13 @@ int get_next_free_slot(void) {
     //Index für den Freien Slots Array.
     int index;
     //Kritischer Abschnitt
-    semwait(&shm_ptr->mutex_shm_free_slots);
+    pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
     //Den index für den Array.
     sem_getvalue(&shm_ptr->sem_shm_free_slots, &index);
     //Runterzählen
     sem_post(&shm_ptr->sem_shm_free_slots);
     slot = shm_ptr->free_slots[index];
-    semsignal(&shm_ptr->mutex_shm_free_slots);
+    pthread_mutex_unlock(&shm_ptr->mutex_shm_free_slots);
 
     return slot;
 }
@@ -96,7 +80,7 @@ message_slot* get_next_message_slot(int rank, int * message_offset) {
     log_osmp_lib_call("get_next_message_slot");
     process_info* process = get_process_info(rank);
     sem_wait(&process->postbox.sem_proc_full);
-    semwait(&process->postbox.mutex_proc_out);
+    pthread_mutex_lock(&process->postbox.mutex_proc_out);
     int out_index = process->postbox.out_index;
     *message_offset = process->postbox.postbox[out_index];
     process->postbox.postbox[out_index] = NO_MESSAGE;
@@ -104,7 +88,7 @@ message_slot* get_next_message_slot(int rank, int * message_offset) {
     if(process->postbox.out_index<0){
         process->postbox.out_index= OSMP_MAX_MESSAGES_PROC-1;
     }
-    semsignal(&process->postbox.mutex_proc_out);
+    pthread_mutex_unlock(&process->postbox.mutex_proc_out);
     sem_post(&process->postbox.sem_proc_empty);
     return &shm_ptr->slots[*message_offset];
 }
@@ -342,7 +326,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     OSMP_SizeOf(datatype, &datatype_size);
     int length_in_bytes = (int)datatype_size * count;
     process_info * process_info = get_process_info(dest);
-    semwait(&shm_ptr->mutex_shm_free_slots);
+    pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
     sem_wait(&process_info->postbox.sem_proc_empty);
     sem_wait(&shm_ptr->sem_shm_free_slots);
     int index;
@@ -351,10 +335,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         log_to_file(3, "Fail of sem_getvalue in OSMP_Send\n");
         exit(OSMP_FAILURE);
     }
-    semsignal(&shm_ptr->mutex_shm_free_slots);
+    pthread_mutex_unlock(&shm_ptr->mutex_shm_free_slots);
     mempcpy(&shm_ptr->slots[index].payload, buf, (unsigned int)length_in_bytes);
     shm_ptr->slots[index].len = length_in_bytes;
-    semwait(&process_info->postbox.mutex_proc_in);
+    pthread_mutex_lock(&process_info->postbox.mutex_proc_in);
     int process_in_index = process_info->postbox.in_index;
     process_info->postbox.postbox[process_in_index] = index;
     ++process_in_index;
@@ -362,7 +346,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         process_in_index=0;
     }
     process_info->postbox.in_index = process_in_index;
-    semsignal(&process_info->postbox.mutex_proc_in);
+    pthread_mutex_unlock(&process_info->postbox.mutex_proc_in);
     sem_post(&process_info->postbox.sem_proc_full);
     return OSMP_SUCCESS;
 }
@@ -388,7 +372,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     *source = message_slot->from;
     *len = message_slot->len;
     memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
-    semwait(&shm_ptr->mutex_shm_free_slots);
+    pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
     int free_slot_index;
     int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
     if(free_slot_index_result<0){
@@ -396,7 +380,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
         exit(OSMP_FAILURE);
     }
     shm_ptr->free_slots[free_slot_index] = message_offset;
-    semsignal(&shm_ptr->mutex_shm_free_slots);
+    pthread_mutex_unlock(&shm_ptr->mutex_shm_free_slots);
     sem_post(&shm_ptr->sem_shm_free_slots);
     *source = message_slot->from;
     return OSMP_SUCCESS;
