@@ -1,35 +1,36 @@
 #00 Sind alle Testprogramme lt. Anleitung zusammen mit der OSMP-Lib fehlerfrei kompilierbar und ausführbar?
 
 #01 Was passiert, wenn OSM OSMP-Funktionen ohne vorheriges OSMP_Init, oder nach OSMP_Finalize aufgerufen werden, oder wenn die Funktionen fehlschlagen?
-
+    Nach heutigem Stand werden die Funktionen nicht laufen bzw. blockierend/fehllaufen. Es kann ein Flag gemacht werden, der wird bei jedem Prozess im struct sein, wenn dieser auf 1 ist, wird init aufgerufen.
+    Nach dem Aufruf zu 0 ändern.
 #02 Wie skalieren Ihre Datenstrukturen mit veränderten Größen? Welche Laufzeiten ergeben sich?
-
+    O(n) bei Größe und Laufzeit, basiert auf dem struct für jeden Prozess.
 #03 Was passiert, nachdem das Limit der zu empfangenden Nachrichten pro Prozess erreicht wurde.
-
+    Es wird blokiert, bis eine Nachricht gelesen wird.
 #04 Wie wird mit Nachrichten verfahren, die die maximal erlaubte Länge beim Senden oder Empfangen überschreiten?
-
+    Es wird OSMP_MAX_PAYLOAD_LENGTH bytes geschrieben.
 #05 Was passiert, wenn ein Sender einem nicht vorhandenen Prozess eine Nachricht sendet und ist es möglich oder sinnvoll, das Messages an bereits beendete Empfänger gesendet werden?
-
+    Bei einem Ziel, was kleiner als 0 oder größer gleich die Zahl der Prozesse ist, wird OSMP_FAILURE zurückgegeben, wegen barrier bei Finalize kann kein Prozess beendet werden bevor alle in Finalize sind.
 #06 Kann man einem Prozess eine Nachricht senden, während er eine Nachricht liest?
-
+    Ja.
 #07 Wie reagiert Ihre Bibliothek, wenn mehrere Prozesse gleichzeitig eine Nachricht an denselben Empfänger senden?
-
+    Die Nachrichten werden gleichzeitig in verschiedenen Plätzen geschrieben(wegen des Spiels mit 2 Semaphoren und Ring).
 #08 Was passiert, wenn der OSMP-Typ der Nachricht beim Senden oder Empfangen nicht einem erwarten OSMP-Typ entspricht?
-
+    Die bytes werden trotzdem geschrieben, allerdings falsche Länge.
 #09 Was passiert mit bereits im Posteingang abgelegten Nachrichten, wenn der Empfänger sich mit OSMP_Finalize abmeldet und sich ggf. später wieder anmeldet?
-
+    Nach heutigem Stand nicht möglich.
 #10 Lassen sich OSMP-Funktionen parallel aufrufen, wenn der Anwender Threads verwendet?
-
+    Nein, es wird geprüft, ob es um einen Thread handeln.
 #11 Lassen sich mehrere Starter mit unterschiedlichen Executables unabhängig voneinander betreiben?
-
-#12 Werden alle System-Ressourcen freigegeben?  Wo und wann?
-
+    Ja, weil das shared memory mit dem PID konkatiniert wird.
+#12 Werden alle System-Ressourcen freigegeben? Wo und wann?
+    Ja, bei Finalize unmapen und schließen von Shared memory und wenn alle Prozesse fertig sind bei Elter alles andere.
 #13 Führen alle blockierenden Aufrufe zur Blockierung, solange die zugehörigen Bedingungen nicht erfüllt sind? Weisen sie durch Belasten des Systems ggf. nach, dass dies immer funktioniert.
 
 #14 Können die Funktionen OSMP_Barrier() und OSMP_Gather() mehrfach direkt hintereinander aufgerufen werden?
 
 #15 Was passiert mit OSMP-Funktionen, wenn der Anwender zusätzliche Threads gestartet hat?
-
+    Die Funktionen können nicht von Threads aufgerufen werden.
 #16 Was passiert, wenn eine Barriere aufgerufen wird, wenn sich vorher bereits ein OSMP-Prozess beendet hat?
 
 #17 Sind bei der Verwendung ihrer OSMP-Lib Deadlocks oder Race-Conditions möglich? Wie haben sie das überprüft?
@@ -41,3 +42,4 @@
 #20 Kann OSMP_RemoveRequest aufgerufen werden, obwohl der Requester noch verwendet wird?
 
 #19 Wie kann das Logging optimiert werden, sodass wenig Synchronisation zwischen den Prozessen nötig ist und wenige Schreiboperation auf der Datei ausgeführt werden?
+    Ein Logger Prozess/Thread, der öffnet die Datei und schreibt rein, wenn alle fertig sind, schlißt er die Datei.

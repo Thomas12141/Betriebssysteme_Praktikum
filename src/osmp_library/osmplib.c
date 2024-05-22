@@ -322,9 +322,12 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     if(count <= 0) {
         return OSMP_FAILURE;
     }
+    if(dest>=OSMP_size|dest<0){
+        return OSMP_FAILURE;
+    }
     unsigned int datatype_size;
     OSMP_SizeOf(datatype, &datatype_size);
-    int length_in_bytes = (int)datatype_size * count;
+    int length_in_bytes = (int)datatype_size * count < OSMP_MAX_PAYLOAD_LENGTH ? (int)datatype_size * count : OSMP_MAX_PAYLOAD_LENGTH;
     process_info * process_info = get_process_info(dest);
     pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
     sem_wait(&process_info->postbox.sem_proc_empty);
