@@ -6,7 +6,6 @@
     "LogVerbositaet": 0,
     "osmp_executable": "osmpExecutable_Barrier",
     "parameter": [
-        "param1"
     ]
   },
 
@@ -17,7 +16,6 @@
     "LogVerbositaet": 0,
     "osmp_executable": "osmpExecutable_Gather",
     "parameter": [
-      "param1"
     ]
   },
 
@@ -28,7 +26,6 @@
     "LogVerbositaet": 0,
     "osmp_executable": "osmpExecutable_SendRecv",
     "parameter": [
-      "param1"
     ]
   }
 ]
