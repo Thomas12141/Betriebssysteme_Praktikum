@@ -377,7 +377,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     int free_slot_index_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &free_slot_index);
     if(free_slot_index_result<0){
         log_to_file(3, "Fail of sem_getvalue in OSMP_Recv\n");
-        exit(OSMP_FAILURE);
+        return OSMP_FAILURE;
     }
     shm_ptr->free_slots[free_slot_index] = message_offset;
     pthread_mutex_unlock(&shm_ptr->mutex_shm_free_slots);
@@ -388,7 +388,33 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 
 int OSMP_Finalize(void) {
     log_osmp_lib_call("OSMP_Finalize");
-    int result = close(shared_memory_fd);
+    int result, semval;
+
+    // Warte, bis alle Prozesse diesen Punkt erreicht haben, sodass niemand mehr sendet
+    result = OSMP_Barrier();
+    if(result != OSMP_SUCCESS) {
+        log_to_file(3, "Call to OSMP_Barrier from OSMP_Finalize failed");
+        return result;
+    }
+
+    process_info* info = get_process_info(OSMP_rank);
+
+    // Prüfe, ob noch Nachrichten vorhanden sind
+    result = sem_getvalue(&(info->postbox.sem_proc_full), &semval);
+    if(result > 0) {
+        // lies alle restlichen Nachrichten
+        char* buffer[OSMP_MAX_PAYLOAD_LENGTH];
+        int source, len;
+        for(int i=0; i<result; i++) {
+            result = OSMP_Recv(buffer, OSMP_MAX_PAYLOAD_LENGTH, OSMP_BYTE, &source, &len);
+            if(result != OSMP_SUCCESS) {
+                log_to_file(3, "Call to OSMP_Recv from OSMP_Finalize failed");
+                return result;
+            }
+        }
+    }
+
+    result = close(shared_memory_fd);
     if(result==-1){
         log_to_file(3, "Couldn't close shared memory FD.");
         return OSMP_FAILURE;
