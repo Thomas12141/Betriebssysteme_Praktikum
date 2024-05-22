@@ -322,7 +322,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     if(count <= 0) {
         return OSMP_FAILURE;
     }
-    if(dest>=OSMP_size|dest<0){
+    if(dest>=OSMP_size || dest<0){
         return OSMP_FAILURE;
     }
     unsigned int datatype_size;
