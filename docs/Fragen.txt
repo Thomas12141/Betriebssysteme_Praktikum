@@ -1,0 +1,43 @@
+#00 Sind alle Testprogramme lt. Anleitung zusammen mit der OSMP-Lib fehlerfrei kompilierbar und ausführbar?
+
+#01 Was passiert, wenn OSM OSMP-Funktionen ohne vorheriges OSMP_Init, oder nach OSMP_Finalize aufgerufen werden, oder wenn die Funktionen fehlschlagen?
+
+#02 Wie skalieren Ihre Datenstrukturen mit veränderten Größen? Welche Laufzeiten ergeben sich?
+
+#03 Was passiert, nachdem das Limit der zu empfangenden Nachrichten pro Prozess erreicht wurde.
+
+#04 Wie wird mit Nachrichten verfahren, die die maximal erlaubte Länge beim Senden oder Empfangen überschreiten?
+
+#05 Was passiert, wenn ein Sender einem nicht vorhandenen Prozess eine Nachricht sendet und ist es möglich oder sinnvoll, das Messages an bereits beendete Empfänger gesendet werden?
+
+#06 Kann man einem Prozess eine Nachricht senden, während er eine Nachricht liest?
+
+#07 Wie reagiert Ihre Bibliothek, wenn mehrere Prozesse gleichzeitig eine Nachricht an denselben Empfänger senden?
+
+#08 Was passiert, wenn der OSMP-Typ der Nachricht beim Senden oder Empfangen nicht einem erwarten OSMP-Typ entspricht?
+
+#09 Was passiert mit bereits im Posteingang abgelegten Nachrichten, wenn der Empfänger sich mit OSMP_Finalize abmeldet und sich ggf. später wieder anmeldet?
+
+#10 Lassen sich OSMP-Funktionen parallel aufrufen, wenn der Anwender Threads verwendet?
+
+#11 Lassen sich mehrere Starter mit unterschiedlichen Executables unabhängig voneinander betreiben?
+
+#12 Werden alle System-Ressourcen freigegeben?  Wo und wann?
+
+#13 Führen alle blockierenden Aufrufe zur Blockierung, solange die zugehörigen Bedingungen nicht erfüllt sind? Weisen sie durch Belasten des Systems ggf. nach, dass dies immer funktioniert.
+
+#14 Können die Funktionen OSMP_Barrier() und OSMP_Gather() mehrfach direkt hintereinander aufgerufen werden?
+
+#15 Was passiert mit OSMP-Funktionen, wenn der Anwender zusätzliche Threads gestartet hat?
+
+#16 Was passiert, wenn eine Barriere aufgerufen wird, wenn sich vorher bereits ein OSMP-Prozess beendet hat?
+
+#17 Sind bei der Verwendung ihrer OSMP-Lib Deadlocks oder Race-Conditions möglich? Wie haben sie das überprüft?
+
+#18 Wie kann der Aufrufer eines asynchronen Send oder Receive erfahren, ob und welcher Fehler bei dem im Hintergrund ausgeführten Auftrags aufgetreten ist? 
+
+#19 Was passiert, wenn der Anwender denselben OSMP-Requester mehrfach verwendet?
+
+#20 Kann OSMP_RemoveRequest aufgerufen werden, obwohl der Requester noch verwendet wird?
+
+#19 Wie kann das Logging optimiert werden, sodass wenig Synchronisation zwischen den Prozessen nötig ist und wenige Schreiboperation auf der Datei ausgeführt werden?
