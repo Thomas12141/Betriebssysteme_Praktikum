@@ -1,15 +1,34 @@
 [
   {
-    "TestName": "ExampleTest",
+    "TestName": "BarrierTest",
     "ProcAnzahl": 5,
     "PfadZurLogDatei": "",
     "LogVerbositaet": 0,
     "osmp_executable": "osmpExecutable_Barrier",
     "parameter": [
-        "param1",
-        "param2",
-        7,
-        "param4"
+        "param1"
+    ]
+  },
+
+  {
+    "TestName": "GatherTest",
+    "ProcAnzahl": 5,
+    "PfadZurLogDatei": "",
+    "LogVerbositaet": 0,
+    "osmp_executable": "osmpExecutable_Gather",
+    "parameter": [
+      "param1"
+    ]
+  },
+
+  {
+    "TestName": "SendRecvTest",
+    "ProcAnzahl": 2,
+    "PfadZurLogDatei": "",
+    "LogVerbositaet": 0,
+    "osmp_executable": "osmpExecutable_SendRecv",
+    "parameter": [
+      "param1"
     ]
   }
 ]
