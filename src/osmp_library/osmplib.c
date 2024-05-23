@@ -470,16 +470,24 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
         log_to_file(3, "Initializing of threads is not allowed for Gather\n");
         return OSMP_FAILURE;
     }
-    unsigned int datatype_size;
-    unsigned int length_in_bytes;
-    OSMP_SizeOf(sendtype, &datatype_size);
-    // TODO: Größe überprüfen (Payload)
-    length_in_bytes = datatype_size * (unsigned int) sendcount;
+    unsigned int send_datatype_size, receive_datatype_size;
+    unsigned int send_length_in_bytes, receive_length_in_bytes;
+    OSMP_SizeOf(sendtype, &send_datatype_size);
+    send_length_in_bytes = send_datatype_size * (unsigned int) sendcount;
+    if(send_length_in_bytes > OSMP_MAX_PAYLOAD_LENGTH){
+        log_to_file(3, "Trying to send more bytes than the payload size.\n");
+        return OSMP_FAILURE;
+    }
     process_info * process = get_process_info(OSMP_rank);
-
+    OSMP_SizeOf(recvtype, &receive_datatype_size);
+    receive_length_in_bytes = (unsigned int) recvcount * receive_datatype_size;
+    if(receive_length_in_bytes != send_length_in_bytes * (unsigned int) OSMP_size){
+        log_to_file(3, "The size of the receiving buffer isn't the same, as the writing size.\n");
+        return OSMP_FAILURE;
+    }
     // Kopiere zu sendene Nachricht in den eigenen Gather-Slot
-    mempcpy(&(process->gather_slot.payload), sendbuf, length_in_bytes);
-    process->gather_slot.len = (int) length_in_bytes;
+    mempcpy(&(process->gather_slot.payload), sendbuf, send_length_in_bytes);
+    process->gather_slot.len = (int) send_length_in_bytes;
     // Warte, bis alle Prozesse geschrieben haben
     OSMP_Barrier();
 
@@ -487,10 +495,10 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     // TODO: Rank statt recv (vgl. geänderte Doku)
     if(rank == root) {
         // TODO: Prüfe Größe des Recv-Buffers
-        int max_bytes = (int)(datatype_size) * recvcount;
+        int max_bytes = (int)(send_datatype_size) * recvcount;
 
         pthread_mutex_lock(&shm_ptr->gather_mutex);
-        OSMP_SizeOf(recvtype, &datatype_size);
+        OSMP_SizeOf(recvtype, &send_datatype_size);
         char * temp = recvbuf;
         int written = 0;
 
