@@ -171,9 +171,12 @@ int barrier_wait(barrier_t* barrier) {
 
         pthread_setcancelstate(cancel, &tmp);
     }
-
-    // TODO: prüfe Return-Wert
-    pthread_mutex_unlock(&(barrier->mutex));
+    
+    status = pthread_mutex_unlock(&(barrier->mutex));
+    if(status != 0) {
+        log_to_file(3, "Failed to unlock barrier mutex!");
+        return OSMP_FAILURE;
+    }
     return OSMP_SUCCESS;
 }
 
