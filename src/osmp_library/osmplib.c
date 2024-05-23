@@ -171,7 +171,7 @@ int barrier_wait(barrier_t* barrier) {
 
         pthread_setcancelstate(cancel, &tmp);
     }
-    
+
     status = pthread_mutex_unlock(&(barrier->mutex));
     if(status != 0) {
         log_to_file(3, "Failed to unlock barrier mutex!");
@@ -244,11 +244,24 @@ int OSMP_Init(const int *argc, char ***argv) {
     }
     puts("");
 
-    // Setze globale Variablen
-    OSMP_Size(&OSMP_size);
-    // TODO: for-Schleife hier
-    // TODO: Rank nur für autorisierte OSMP-Threads
-    OSMP_Rank(&OSMP_rank);
+    // Setze globale Variable für Size
+    OSMP_size = shm_ptr->size;
+
+    // Setze globale Variable für Rank
+    OSMP_rank = -1;
+    int pid = getpid();
+    process_info* process;
+    for(int i=0; i<OSMP_size; i++) {
+        // Iteriere durch alle Prozesse
+        process = get_process_info(i);
+        if (process->pid == pid) {
+            OSMP_rank = process->rank;
+        }
+    }
+    if(OSMP_rank == -1) {
+        log_to_file(3, "Could not determine rank in OSMP_Init");
+        return OSMP_FAILURE;
+    }
 
     free(shared_memory_name);
     log_to_file(2, "Free 256 B (shared_memory_name)");
@@ -297,35 +310,29 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
     }
-    *size = shm_ptr->size;
+    *size = OSMP_size;
     return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {
     if(gettid() != getpid()){
         printf("Initializing of threads is not allowed\n");
-        exit(0);
+        return OSMP_FAILURE;
     }
-    int pid = getpid();
-    int size = shm_ptr->size;
-    process_info* process;
-    for(int i=0; i<size; i++) {
-        // Iteriere durch alle Prozesse
-        process = get_process_info(i);
-        if (process->pid == pid) {
-            *rank = process->rank;
-            return OSMP_SUCCESS;
-        }
-    }
-    return OSMP_FAILURE;
+    *rank = OSMP_rank;
+    return OSMP_SUCCESS;
 }
 
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
     if(gettid() != getpid()){
         printf("Initializing of threads is not allowed\n");
         exit(0);
@@ -373,6 +380,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
     if(gettid() != getpid()){
         printf("Initializing of threads is not allowed\n");
         exit(0);
@@ -408,6 +419,10 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
 }
 
 int OSMP_Finalize(void) {
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
     log_osmp_lib_call("OSMP_Finalize");
     int result, semval;
 
@@ -457,13 +472,22 @@ int OSMP_Finalize(void) {
 
 int OSMP_Barrier(void) {
     log_osmp_lib_call("OSMP_Barrier");
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     return barrier_wait(&(shm_ptr->barrier));
 }   
 // TODO: Doku Payload-Größe
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int root) {
-    // TODO:
-    // TODO:
+    // TODO: überarbeiten
     log_osmp_lib_call("OSMP_Gather");
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     int rank, rv;
     rv = OSMP_Rank(&rank);
     if(rv != OSMP_SUCCESS){
@@ -520,6 +544,11 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     log_osmp_lib_call("OSMP_ISend");
     puts("OSMP_ISend() not implemented yet");
     UNUSED(buf);
@@ -536,6 +565,11 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
         exit(0);
     }
     log_osmp_lib_call("OSMP_IRecv");
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     puts("OSMP_IRecv() not implemented yet");
     UNUSED(buf);
     UNUSED(count);
@@ -551,7 +585,14 @@ int OSMP_Test(OSMP_Request request, int *flag) {
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
+
     log_osmp_lib_call("OSMP_Test");
+
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     puts("OSMP_Test not implemented yet");
     UNUSED(request);
     UNUSED(flag);
@@ -563,7 +604,14 @@ int OSMP_Wait(OSMP_Request request) {
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
+
     log_osmp_lib_call("OSMP_Wait");
+
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     puts("OSMP_Wait() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
@@ -574,7 +622,14 @@ int OSMP_CreateRequest(OSMP_Request *request) {
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
+
     log_osmp_lib_call("OSMP_CreateRequest");
+
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     puts("OSMP_CreateRequest() not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
@@ -585,13 +640,25 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
+
     log_osmp_lib_call("OSMP_RemoveRequest");
+
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     puts("OSMP_RemoveRequest) not implemented yet");
     UNUSED(request);
     return OSMP_FAILURE;
 }
 
 int OSMP_GetSharedMemoryName(char **name) {
+    if(shm_ptr == NULL) {
+        log_to_file(3, "OSMP lib not initialized!");
+        return OSMP_FAILURE;
+    }
+
     int parent = getppid();
     int size = snprintf(NULL, 0, "%s_%d" ,SHARED_MEMORY_NAME , parent);
     *name = malloc(((unsigned long) (size + 1)) * sizeof(char));
