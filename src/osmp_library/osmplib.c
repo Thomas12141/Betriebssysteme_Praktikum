@@ -494,7 +494,6 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     // Nur der Root-Prozess (empfangender Prozess) sammelt alle Nachrichten
     // TODO: Rank statt recv (vgl. geänderte Doku)
     if(rank == root) {
-        // TODO: Prüfe Größe des Recv-Buffers
         int max_bytes = (int)(send_datatype_size) * recvcount;
 
         pthread_mutex_lock(&shm_ptr->gather_mutex);
