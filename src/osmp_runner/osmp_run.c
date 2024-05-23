@@ -109,35 +109,12 @@ void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
     free_all(shared_memory_fd, shm_ptr);
 }
 
-void* monitor_children(void * args){
-    sleep(1);
-    monitor_args* mon_args = (monitor_args*)args;
-    int status;
-    for (int i = 0; i < mon_args->number_of_executables; ++i) {
-        wait(&status);
-        if(WIFEXITED(status)&&WEXITSTATUS(status)!=0){
-            mon_args->flag = OSMP_FAILURE;
-            kill_threads(i, mon_args->shared_memory_fd, mon_args->shm_ptr);
-        } else if(mon_args->flag == OSMP_FAILURE){
-            kill_threads(i+1, mon_args->shared_memory_fd, mon_args->shm_ptr);
-        }
-    }
-    return NULL;
-}
+
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr, int shared_memory_fd){
-    pthread_t monitor_thread;
-    monitor_args mon_args;
-    mon_args.flag = OSMP_SUCCESS;
-    mon_args.number_of_executables = number_of_executables;
-    mon_args.shared_memory_fd = shared_memory_fd;
-    mon_args.shm_ptr = shm_ptr;
-    pthread_create(&monitor_thread, NULL, monitor_children, &mon_args);
-    int i, run=1 ;
-    for (i = 0; i < (number_of_executables) & (run==1); ++i) {
-        if(mon_args.flag == OSMP_FAILURE){
-            break;
-        }
+    int i;
+    int volatile run = 1;
+    for (i = 0; i < number_of_executables && run==1; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
             printf("%s ", arguments[j]);
@@ -145,11 +122,10 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         puts("");
         if (pid < 0) {
             log_to_file(3,"failed to fork");
-            mon_args.flag = OSMP_FAILURE;
             break;
         } else if (pid == 0) {//Child process.
             execv(executable, arguments);
-            run =0;
+            run = 0;
             log_to_file(3,"execv failed");
             return OSMP_FAILURE;
         } else{
@@ -160,9 +136,17 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         }
     }
 
-    if(i < number_of_executables)
-
-    pthread_join(monitor_thread, NULL);
+    if(run!=1){
+        kill_threads(i, shared_memory_fd, shm_ptr);
+    } else{
+        for (int j = 0; j < number_of_executables; ++j) {
+            int status;
+            wait(&status);
+            if(WIFEXITED(status)&&WEXITSTATUS(status)!=0){
+                kill_threads(number_of_executables, shared_memory_fd, shm_ptr);
+            }
+        }
+    }
     return 0;
 }
 
