@@ -363,6 +363,9 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         shm_ptr->free_slots[i] = i;
     }
 
+    // Setze Index für Liste auf 0
+    shm_ptr->free_slots_index = 0;
+
     // Initialisiere shared Semaphore für freie Slots
     return_value = sem_init(&(shm_ptr->sem_shm_free_slots), 1, OSMP_MAX_SLOTS);
     if(return_value != 0) {

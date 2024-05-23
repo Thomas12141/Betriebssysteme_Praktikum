@@ -189,6 +189,12 @@ typedef struct shared_memory {
     int free_slots[OSMP_MAX_SLOTS];
 
     /**
+     * @var free_slots_index
+     * Zeigt auf die Stelle in free_slots, an der das nächste freie Postfach liegt.
+     */
+    int free_slots_index;
+
+    /**
      * @var sem_shm_free_slots;
      * Semaphore für die Vergabe von Nachrichtenslots.
      */
@@ -196,7 +202,7 @@ typedef struct shared_memory {
 
     /**
      * @var mutex_shm_free_slots
-     * Mutex zur Synchronisierung des Zugriffs auf die Liste der freien Nachrichtenslots.
+     * Mutex zur Synchronisierung des Zugriffs auf die Liste der freien Nachrichtenslots und deren Index.
      */
     pthread_mutex_t mutex_shm_free_slots;
 

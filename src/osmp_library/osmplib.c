@@ -351,30 +351,39 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         return OSMP_FAILURE;
     }
     process_info * process_info = get_process_info(dest);
-    // TODO: kein get_semvalue, sondern Index
-    pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
+
     sem_wait(&process_info->postbox.sem_proc_empty);
     sem_wait(&shm_ptr->sem_shm_free_slots);
-    int index;
-    int get_value_result = sem_getvalue(&shm_ptr->sem_shm_free_slots, &index);
-    if(get_value_result!=0){
-        log_to_file(3, "Fail of sem_getvalue in OSMP_Send\n");
-        exit(OSMP_FAILURE);
-    }
+
+    pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
+
+    // aktueller Index für das free-slots-Array
+    int list_index = shm_ptr->free_slots_index;
+    // hole Index eines freien Nachrichtenslots
+    int slot_index = shm_ptr->free_slots[list_index];
+    // setze Array an der Stelle auf NO_SLOT
+    shm_ptr->free_slots[list_index] = NO_SLOT;
+    // inkrementiere Index
+    (shm_ptr->free_slots_index)++;
+
     pthread_mutex_unlock(&shm_ptr->mutex_shm_free_slots);
 
-    mempcpy(&shm_ptr->slots[index].payload, buf, (unsigned int)length_in_bytes);
-    shm_ptr->slots[index].len = length_in_bytes;
+    // Schreibe Nachricht in Slot
+    mempcpy(&shm_ptr->slots[slot_index].payload, buf, (unsigned int)length_in_bytes);
+    shm_ptr->slots[slot_index].len = length_in_bytes;
 
     pthread_mutex_lock(&process_info->postbox.mutex_proc_in);
+
     int process_in_index = process_info->postbox.in_index;
-    process_info->postbox.postbox[process_in_index] = index;
+    process_info->postbox.postbox[process_in_index] = slot_index;
     ++process_in_index;
     if (process_in_index==OSMP_MAX_MESSAGES_PROC){
         process_in_index=0;
     }
     process_info->postbox.in_index = process_in_index;
+
     pthread_mutex_unlock(&process_info->postbox.mutex_proc_in);
+
     sem_post(&process_info->postbox.sem_proc_full);
     return OSMP_SUCCESS;
 }
