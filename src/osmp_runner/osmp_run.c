@@ -547,7 +547,7 @@ int cleanup_shm(shared_memory* shm_ptr) {
 
 int main (int argc, char **argv) {
     int processes, verbosity = 1, exec_args_index;
-    char* log_file;
+    char* log_file = NULL;
     char* executable;
 
     set_shm_name();
