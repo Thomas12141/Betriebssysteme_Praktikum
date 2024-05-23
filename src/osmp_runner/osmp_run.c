@@ -133,7 +133,8 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
     mon_args.shared_memory_fd = shared_memory_fd;
     mon_args.shm_ptr = shm_ptr;
     pthread_create(&monitor_thread, NULL, monitor_children, &mon_args);
-    for (int i = 0; i < number_of_executables; ++i) {
+    int i, run=1 ;
+    for (i = 0; i < (number_of_executables) & (run==1); ++i) {
         if(mon_args.flag == OSMP_FAILURE){
             break;
         }
@@ -145,9 +146,10 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         if (pid < 0) {
             log_to_file(3,"failed to fork");
             mon_args.flag = OSMP_FAILURE;
-            return OSMP_FAILURE;
+            break;
         } else if (pid == 0) {//Child process.
             execv(executable, arguments);
+            run =0;
             log_to_file(3,"execv failed");
             return OSMP_FAILURE;
         } else{
@@ -157,6 +159,9 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             info->pid = pid;
         }
     }
+
+    if(i < number_of_executables)
+
     pthread_join(monitor_thread, NULL);
     return 0;
 }

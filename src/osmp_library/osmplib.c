@@ -16,7 +16,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-shared_memory *shm_ptr;
+shared_memory *shm_ptr = NULL;
 int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
 
 /**
@@ -77,8 +77,11 @@ process_info* get_process_info(int rank) {
  * @return Zeiger auf den Slot, in dem die nächste Nachricht für den Prozess mit Rang *rank* liegt. Bei einem Fehler von malloc wird das Prozess mit OSMP_FAILURE abgebrochen.
  */
 message_slot* get_next_message_slot(int rank, int * message_offset) {
+    // TODO: rank, message_offset nicht benötigt?
+    // TODO: keinen Pointer, sondern int (Index) zurückgeben
     log_osmp_lib_call("get_next_message_slot");
     process_info* process = get_process_info(rank);
+
     sem_wait(&process->postbox.sem_proc_full);
     pthread_mutex_lock(&process->postbox.mutex_proc_out);
     int out_index = process->postbox.out_index;
@@ -90,6 +93,7 @@ message_slot* get_next_message_slot(int rank, int * message_offset) {
     }
     pthread_mutex_unlock(&process->postbox.mutex_proc_out);
     sem_post(&process->postbox.sem_proc_empty);
+
     return &shm_ptr->slots[*message_offset];
 }
 
@@ -127,6 +131,10 @@ int calculate_shared_memory_size(int processes) {
  */
 int barrier_wait(barrier_t* barrier) {
     int status, cancel, tmp, cycle;
+    // Thread-Safety:
+    if(getpid()!=gettid()) {
+        return OSMP_FAILURE;
+    }
 
     if(barrier->valid != BARRIER_VALID) {
         log_to_file(3, "Barrier not yet initialized, can't wait at barrier!");
@@ -141,10 +149,8 @@ int barrier_wait(barrier_t* barrier) {
 
     cycle = barrier->cycle; // aktuellen Zyklus merken
 
-    // Thread-Safety: nur die Hauptthreads der ursprünglichen OSMP-Prozesse dürfen den Counter beeinflussen
-    if(getpid()==gettid()) {
-        (barrier->counter)--;
-    }
+    (barrier->counter)--;
+
     if(barrier->counter== 0) {
         // Der letzte Thread in der Barriere initialisiert die Barrier für den nächsten Durchlauf.
         barrier->counter = OSMP_size;
@@ -166,6 +172,7 @@ int barrier_wait(barrier_t* barrier) {
         pthread_setcancelstate(cancel, &tmp);
     }
 
+    // TODO: prüfe Return-Wert
     pthread_mutex_unlock(&(barrier->mutex));
     return OSMP_SUCCESS;
 }
@@ -236,6 +243,8 @@ int OSMP_Init(const int *argc, char ***argv) {
 
     // Setze globale Variablen
     OSMP_Size(&OSMP_size);
+    // TODO: for-Schleife hier
+    // TODO: Rank nur für autorisierte OSMP-Threads
     OSMP_Rank(&OSMP_rank);
 
     free(shared_memory_name);
@@ -327,8 +336,12 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     }
     unsigned int datatype_size;
     OSMP_SizeOf(datatype, &datatype_size);
-    int length_in_bytes = (int)datatype_size * count < OSMP_MAX_PAYLOAD_LENGTH ? (int)datatype_size * count : OSMP_MAX_PAYLOAD_LENGTH;
+    int length_in_bytes = (int)datatype_size * count;
+    if(length_in_bytes > OSMP_MAX_PAYLOAD_LENGTH) {
+        return OSMP_FAILURE;
+    }
     process_info * process_info = get_process_info(dest);
+    // TODO: kein get_semvalue, sondern Index
     pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
     sem_wait(&process_info->postbox.sem_proc_empty);
     sem_wait(&shm_ptr->sem_shm_free_slots);
@@ -339,8 +352,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         exit(OSMP_FAILURE);
     }
     pthread_mutex_unlock(&shm_ptr->mutex_shm_free_slots);
+
     mempcpy(&shm_ptr->slots[index].payload, buf, (unsigned int)length_in_bytes);
     shm_ptr->slots[index].len = length_in_bytes;
+
     pthread_mutex_lock(&process_info->postbox.mutex_proc_in);
     int process_in_index = process_info->postbox.in_index;
     process_info->postbox.postbox[process_in_index] = index;
@@ -393,6 +408,7 @@ int OSMP_Finalize(void) {
     log_osmp_lib_call("OSMP_Finalize");
     int result, semval;
 
+    // TODO: kein Barrier, sondern Flag in Postfach (process_info), ob Prozess da ist
     // Warte, bis alle Prozesse diesen Punkt erreicht haben, sodass niemand mehr sendet
     result = OSMP_Barrier();
     if(result != OSMP_SUCCESS) {
@@ -440,16 +456,21 @@ int OSMP_Barrier(void) {
     log_osmp_lib_call("OSMP_Barrier");
     return barrier_wait(&(shm_ptr->barrier));
 }   
-
-int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv) {
+// TODO: Doku Payload-Größe
+int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int root) {
+    // TODO:
+    // TODO:
     log_osmp_lib_call("OSMP_Gather");
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed for Gather\n");
-        exit(0);
+    int rank, rv;
+    rv = OSMP_Rank(&rank);
+    if(rv != OSMP_SUCCESS){
+        log_to_file(3, "Initializing of threads is not allowed for Gather\n");
+        return OSMP_FAILURE;
     }
     unsigned int datatype_size;
     unsigned int length_in_bytes;
     OSMP_SizeOf(sendtype, &datatype_size);
+    // TODO: Größe überprüfen (Payload)
     length_in_bytes = datatype_size * (unsigned int) sendcount;
     process_info * process = get_process_info(OSMP_rank);
 
@@ -460,13 +481,17 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     OSMP_Barrier();
 
     // Nur der Root-Prozess (empfangender Prozess) sammelt alle Nachrichten
-    if(recv) {
+    // TODO: Rank statt recv (vgl. geänderte Doku)
+    if(rank == root) {
+        // TODO: Prüfe Größe des Recv-Buffers
         int max_bytes = (int)(datatype_size) * recvcount;
+
         pthread_mutex_lock(&shm_ptr->gather_mutex);
         OSMP_SizeOf(recvtype, &datatype_size);
         char * temp = recvbuf;
         int written = 0;
 
+        // TODO: beachten, wenn recv-datatype von send-datatype abweicht
         for (int i = 0; i < OSMP_size; ++i) {
             process_info * process_to_read_from = get_process_info(i);
             int to_copy = process_to_read_from->gather_slot.len;

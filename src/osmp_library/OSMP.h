@@ -180,11 +180,11 @@ int OSMP_Barrier(void);
  * @param [out] recvbuf   Zeiger auf den Empfangspuffer.
  * @param [in]  recvcount Anzahl der Elemente im Empfangspuffer.
  * @param [in]  recvtype  OSMP-Datentyp der Elemente im Empfangspuffer.
- * @param [in]  recv      1, falls der aufrufende Prozess der Empfänger ist, sonst 0.
+ * @param [in]  root      Rang des empfangenden Prozesses.
  *
  * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
-int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int recv);
+int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int root);
 
 /**
  * Die Funktion sendet eine Nachricht analog zu OSMP_Send(). 
