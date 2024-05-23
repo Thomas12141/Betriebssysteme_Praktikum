@@ -396,24 +396,23 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     OSMP_SizeOf(datatype, &datatype_size);
     int length_in_bytes = (int)datatype_size * count;
 
-    int message_offset;
-    message_slot* message_slot = get_next_message(OSMP_rank, &message_offset);
+    int slot_index = get_next_message();
+    message_slot* slot = &(shm_ptr->slots[slot_index]);
 
-    if(length_in_bytes < message_slot->len) {
+    if(length_in_bytes < slot->len) {
         log_to_file(3, "Recv buffer too small!");
     }
-    memcpy(buf, message_slot->payload, (unsigned long) length_in_bytes);
-    *source = message_slot->from;
-    *len = message_slot->len;
-    memset(shm_ptr->slots[message_offset].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
+    memcpy(buf, slot->payload, (unsigned long) length_in_bytes);
+    *source = slot->from;
+    *len = slot->len;
+    memset(shm_ptr->slots[slot_index].payload, '\0', OSMP_MAX_PAYLOAD_LENGTH);
 
     pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
 
     // Lies aktuellen Index in der Liste freier Slots
     int list_index = shm_ptr->free_slots_index;
     // Füge eben geleertes Postfach zur Liste hinzu
-    // TODO: message_offset richtig?
-    shm_ptr->free_slots[list_index-1] = message_offset;
+    shm_ptr->free_slots[list_index-1] = slot_index;
     // Passe Listenindex an
     (shm_ptr->free_slots_index)--;
 
