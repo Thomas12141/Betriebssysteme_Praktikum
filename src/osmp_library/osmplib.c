@@ -17,7 +17,7 @@
 #include <stdlib.h>
 
 shared_memory *shm_ptr = NULL;
-int shared_memory_fd, OSMP_size, OSMP_rank, memory_size;
+int shared_memory_fd, OSMP_size, OSMP_rank = OSMP_FAILURE, memory_size;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -75,7 +75,7 @@ process_info* get_process_info(int rank) {
  * Gibt den Index des Nachrichtenslots zurück, in dem die nächste Nachricht für den aufrufenden Prozess liegt.
  * @return Index des Slots, in dem die nächste Nachricht für den aufrufenden Prozess liegt.
  */
-int get_next_message() {
+int get_next_message(void ) {
     log_osmp_lib_call("get_next_message");
     process_info* process = get_process_info(OSMP_rank);
 
@@ -247,9 +247,22 @@ int OSMP_Init(const int *argc, char ***argv) {
 
     // Setze globale Variablen
     OSMP_Size(&OSMP_size);
-    // TODO: for-Schleife hier
-    // TODO: Rank nur für autorisierte OSMP-Threads
-    OSMP_Rank(&OSMP_rank);
+
+    int pid = getpid();
+    int size = shm_ptr->size;
+    process_info* process;
+    for(int i=0; i<size; i++) {
+        // Iteriere durch alle Prozesse
+        process = get_process_info(i);
+        if (process->pid == pid) {
+            OSMP_rank = process->rank;
+        }
+    }
+
+    if(OSMP_rank == OSMP_FAILURE){
+        log_to_file(3, "Couldn't find rank in the shared memory.\n");
+        return OSMP_FAILURE;
+    }
 
     free(shared_memory_name);
     log_to_file(2, "Free 256 B (shared_memory_name)");
@@ -309,20 +322,13 @@ int OSMP_Size(int *size) {
 int OSMP_Rank(int *rank) {
     if(gettid() != getpid()){
         printf("Initializing of threads is not allowed\n");
-        exit(0);
+        return OSMP_FAILURE;
     }
-    int pid = getpid();
-    int size = shm_ptr->size;
-    process_info* process;
-    for(int i=0; i<size; i++) {
-        // Iteriere durch alle Prozesse
-        process = get_process_info(i);
-        if (process->pid == pid) {
-            *rank = process->rank;
-            return OSMP_SUCCESS;
-        }
+    if(OSMP_rank == OSMP_FAILURE){
+        log_to_file(3, "Calling rank before initializing the OSMP_Process.\n");
     }
-    return OSMP_FAILURE;
+    *rank = OSMP_rank;
+    return OSMP_SUCCESS;
 }
 
 
