@@ -113,7 +113,7 @@ void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr, int shared_memory_fd){
     int i;
-    int volatile run = 1;
+    int run = 1;
     for (i = 0; i < number_of_executables && run==1; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
@@ -122,6 +122,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         puts("");
         if (pid < 0) {
             log_to_file(3,"failed to fork");
+            run = 0;
             break;
         } else if (pid == 0) {//Child process.
             execv(executable, arguments);
