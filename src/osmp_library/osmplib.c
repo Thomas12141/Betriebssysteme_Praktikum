@@ -99,6 +99,39 @@ int get_next_message(void ) {
     return slot_index;
 }
 
+int create_thread(void) {
+    thread_node * node = malloc(sizeof(thread_node));
+    if(node == NULL){
+        log_to_file(3, "Failed to allocate memory for a thread.\n");
+        return OSMP_FAILURE;
+    }
+    node->next = NULL;
+    node->prev = NULL;
+    if (erster_thread == NULL){
+        erster_thread = node;
+        letzter_thread = node;
+    } else{
+        node->prev = letzter_thread;
+        letzter_thread->next = node;
+    }
+    return OSMP_SUCCESS;
+}
+
+void wait_and_finalize_all_threads(void){
+    thread_node * iterator = erster_thread;
+    while (iterator!=NULL){
+        thread_node * temp = iterator;
+        iterator = iterator->next;
+        pthread_join(temp->thread, NULL);
+        temp->next = NULL;
+        temp->prev = NULL;
+        free(temp);
+    }
+    erster_thread = NULL;
+    letzter_thread = NULL;
+}
+
+
 /**
  * Setzt die globalen Variablen der OSMP-Bibliothek für den Elternprozess.
  * @param fd    Shared-Memory-File-Descriptor.
@@ -560,11 +593,17 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
     return OSMP_FAILURE;
 }
 
+void * OSMP_thread_recv(void * args){
+    OSMP_Request* request = (OSMP_Request*)args;
+    //TODO: Vom Request alle Parameter übergeben.
+    OSMP_Recv();
+    return NULL;
+}
+
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
+    create_thread();
+    //TODO: Oder buf, count usw. Teil der Request oder muss ein anderer Struct dafür erstellt werden und übergeben.
+    pthread_create(&letzter_thread->thread, NULL, OSMP_thread_recv, request);
     log_osmp_lib_call("OSMP_IRecv");
     puts("OSMP_IRecv() not implemented yet");
     UNUSED(buf);
@@ -635,3 +674,4 @@ int OSMP_GetSharedMemoryName(char **name) {
 void OSMP_GetSharedMemoryPointer(char **shared_memory) {
     *shared_memory = (char*)shm_ptr;
 }
+
