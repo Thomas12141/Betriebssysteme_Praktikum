@@ -256,6 +256,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         process = get_process_info(i);
         if (process->pid == pid) {
             OSMP_rank = process->rank;
+            process->available = AVAILABLE;
         }
     }
 
@@ -352,6 +353,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     }
     process_info * process_info = get_process_info(dest);
 
+    if(process_info->available == NOT_AVAILABLE){
+        log_to_file(2, "Trying to write to a not available process.\n");
+        return OSMP_FAILURE;
+    }
     sem_wait(&process_info->postbox.sem_proc_empty);
     sem_wait(&shm_ptr->sem_shm_free_slots);
 
@@ -432,16 +437,12 @@ int OSMP_Finalize(void) {
     log_osmp_lib_call("OSMP_Finalize");
     int result, semval;
 
-    // TODO: kein Barrier, sondern Flag in Postfach (process_info), ob Prozess da ist
-    // Warte, bis alle Prozesse diesen Punkt erreicht haben, sodass niemand mehr sendet
-    result = OSMP_Barrier();
-    if(result != OSMP_SUCCESS) {
-        log_to_file(3, "Call to OSMP_Barrier from OSMP_Finalize failed");
-        return result;
-    }
-
     process_info* info = get_process_info(OSMP_rank);
 
+    // Ein Flag, damit es bewusst wird, dass der Prozess nicht erreichbar ist.
+    info->available = NOT_AVAILABLE;
+
+    //TODO: Kein getValue mehr.
     // Prüfe, ob noch Nachrichten vorhanden sind
     result = sem_getvalue(&(info->postbox.sem_proc_full), &semval);
     if(result != 0) {

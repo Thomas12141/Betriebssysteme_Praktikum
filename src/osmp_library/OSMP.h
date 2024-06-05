@@ -171,8 +171,8 @@ int OSMP_Finalize(void);
 int OSMP_Barrier(void);
 
 /** 
- * Diese Funktion ermöglicht die Gather-Kommunikation. 
- * Hierbei können mehrere Prozesse an einen Empfänger Prozess Daten schicken.
+ * Diese Funktion ermöglicht die Gather-Kommunikation. Alle Prozesse müssen die Funktion aufrufen. Es muss sicher gestellt, dass der Empfangspuffer die Größe des Sendepuffers von alle
+ * Prozesse zusammen entspricht. Hierbei können mehrere Prozesse an einen Empfänger Prozess Daten schicken. Die Prozesse werden blockiert bis der Empfänger bis Ende die Daten liest.
  *
  * @param [in]  sendbuf   Zeiger auf den Sendepuffer.
  * @param [in]  sendcount Anzahl der Elemente im Sendepuffer.

@@ -48,6 +48,16 @@
 #define SAVED 0
 
 /**
+ * Flag, um singlanisieren, dass der Prozess nicht erreichbar ist.
+ */
+#define NOT_AVAILABLE 1
+
+/**
+ * Flag, um singlanisieren, dass der Prozess erreichbar ist.
+ */
+#define AVAILABLE 0
+
+/**
  * Maximal erlaubte Länge des Pfads zur Logdatei, inkl. terminierendem Nullbyte.
  */
 #define MAX_PATH_LENGTH 256
@@ -154,6 +164,12 @@ typedef struct process_info {
      * Der Gather-Slot des Prozesses.
      */
     message_slot gather_slot;
+
+    /**
+     * @var available
+     * Ein Flag um zu wiesen, ob dieser Prozess verfügbar ist.
+     */
+    int available;
 } process_info;
 
 /* Datentyp zur Beschreibung einer Barriere. */

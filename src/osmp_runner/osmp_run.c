@@ -408,6 +408,9 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     process_info* info = &(shm_ptr->first_process_info);
     for(int i=0; i<processes; i++) {
         info->rank = i;
+
+        //Der Prozess ist noch nicht erreichbar.
+        info->available = NOT_AVAILABLE;
         // PID wird in start_all_executables() gesetzt
 
         // Initialisiere postbox_utilities
