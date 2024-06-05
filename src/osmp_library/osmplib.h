@@ -261,9 +261,29 @@ typedef struct shared_memory {
 } shared_memory;
 
 /**
- * @struct gather_struct
- * @brief struct für alle benötigte Teile, um gather zu realisieren.
+ * @var thread_node
+ * @brief Eine two way linked list von threads,
  */
+typedef struct thread_node{
+
+    /**
+     * @var thread
+     * @brief Der Thread in diesem Knoten.
+     */
+    pthread_t thread;
+
+    /**
+     * @var next
+     * @brief Ein Pointer auf dem nächsten Knoten in der Liste, wenn es der letzte Element ist, dann zeigt es auf Null.
+     */
+    struct thread_node * next;
+
+    /**
+     * @var next
+     * @brief Ein Pointer auf dem letzten Knoten in der Liste, wenn es der erste Element ist, dann zeigt es auf Null.
+     */
+    struct thread_node * prev;
+} thread_node;
 
 int calculate_shared_memory_size(int processes);
 

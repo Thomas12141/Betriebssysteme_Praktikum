@@ -13,11 +13,12 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <malloc.h>
-#include <pthread.h>
 #include <stdlib.h>
 
 shared_memory *shm_ptr = NULL;
 int shared_memory_fd, OSMP_size, OSMP_rank = OSMP_FAILURE, memory_size;
+thread_node * erster_thread = NULL;
+thread_node * letzter_thread = NULL;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
