@@ -601,7 +601,10 @@ void * OSMP_thread_recv(void * args){
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
-    create_thread();
+    int result = create_thread();
+    if( result == OSMP_FAILURE){
+        return OSMP_FAILURE;
+    }
     //TODO: Oder buf, count usw. Teil der Request oder muss ein anderer Struct dafür erstellt werden und übergeben.
     pthread_create(&letzter_thread->thread, NULL, OSMP_thread_recv, request);
     log_osmp_lib_call("OSMP_IRecv");
@@ -612,7 +615,7 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
     UNUSED(source);
     UNUSED(len);
     UNUSED(request);
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
