@@ -305,10 +305,16 @@ typedef struct IParams {
     pthread_cond_t convar;
 
     /**
-     * @var buf
-     * Übergabeparameter für Send/Recv, der hier zwischengespeichert wird.
+     * @var recv_buf
+     * Übergabeparameter für Recv, der hier zwischengespeichert wird.
      */
-    void* buf;
+    void* recv_buf;
+
+    /**
+     * @var send_buf
+     * Übergabeparameter für Recv, der hier zwischengespeichert wird.
+     */
+    const void* send_buf;
 
     /**
      * @var count

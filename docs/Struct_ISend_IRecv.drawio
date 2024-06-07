@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-06-07T14:02:42.531Z" agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0" etag="Xkvirqx7wqpMxDfzwEhC" version="24.4.4" type="device">
+<mxfile host="app.diagrams.net" modified="2024-06-07T16:29:35.973Z" agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0" etag="knY0wbigGm-Y8x-RhF2z" version="24.4.4" type="device">
   <diagram name="Seite-1" id="V37iRD1plDs-bDh3GgVA">
     <mxGraphModel dx="953" dy="568" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -7,47 +7,50 @@
         <mxCell id="HjvzV6pIBZK6yzrlRa3x-1" value="Mutex" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
           <mxGeometry x="270" y="120" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="HjvzV6pIBZK6yzrlRa3x-2" value="buf" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
-          <mxGeometry x="270" y="240" width="120" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="HjvzV6pIBZK6yzrlRa3x-3" value="count" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+        <mxCell id="HjvzV6pIBZK6yzrlRa3x-2" value="send_buf&lt;br&gt;&lt;i&gt;(nur für ISend)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
           <mxGeometry x="270" y="300" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="HjvzV6pIBZK6yzrlRa3x-4" value="datatype" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+        <mxCell id="HjvzV6pIBZK6yzrlRa3x-3" value="count" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
           <mxGeometry x="270" y="360" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="HjvzV6pIBZK6yzrlRa3x-5" value="dest&lt;br&gt;&lt;i&gt;(nur für ISend)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+        <mxCell id="HjvzV6pIBZK6yzrlRa3x-4" value="datatype" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
           <mxGeometry x="270" y="420" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="HjvzV6pIBZK6yzrlRa3x-7" value="source&lt;br&gt;&lt;i&gt;(nur für IRecv)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+        <mxCell id="HjvzV6pIBZK6yzrlRa3x-5" value="dest&lt;br&gt;&lt;i&gt;(nur für ISend)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
           <mxGeometry x="270" y="480" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="HjvzV6pIBZK6yzrlRa3x-8" value="len&lt;br&gt;&lt;i&gt;(nur für IRecv)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+        <mxCell id="HjvzV6pIBZK6yzrlRa3x-7" value="source&lt;br&gt;&lt;i&gt;(nur für IRecv)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
           <mxGeometry x="270" y="540" width="120" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="HjvzV6pIBZK6yzrlRa3x-8" value="len&lt;br&gt;&lt;i&gt;(nur für IRecv)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="270" y="600" width="120" height="60" as="geometry" />
+        </mxCell>
         <mxCell id="HjvzV6pIBZK6yzrlRa3x-10" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;flipH=1;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" parent="1" vertex="1">
-          <mxGeometry x="420" y="240" width="40" height="360" as="geometry" />
+          <mxGeometry x="420" y="240" width="40" height="420" as="geometry" />
         </mxCell>
         <mxCell id="HjvzV6pIBZK6yzrlRa3x-11" value="Synchronisierung des Zugriffs auf Struct-Inhalte" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="405" y="135" width="180" height="30" as="geometry" />
         </mxCell>
         <mxCell id="HjvzV6pIBZK6yzrlRa3x-12" value="Parameter für Send bzw. Recv" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="470" y="400" width="180" height="30" as="geometry" />
+          <mxGeometry x="480" y="435" width="180" height="30" as="geometry" />
         </mxCell>
         <mxCell id="HjvzV6pIBZK6yzrlRa3x-13" value="&lt;b&gt;Struct für&amp;nbsp; nicht blockierende Funktionen ISend und IRecv&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="155" y="60" width="350" height="30" as="geometry" />
         </mxCell>
         <mxCell id="ASJBc6yWznjlhH9XpiNp-1" value="done?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="270" y="600" width="120" height="60" as="geometry" />
+          <mxGeometry x="270" y="660" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="ASJBc6yWznjlhH9XpiNp-2" value="Flag, das signalisiert, ob der Send-/Recv-Vorgang abgeschlossen ist" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
-          <mxGeometry x="405" y="615" width="196" height="30" as="geometry" />
+          <mxGeometry x="405" y="675" width="196" height="30" as="geometry" />
         </mxCell>
         <mxCell id="ASJBc6yWznjlhH9XpiNp-3" value="Condition-Variable" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="270" y="180" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="ASJBc6yWznjlhH9XpiNp-4" value="Benachrichtigung bei Abschluss des Send-/Recv-Vorgangs" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="414" y="190" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ASJBc6yWznjlhH9XpiNp-5" value="rec_buf&lt;br&gt;&lt;i&gt;(nur für IRecv)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="270" y="240" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

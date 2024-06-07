@@ -133,7 +133,7 @@ int OSMP_Rank(int *rank);
 /**
  * Die Funktion OSMP_Send() sendet eine Nachricht an den Prozess mit der Nummer dest. 
  * Die Nachricht besteht aus count Elementen vom Typ datatype. 
- * Die zu sendende Nachricht beginnt im aufrufenden Prozess bei der Adresse buf. 
+ * Die zu sendende Nachricht beginnt im aufrufenden Prozess bei der Adresse recv_buf.
  * Die Funktion ist blockierend, d.h. wenn sie in das aufrufende Programm zurückkehrt, ist der Kopiervorgang abgeschlossen.
  *
  * @param [in] buf      Startadresse des Puffers mit der zu sendenden Nachricht
@@ -147,7 +147,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest);
 
 /**
  * Der aufrufende Prozess empfängt eine Nachricht mit maximal count Elementen des angegebenen Datentyps datatype.
- * Die Nachricht wird an die Adresse buf des aufrufenden Prozesses geschrieben.
+ * Die Nachricht wird an die Adresse recv_buf des aufrufenden Prozesses geschrieben.
  * Unter source wird die OSMP-Prozessnummer des sendenden Prozesses und unter len die tatsächliche Länge der gelesenen Nachricht abgelegt.
  * Die Funktion ist blockierend, d.h. sie wartet, bis eine Nachricht für den Prozess vorhanden ist. 
  * Wenn die Funktion zurückkehrt, ist der Kopierprozess abgeschlossen.

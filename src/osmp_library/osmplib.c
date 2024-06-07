@@ -567,15 +567,64 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     return OSMP_SUCCESS;
 }
 
+void * OSMP_thread_send(void* args){
+    log_osmp_lib_call("OSMP_thread_send");
+
+    if(args == NULL) {
+        log_to_file(3, "Arguments were null!");
+    }
+
+    IParams* params = (IParams*) args;
+
+    // Variablen aus Struct lokal kopieren
+    pthread_mutex_lock(&(params->mutex));
+    const void* buf = params->send_buf;
+    int count = params->count;
+    OSMP_Datatype datatype = params->datatype;
+    int dest = params->dest;
+    pthread_mutex_unlock(&(params->mutex));
+
+    // Starte eigentliche Recv-Operation
+    OSMP_Send(buf, count, datatype, dest);
+
+    // Setze Flag
+    pthread_mutex_lock(&(params->mutex));
+    params->done = OSMP_DONE;
+
+    // Benachrichtige über Fertigstellung
+    pthread_cond_broadcast(&(params->convar));
+    pthread_mutex_unlock(&(params->mutex));
+
+    return NULL;
+}
+
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
     log_osmp_lib_call("OSMP_ISend");
-    puts("OSMP_ISend() not implemented yet");
-    UNUSED(buf);
-    UNUSED(count);
-    UNUSED(datatype);
-    UNUSED(dest);
-    UNUSED(request);
-    return OSMP_FAILURE;
+
+    if(request == NULL) {
+        log_to_file(3, "OSMP_Request was null!");
+        return OSMP_FAILURE;
+    }
+
+    // Kopiere Parameter in Request
+    IParams* params = (IParams*)request;
+    pthread_mutex_lock(&(params->mutex));
+    params->send_buf = buf;
+    params->count = count;
+    params->datatype = datatype;
+    params->dest = dest;
+    pthread_mutex_unlock(&(params->mutex));
+
+    // Erzeuge Thread in linked list
+    pthread_t* thread;
+    int result = create_thread(&thread);
+    if( result == OSMP_FAILURE){
+        return OSMP_FAILURE;
+    }
+
+    // Starte Thread
+    pthread_create(thread, NULL, OSMP_thread_send, request);
+    return OSMP_SUCCESS;
 }
 
 void * OSMP_thread_recv(void* args){
@@ -587,13 +636,11 @@ void * OSMP_thread_recv(void* args){
 
     IParams* params = (IParams*) args;
 
-    pthread_mutex_lock(&(params->mutex));
-
     // in-Variablen (und Buffer) aus Struct lokal kopieren
-    void* buf = params->buf;
+    pthread_mutex_lock(&(params->mutex));
+    void* buf = params->recv_buf;
     int count = params->count;
     OSMP_Datatype datatype = params->datatype;
-
     pthread_mutex_unlock(&(params->mutex));
 
     // out-Variablen zunächst lokal
@@ -631,7 +678,7 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
     // Kopiere Parameter in Request
     IParams* params = (IParams*)request;
     pthread_mutex_lock(&(params->mutex));
-    params->buf = buf;
+    params->recv_buf = buf;
     params->count = count;
     params->datatype = datatype;
     params->source = source;
