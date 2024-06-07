@@ -99,7 +99,7 @@ int get_next_message(void ) {
     return slot_index;
 }
 
-int create_thread(void) {
+int create_thread(pthread_t** thread) {
     thread_node * node = malloc(sizeof(thread_node));
     if(node == NULL){
         log_to_file(3, "Failed to allocate memory for a thread.\n");
@@ -114,6 +114,7 @@ int create_thread(void) {
         node->prev = letzter_thread;
         letzter_thread->next = node;
     }
+    *thread = &(node->thread);
     return OSMP_SUCCESS;
 }
 
@@ -306,10 +307,6 @@ int OSMP_Init(const int *argc, char ***argv) {
 }
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_SizeOf");
     if(datatype == OSMP_SHORT){
         *size = sizeof(short int);
@@ -368,10 +365,6 @@ int OSMP_Rank(int *rank) {
 
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_Send");
     if(count <= 0) {
         return OSMP_FAILURE;
@@ -428,10 +421,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_Recv");
     if(count <= 0) {
         return OSMP_FAILURE;
@@ -579,10 +568,6 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
 }
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_ISend");
     puts("OSMP_ISend() not implemented yet");
     UNUSED(buf);
@@ -601,28 +586,67 @@ void * OSMP_thread_recv(void* args){
     }
 
     IParams* params = (IParams*) args;
-    UNUSED(params);
 
-    //TODO: Vom Request alle Parameter übergeben.
-    //OSMP_Recv();
+    pthread_mutex_lock(&(params->mutex));
+
+    // in-Variablen (und Buffer) aus Struct lokal kopieren
+    void* buf = params->buf;
+    int count = params->count;
+    OSMP_Datatype datatype = params->datatype;
+
+    pthread_mutex_unlock(&(params->mutex));
+
+    // out-Variablen zunächst lokal
+    int source;
+    int len;
+
+    // Starte eigentliche Recv-Operation
+    OSMP_Recv(buf, count, datatype, &source, &len);
+
+    pthread_mutex_lock(&(params->mutex));
+
+    // out-Variablen an die passenden Stellen des Aufrufers kopieren
+    *(params->source) = source;
+    *(params->len) = len;
+
+    // Setze Flag
+    params->done = OSMP_DONE;
+
+    // Benachrichtige über Fertigstellung
+    pthread_cond_broadcast(&(params->convar));
+
+    pthread_mutex_unlock(&(params->mutex));
+
     return NULL;
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len, OSMP_Request request) {
-    int result = create_thread();
+    log_osmp_lib_call("OSMP_IRecv");
+
+    if(request == NULL) {
+        log_to_file(3, "OSMP_Request was null!");
+        return OSMP_FAILURE;
+    }
+
+    // Kopiere Parameter in Request
+    IParams* params = (IParams*)request;
+    pthread_mutex_lock(&(params->mutex));
+    params->buf = buf;
+    params->count = count;
+    params->datatype = datatype;
+    params->source = source;
+    params->len = len;
+    pthread_mutex_unlock(&(params->mutex));
+
+    // Erzeuge Thread in linked list
+    pthread_t* thread;
+    int result = create_thread(&thread);
     if( result == OSMP_FAILURE){
         return OSMP_FAILURE;
     }
-    //TODO: Oder buf, count usw. Teil der Request oder muss ein anderer Struct dafür erstellt werden und übergeben.
-    pthread_create(&letzter_thread->thread, NULL, OSMP_thread_recv, request);
-    log_osmp_lib_call("OSMP_IRecv");
-    puts("OSMP_IRecv() not implemented yet");
-    UNUSED(buf);
-    UNUSED(count);
-    UNUSED(datatype);
-    UNUSED(source);
-    UNUSED(len);
-    UNUSED(request);
+
+    // Starte Thread
+    pthread_create(thread, NULL, OSMP_thread_recv, request);
     return OSMP_SUCCESS;
 }
 
