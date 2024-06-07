@@ -134,6 +134,12 @@ typedef struct {
      * Semaphore für belegte Plätze im Postfach.
      */
     sem_t sem_proc_full;
+
+    /**
+     * @var sem_proc_full_counter
+     * A number representing the value of the semaphore.
+     */
+     int sem_proc_full_value;
 } postbox_utilities;
 
 /**

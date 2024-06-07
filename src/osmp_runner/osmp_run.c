@@ -447,6 +447,7 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         // Semaphore muss anfangs blockieren, bis zu lesende Nachrichten vorliegen
         for(int j=0; j<OSMP_MAX_MESSAGES_PROC; j++) {
             sem_wait(&(pb_util->sem_proc_full));
+            pb_util->sem_proc_full_value--;
         }
 
         // Initialisiere Gather-Slot
@@ -484,6 +485,7 @@ int destroy_postbox_utilities(postbox_utilities* postbox) {
     }
 
     rv = sem_destroy(&(postbox->sem_proc_full));
+    postbox->sem_proc_full_value = 0;
     if(rv != 0) {
         log_to_file(3, "Couldn't destroy semaphore sem_proc_full");
         return OSMP_FAILURE;

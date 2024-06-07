@@ -83,7 +83,7 @@ int get_next_message(void ) {
     sem_wait(&process->postbox.sem_proc_full);
 
     pthread_mutex_lock(&process->postbox.mutex_proc_out);
-
+    process->postbox.sem_proc_full_value--;
     int out_index = process->postbox.out_index;
     int slot_index = process->postbox.postbox[out_index];
     process->postbox.postbox[out_index] = NO_MESSAGE;
@@ -414,7 +414,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         process_in_index=0;
     }
     process_info->postbox.in_index = process_in_index;
-
+    process_info->postbox.sem_proc_full_value++;
     pthread_mutex_unlock(&process_info->postbox.mutex_proc_in);
 
     sem_post(&process_info->postbox.sem_proc_full);
@@ -466,14 +466,9 @@ int OSMP_Finalize(void) {
     // Ein Flag, damit es bewusst wird, dass der Prozess nicht erreichbar ist.
     info->available = NOT_AVAILABLE;
 
-    //TODO: Kein getValue mehr.
-    // Prüfe, ob noch Nachrichten vorhanden sind
-    result = sem_getvalue(&(info->postbox.sem_proc_full), &semval);
-    if(result != 0) {
-        log_to_file(3, "Call to sem_getvalue() from OSMP_Finalize failed");
-        return OSMP_FAILURE;
-    }
+    semval = info->postbox.sem_proc_full_value;
 
+    wait_and_finalize_all_threads();
     if(semval > 0) {
         // lies alle restlichen Nachrichten
         char* buffer[OSMP_MAX_PAYLOAD_LENGTH];
