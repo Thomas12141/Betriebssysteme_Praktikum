@@ -440,6 +440,8 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         }
 
         return_value = sem_init(&(pb_util->sem_proc_full), 1, OSMP_MAX_MESSAGES_PROC);
+        pb_util->sem_proc_full_value=OSMP_MAX_MESSAGES_PROC;
+
         if(return_value != 0) {
             log_pb_util_init_error("Couldn't initialize sem_proc_full in postbox_utilities of process # %d", i);
         }
