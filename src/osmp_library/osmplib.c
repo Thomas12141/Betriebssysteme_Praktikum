@@ -642,25 +642,53 @@ int OSMP_Wait(OSMP_Request request) {
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_CreateRequest");
-    puts("OSMP_CreateRequest() not implemented yet");
-    UNUSED(request);
-    return OSMP_FAILURE;
+
+    IParams* params = calloc(1, sizeof(IParams));
+    if(params == NULL) {
+        log_to_file(3, "Couldn't calloc space for OSMP_Request");
+        return OSMP_FAILURE;
+    }
+
+    // Shared-Attribut für Mutex erzeugen
+    pthread_mutexattr_t att;
+    pthread_mutexattr_init(&att);
+    pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
+
+    // Mutex initialisieren
+    int result = pthread_mutex_init(&(params->mutex), &att);
+    if(result < 0){
+        log_to_file(3, "Couldn't init mutex for OSMP_Request");
+        free(params);
+        return OSMP_FAILURE;
+    }
+
+    // Lösche Attribut
+    pthread_mutexattr_destroy(&att);
+
+    // Setze Flag
+    params->done = NOT_DONE;
+
+    // caste auf opaken Datentypen und setze den oben übergebenen Pointer
+    request = (OSMP_Request*) params;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_RemoveRequest");
-    puts("OSMP_RemoveRequest) not implemented yet");
-    UNUSED(request);
-    return OSMP_FAILURE;
+
+    // Caste opaken Datentypen auf unser internes Struct
+    IParams* params = (IParams*)request;
+
+    // Zerstöre Mutex
+    int result = pthread_mutex_destroy(&(params->mutex));
+    if(result != 0) {
+        log_to_file(3, "Couldn't destroy mutex in OSMP_Request");
+        return OSMP_FAILURE;
+    }
+
+    free(params);
+    return OSMP_SUCCESS;
 }
 
 int OSMP_GetSharedMemoryName(char **name) {

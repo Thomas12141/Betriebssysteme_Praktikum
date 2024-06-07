@@ -58,6 +58,16 @@
 #define AVAILABLE 0
 
 /**
+ * Flag, um zu signalisieren, dass ein ISend-/IRecv-Vorgang noch nicht abgeschlossen ist.
+ */
+#define NOT_DONE 0
+
+/**
+ * Flag, um zu signalisieren, dass ein ISend-/IRecv-Vorgang abgeschlossen ist.
+ */
+#define DONE     1
+
+/**
  * Maximal erlaubte Länge des Pfads zur Logdatei, inkl. terminierendem Nullbyte.
  */
 #define MAX_PATH_LENGTH 256
@@ -261,7 +271,7 @@ typedef struct shared_memory {
 } shared_memory;
 
 /**
- * @var thread_node
+ * @struct thread_node
  * @brief Eine two way linked list von threads,
  */
 typedef struct thread_node{
@@ -284,6 +294,21 @@ typedef struct thread_node{
      */
     struct thread_node * prev;
 } thread_node;
+
+/**
+ * @struct IParams
+ * @brief Struct, das die ISend-/IRecv-Funktionsparameter speichert,
+ */
+typedef struct IParams {
+    pthread_mutex_t mutex;
+    void* buf;
+    int count;
+    OSMP_Datatype datatype;
+    int dest;               // nur für ISend
+    int* source;            // nur für IRecv
+    int* len;               // nur für IRecv
+    int done;
+} IParams;
 
 int calculate_shared_memory_size(int processes);
 
