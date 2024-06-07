@@ -113,6 +113,7 @@ int create_thread(pthread_t** thread) {
     } else{
         node->prev = letzter_thread;
         letzter_thread->next = node;
+        letzter_thread = node;
     }
     *thread = &(node->thread);
     return OSMP_SUCCESS;
