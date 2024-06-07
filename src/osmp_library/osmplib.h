@@ -292,13 +292,59 @@ typedef struct thread_node{
  * @brief Struct, das die ISend-/IRecv-Funktionsparameter speichert,
  */
 typedef struct IParams {
+    /**
+     * @var mutex
+     * Mutex für den Zugriff auf die Elemente des Structs.
+     */
     pthread_mutex_t mutex;
+
+    /**
+     * @var convar
+     * Condition-Variable, um auf das Fertigstellen des mit diesem Struct assoziierten Prozesses zu warten.
+     */
+    pthread_cond_t convar;
+
+    /**
+     * @var buf
+     * Übergabeparameter für Send/Recv, der hier zwischengespeichert wird.
+     */
     void* buf;
+
+    /**
+     * @var count
+     * Übergabeparameter für Send/Recv, der hier zwischengespeichert wird.
+     */
     int count;
+
+    /**
+     * @var datatype
+     * Übergabeparameter für Send/Recv, der hier zwischengespeichert wird.
+     */
     OSMP_Datatype datatype;
-    int dest;               // nur für ISend
-    int* source;            // nur für IRecv
-    int* len;               // nur für IRecv
+
+    /**
+     * @var dest
+     * Übergabeparameter für Send, der hier zwischengespeichert wird.
+     */
+    int dest;       // nur für ISend
+
+    /**
+     * @var source
+     * Übergabeparameter für Recv, der hier zwischengespeichert wird.
+     */
+    int* source;    // nur für IRecv
+
+    /**
+     * @var len
+     * Übergabeparameter für Recv, der hier zwischengespeichert wird.
+     */
+    int* len;       // nur für IRecv
+
+    /**
+     * @var done
+     * Flag, das signalisiert, ob der mit diesem Struct assoziierte blockierende Vorgang abgeschlossen ist.
+     * Steht auf *OSMP_DONE*, wenn abgeschlossen, andernfalls auf *OSMP_WAITING*.
+     */
     int done;
 } IParams;
 

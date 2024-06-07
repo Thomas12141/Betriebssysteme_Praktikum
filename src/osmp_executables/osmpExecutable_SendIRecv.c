@@ -19,8 +19,9 @@ int main(int argc, char *argv[])
     rv = OSMP_Init( &argc, &argv );
     rv = OSMP_Size( &size );
     rv = OSMP_Rank( &rank );
-    if( size != 2 ){ 
-        /* Fehlerbehandlung */
+    if( size != 2 ){
+        printf("You have to start runner with 2 processes exactly.\n");
+        return -1;
     }
     if( rank == 0 ) { 
         // OSMP process 0

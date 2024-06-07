@@ -653,14 +653,31 @@ int OSMP_Test(OSMP_Request request, int *flag) {
 }
 
 int OSMP_Wait(OSMP_Request request) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_Wait");
-    puts("OSMP_Wait() not implemented yet");
-    UNUSED(request);
-    return OSMP_FAILURE;
+
+    if(request == NULL) {
+        log_to_file(3, "OSMP_Request was null!");
+        return OSMP_FAILURE;
+    }
+
+    IParams* params = (IParams*)request;
+
+    pthread_mutex_lock(&(params->mutex));
+
+    // Warte, bis Vorgang abgeschlossen ist
+    int status = params->done;
+    while(status == OSMP_WAITING) {
+        int result = pthread_cond_wait(&(params->convar), &(params->mutex));
+        if(result != 0) {
+            pthread_mutex_unlock(&(params->mutex));
+            return OSMP_FAILURE;
+        }
+        status = params->done;
+    }
+
+    pthread_mutex_unlock(&(params->mutex));
+
+    return OSMP_SUCCESS;
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
@@ -671,6 +688,7 @@ int OSMP_CreateRequest(OSMP_Request *request) {
         return OSMP_FAILURE;
     }
 
+    // Allokiere Speicherplatz
     IParams* params = calloc(1, sizeof(IParams));
     if(params == NULL) {
         log_to_file(3, "Couldn't calloc space for OSMP_Request");
@@ -681,7 +699,6 @@ int OSMP_CreateRequest(OSMP_Request *request) {
     pthread_mutexattr_t att;
     pthread_mutexattr_init(&att);
     pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
-
     // Mutex initialisieren
     int result = pthread_mutex_init(&(params->mutex), &att);
     if(result < 0){
@@ -689,9 +706,26 @@ int OSMP_CreateRequest(OSMP_Request *request) {
         free(params);
         return OSMP_FAILURE;
     }
-
     // Lösche Attribut
     pthread_mutexattr_destroy(&att);
+
+    // Erzeuge Attribut für Condition-Variable
+    pthread_condattr_t condition_attr;
+    result = pthread_condattr_init(&condition_attr);
+    if(result < 0){
+        log_to_file(3, "Error on initiliazation of condition variable attribute for OSMP_Request");
+        return OSMP_FAILURE;
+    }
+    // Setze Attribut auf Shared
+    pthread_condattr_setpshared(&condition_attr, PTHREAD_PROCESS_SHARED);
+    // Initialisiere Condition-Variable
+    result = pthread_cond_init(&(params->convar), &condition_attr);
+    if(result < 0){
+        log_to_file(3, "Error on initialization of condition variable for OSMP_Request");
+        return OSMP_FAILURE;
+    }
+    // Zerstöre Attribut für Condition-Variable
+    pthread_condattr_destroy(&condition_attr);
 
     // Setze Flag
     params->done = OSMP_WAITING;
@@ -717,6 +751,12 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
     if(result != 0) {
         log_to_file(3, "Couldn't destroy mutex in OSMP_Request");
         return OSMP_FAILURE;
+    }
+
+    // Zerstöre Condition-Variable
+    result = pthread_cond_destroy(&(params->convar));
+    if(result != 0) {
+        log_to_file(3, "Couldn't destroy condition variable in OSMP_Request");
     }
 
     free(params);
