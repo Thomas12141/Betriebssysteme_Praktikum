@@ -172,7 +172,9 @@ typedef struct process_info {
     int available;
 } process_info;
 
-/* Datentyp zur Beschreibung einer Barriere. */
+/**
+ * @struct barrier_t
+ * @brief Datentyp zur Beschreibung einer Barriere. */
 typedef struct barrier_t {
     pthread_mutex_t mutex; /* Zugriffskontrolle */
     pthread_cond_t convar; /* Warten auf Barriere */
