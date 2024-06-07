@@ -629,12 +629,27 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
 int OSMP_Test(OSMP_Request request, int *flag) {
     log_osmp_lib_call("OSMP_Test");
 
+    if(request == NULL) {
+        log_to_file(3, "OSMP_Request was null!");
+        return OSMP_FAILURE;
+    }
 
+    IParams* params = (IParams*)request;
 
-    puts("OSMP_Test not implemented yet");
-    UNUSED(request);
-    UNUSED(flag);
-    return OSMP_FAILURE;
+    // Prüfe, ob Mutex frei ist
+    int result = pthread_mutex_trylock(&(params->mutex));
+
+    // kein Lock auf Mutex
+    if(result != 0) {
+        *flag = OSMP_WAITING;
+        return OSMP_SUCCESS;
+    }
+
+    // sonst: Mutex-Lock erhalten
+    *flag = params->done;
+
+    pthread_mutex_unlock(&(params->mutex));
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Wait(OSMP_Request request) {
@@ -679,7 +694,7 @@ int OSMP_CreateRequest(OSMP_Request *request) {
     pthread_mutexattr_destroy(&att);
 
     // Setze Flag
-    params->done = NOT_DONE;
+    params->done = OSMP_WAITING;
 
     // caste auf opaken Datentypen und setze den oben übergebenen Pointer
     *request = (OSMP_Request*) params;

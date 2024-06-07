@@ -38,6 +38,16 @@ typedef void* OSMP_Request;
 #define OSMP_MAX_PAYLOAD_LENGTH 1024
 
 /**
+ * Gibt an, dass eine nicht-blockierende Funktion (ISend/IRecv) abgeschlossen ist.
+ */
+#define OSMP_DONE 1
+
+/**
+ * Gibt an, dass eine nicht-blockierende Funktion (ISend/IRecv) noch nicht abgeschlossen ist.
+ */
+#define OSMP_WAITING 0
+
+/**
  * Die OSMP-Datentypen entsprechen den C-Datentypen. 
  * Sie werden verwendet, um den Typ der Daten anzugeben, die mit den OSMP-Funktionen gesendet bzw. empfangen werden sollen.
  */

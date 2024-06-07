@@ -58,16 +58,6 @@
 #define AVAILABLE 0
 
 /**
- * Flag, um zu signalisieren, dass ein ISend-/IRecv-Vorgang noch nicht abgeschlossen ist.
- */
-#define NOT_DONE 0
-
-/**
- * Flag, um zu signalisieren, dass ein ISend-/IRecv-Vorgang abgeschlossen ist.
- */
-#define DONE     1
-
-/**
  * Maximal erlaubte Länge des Pfads zur Logdatei, inkl. terminierendem Nullbyte.
  */
 #define MAX_PATH_LENGTH 256
