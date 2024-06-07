@@ -627,11 +627,10 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
-    if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
-        exit(0);
-    }
     log_osmp_lib_call("OSMP_Test");
+
+
+
     puts("OSMP_Test not implemented yet");
     UNUSED(request);
     UNUSED(flag);
@@ -683,20 +682,20 @@ int OSMP_CreateRequest(OSMP_Request *request) {
     params->done = NOT_DONE;
 
     // caste auf opaken Datentypen und setze den oben übergebenen Pointer
-    request = (OSMP_Request*) params;
+    *request = (OSMP_Request*) params;
     return OSMP_SUCCESS;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
     log_osmp_lib_call("OSMP_RemoveRequest");
 
-    if(request == NULL) {
+    if(request == NULL || *request == NULL) {
         log_to_file(3, "OSMP_Request was null!");
         return OSMP_FAILURE;
     }
 
     // Caste opaken Datentypen auf unser internes Struct
-    IParams* params = (IParams*)request;
+    IParams* params = (IParams*)*request;
 
     // Zerstöre Mutex
     int result = pthread_mutex_destroy(&(params->mutex));
