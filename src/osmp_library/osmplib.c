@@ -593,10 +593,18 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
     return OSMP_FAILURE;
 }
 
-void * OSMP_thread_recv(void * args){
-    OSMP_Request* request = (OSMP_Request*)args;
+void * OSMP_thread_recv(void* args){
+    log_osmp_lib_call("OSMP_thread_recv");
+
+    if(args == NULL) {
+        log_to_file(3, "Arguments were null!");
+    }
+
+    IParams* params = (IParams*) args;
+    UNUSED(params);
+
     //TODO: Vom Request alle Parameter übergeben.
-    OSMP_Recv();
+    //OSMP_Recv();
     return NULL;
 }
 
@@ -644,6 +652,11 @@ int OSMP_Wait(OSMP_Request request) {
 int OSMP_CreateRequest(OSMP_Request *request) {
     log_osmp_lib_call("OSMP_CreateRequest");
 
+    if(request == NULL) {
+        log_to_file(3, "OSMP_Request was null!");
+        return OSMP_FAILURE;
+    }
+
     IParams* params = calloc(1, sizeof(IParams));
     if(params == NULL) {
         log_to_file(3, "Couldn't calloc space for OSMP_Request");
@@ -676,6 +689,11 @@ int OSMP_CreateRequest(OSMP_Request *request) {
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
     log_osmp_lib_call("OSMP_RemoveRequest");
+
+    if(request == NULL) {
+        log_to_file(3, "OSMP_Request was null!");
+        return OSMP_FAILURE;
+    }
 
     // Caste opaken Datentypen auf unser internes Struct
     IParams* params = (IParams*)request;
