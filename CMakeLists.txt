@@ -67,4 +67,4 @@ target_link_libraries(osmpExecutable_SendRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_Barrier ${LIBRARIES})
 target_link_libraries(osmpExecutable_Gather ${LIBRARIES})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
