@@ -248,7 +248,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         printf("Initializing of threads is not allowed\n");
         exit(0);
     }
-    char *shared_memory_name = calloc(MAX_PATH_LENGTH, sizeof(char));
+    char *shared_memory_name;
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
     if(shared_memory_fd == -1){

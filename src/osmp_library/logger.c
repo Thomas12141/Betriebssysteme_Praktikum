@@ -49,8 +49,7 @@ void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
         perror("pthread_mutexattr_setpshared() error\n");
         exit(OSMP_FAILURE);
     }
-    mutex = malloc(sizeof(pthread_mutex_t));
-    result = pthread_mutex_init(mutex, &att);
+    result = pthread_mutex_init(&(shm->logging_mutex), &att);
     if(result < 0){
         pthread_mutexattr_destroy(&att);
         perror("pthread_mutex_init() error\n");
@@ -62,15 +61,6 @@ void logging_init_parent(shared_memory* shm, char* name, int log_verbosity){
         perror("pthread_mutexattr_destroy() error\n");
         exit(OSMP_FAILURE);
     }
-
-    memcpy(&(shm->logging_mutex), mutex, sizeof(pthread_mutex_t));
-    result = pthread_mutex_destroy(mutex);
-    if (result != 0){
-        pthread_mutexattr_destroy(&att);
-        perror("pthread_mutex_destroy() error\n");
-        exit(OSMP_FAILURE);
-    }
-    free(mutex);
 
     mutex = (pthread_mutex_t *) &(shm->logging_mutex);
     // Erlaubte Werte für Verbosität: 1 bis 3
