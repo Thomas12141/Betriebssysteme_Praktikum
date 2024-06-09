@@ -474,11 +474,8 @@ int OSMP_Finalize(void) {
         char* buffer[OSMP_MAX_PAYLOAD_LENGTH];
         int source, len;
         for(int i=0; i<semval; i++) {
-            result = OSMP_Recv(buffer, OSMP_MAX_PAYLOAD_LENGTH, OSMP_BYTE, &source, &len);
-            if(result != OSMP_SUCCESS) {
-                log_to_file(3, "Call to OSMP_Recv from OSMP_Finalize failed");
-                return result;
-            }
+            //Weil count>0 ist, kann nie False zurückgegeben werden.
+            OSMP_Recv(buffer, OSMP_MAX_PAYLOAD_LENGTH, OSMP_BYTE, &source, &len);
         }
     }
 
@@ -568,12 +565,17 @@ void * OSMP_thread_send(void* args){
 
     if(args == NULL) {
         log_to_file(3, "Arguments were null!");
+        return (void *) OSMP_FAILURE;
     }
 
     IParams* params = (IParams*) args;
 
     // Variablen aus Struct lokal kopieren
-    pthread_mutex_lock(&(params->mutex));
+    int result = pthread_mutex_lock(&(params->mutex));
+    if(result != 0){
+        log_to_file(3, "Failed to lock mutex.");
+        return (void *) OSMP_FAILURE;
+    }
     const void* buf = params->send_buf;
     int count = params->count;
     OSMP_Datatype datatype = params->datatype;
@@ -628,6 +630,7 @@ void * OSMP_thread_recv(void* args){
 
     if(args == NULL) {
         log_to_file(3, "Arguments were null!");
+        return (void *) OSMP_FAILURE;
     }
 
     IParams* params = (IParams*) args;

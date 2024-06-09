@@ -113,7 +113,7 @@ void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
 
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr, int shared_memory_fd){
     int i;
-    int run = 1;
+    int volatile run = 1;
     for (i = 0; i < number_of_executables && run==1; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
@@ -139,6 +139,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
 
     if(run!=1){
         kill_threads(i, shared_memory_fd, shm_ptr);
+        return OSMP_FAILURE;
     } else{
         for (int j = 0; j < number_of_executables; ++j) {
             int status;
@@ -148,7 +149,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             }
         }
     }
-    return 0;
+    return OSMP_SUCCESS;
 }
 
 /**
@@ -581,7 +582,7 @@ int main (int argc, char **argv) {
     char ** arguments = argv + exec_args_index -1;
     int starting_result = start_all_executables(processes, executable, arguments, shm_ptr, shared_memory_fd);
 
-    if(starting_result == -1){
+    if(starting_result == OSMP_FAILURE){
         return -1;
     }
 
