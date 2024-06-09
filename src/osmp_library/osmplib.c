@@ -498,10 +498,9 @@ int OSMP_Barrier(void) {
     log_osmp_lib_call("OSMP_Barrier");
     return barrier_wait(&(shm_ptr->barrier));
 }   
-// TODO: Doku Payload-Größe
+
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recvbuf, int recvcount, OSMP_Datatype recvtype, int root) {
-    // TODO:
-    // TODO:
+
     log_osmp_lib_call("OSMP_Gather");
     int rank, rv;
     rv = OSMP_Rank(&rank);
@@ -531,7 +530,6 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     OSMP_Barrier();
 
     // Nur der Root-Prozess (empfangender Prozess) sammelt alle Nachrichten
-    // TODO: Rank statt recv (vgl. geänderte Doku)
     if(rank == root) {
         int max_bytes = (int)(send_datatype_size) * recvcount;
 
@@ -540,7 +538,6 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
         char * temp = recvbuf;
         int written = 0;
 
-        // TODO: beachten, wenn recv-datatype von send-datatype abweicht
         for (int i = 0; i < OSMP_size; ++i) {
             process_info * process_to_read_from = get_process_info(i);
             int to_copy = process_to_read_from->gather_slot.len;
