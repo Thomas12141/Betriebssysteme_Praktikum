@@ -15,14 +15,17 @@ int main(int argc, char *argv[]) {
     rv = OSMP_Init(&argc, &argv);
     if(rv != OSMP_SUCCESS){
         printf("OSMP_Init: returned error number %d\n", rv);
+        return -1;
     }
     rv = OSMP_Size(&size);
     if(rv != OSMP_SUCCESS){
         printf("OSMP_Size: returned error number %d\n", rv);
+        return -1;
     }
     rv = OSMP_Rank(&rank);
     if(rv != OSMP_SUCCESS){
         printf("OSMP_Rank: returned error number %d\n", rv);
+        return -1;
     }
     if (size != 2) {
         printf("You have to start runner with 2 processes exactly.\n");
@@ -41,6 +44,9 @@ int main(int argc, char *argv[]) {
         printf("OSMP process %d received %d byte from %d [%d:%d] \n", rank, len, source, bufout[0], bufout[1]);
     }
     rv = OSMP_Finalize();
-    printf("%d\n", rv);
+    if(rv != OSMP_SUCCESS){
+        printf("OSMP_Finalize: returned error number %d\n", rv);
+        return -1;
+    }
     return 0;
 }

@@ -17,8 +17,20 @@ int main(int argc, char *argv[])
     char *bufin, *bufout;
     OSMP_Request myrequest = NULL;
     rv = OSMP_Init( &argc, &argv );
+    if(rv != OSMP_SUCCESS){
+        printf("OSMP_Init: returned error number %d\n", rv);
+        return -1;
+    }
     rv = OSMP_Size( &size );
+    if(rv != OSMP_SUCCESS){
+        printf("OSMP_Size: returned error number %d\n", rv);
+        return -1;
+    }
     rv = OSMP_Rank( &rank );
+    if(rv != OSMP_SUCCESS){
+        printf("OSMP_Rank: returned error number %d\n", rv);
+        return -1;
+    }
     if( size != 2 ){
         printf("You have to start runner with 2 processes exactly.\n");
         return -1;
@@ -29,6 +41,7 @@ int main(int argc, char *argv[])
         len = 12; // length
         memcpy(bufin, "Hello World", (size_t) len);
         rv = OSMP_Send( bufin, len, OSMP_BYTE, 1 );
+        printf("OSMP_Send return %d\n",rv);
     }
     else {
         // OSMP process 1
