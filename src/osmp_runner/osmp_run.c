@@ -27,20 +27,14 @@ int init_shared_mutex(pthread_mutex_t* mutex_pointer) {
     pthread_mutexattr_t att;
     pthread_mutexattr_init(&att);
     pthread_mutexattr_setpshared(&att, PTHREAD_PROCESS_SHARED);
-    // Mutex erstellen
-    pthread_mutex_t* mutex = calloc(1, sizeof(pthread_mutex_t));
     // Mutex initialisieren
-    int mutex_result = pthread_mutex_init(mutex, &att);
+    int mutex_result = pthread_mutex_init(mutex_pointer, &att);
     if(mutex_result < 0){
         printf("Result of pthread_mutex_init = %d\n", mutex_result);
         return OSMP_FAILURE;
     }
-    // Mutex in den angegebenen Bereich kopieren
-    memcpy(mutex_pointer, mutex, sizeof(pthread_mutex_t));
     // lokale Variablen löschen/freigeben
     pthread_mutexattr_destroy(&att);
-    pthread_mutex_destroy(mutex);
-    free(mutex);
     return OSMP_SUCCESS;
 }
 
