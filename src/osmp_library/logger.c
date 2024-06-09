@@ -167,20 +167,6 @@ void logging_close(void){
 }
 
 /**
- * Schreibt eine Level-2-Logging-Nachricht (Speicherverwaltung) in die Logdatei.
- *
- * @param function_name Der Name der aufrufenden Funktion
- * @param message       Zusätzliche Nachricht.
- */
-void log_memory_function(char* function_name, char* message) {
-    unsigned long string_len = strlen(function_name) + strlen(message);
-    // Ausreichend großen Buffer erstellen
-    char string[30 + string_len];
-    sprintf(string, "%s() used memory function: %s", function_name, message);
-    log_to_file(2, string);
-}
-
-/**
  * Gibt den Dateinamen zum Loggen zurück.
  * @return Der Name der Datei als String.
  */
