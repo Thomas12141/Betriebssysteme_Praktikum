@@ -13,15 +13,15 @@ int main(int argc, char *argv[]) {
     int rv, size, rank, source;
     int bufin[2], bufout[2], len;
     rv = OSMP_Init(&argc, &argv);
-    if(rv != 0){
-        printf("OSMP_Init: returned error namuber %d\n", rv);
+    if(rv != OSMP_SUCCESS){
+        printf("OSMP_Init: returned error number %d\n", rv);
     }
     rv = OSMP_Size(&size);
-    if(rv != 0){
+    if(rv != OSMP_SUCCESS){
         printf("OSMP_Size: returned error number %d\n", rv);
     }
     rv = OSMP_Rank(&rank);
-    if(rv != 0){
+    if(rv != OSMP_SUCCESS){
         printf("OSMP_Rank: returned error number %d\n", rv);
     }
     if (size != 2) {

@@ -170,6 +170,7 @@ int barrier_wait(barrier_t* barrier) {
     int status, cancel, tmp, cycle;
     // Thread-Safety:
     if(getpid()!=gettid()) {
+        log_to_file(3, "Thread calling barrier.");
         return OSMP_FAILURE;
     }
 
@@ -296,7 +297,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         }
     }
 
-    if(OSMP_rank == OSMP_FAILURE){
+    if(OSMP_rank < OSMP_SUCCESS){
         log_to_file(3, "Couldn't find rank in the shared memory.\n");
         return OSMP_FAILURE;
     }
