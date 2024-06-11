@@ -385,6 +385,12 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         exit(EXIT_FAILURE);
     }
 
+    return_value = init_shared_mutex(&(shm_ptr->thread_linked_list_mutex));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Error on initializing Mutex thread_linked_list_mutex.");
+        exit(EXIT_FAILURE);
+    }
+
     // Initialisiere Slots
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
         memset(&(shm_ptr->slots[i]), '\0', sizeof(message_slot));

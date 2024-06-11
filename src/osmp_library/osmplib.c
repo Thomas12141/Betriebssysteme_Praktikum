@@ -100,6 +100,7 @@ int get_next_message(void ) {
 }
 
 int create_thread(pthread_t** thread) {
+    pthread_mutex_lock(&(shm_ptr->thread_linked_list_mutex));
     thread_node * node = malloc(sizeof(thread_node));
     if(node == NULL){
         log_to_file(3, "Failed to allocate memory for a thread.\n");
@@ -116,6 +117,7 @@ int create_thread(pthread_t** thread) {
         letzter_thread = node;
     }
     *thread = &(node->thread);
+    pthread_mutex_unlock(&(shm_ptr->thread_linked_list_mutex));
     return OSMP_SUCCESS;
 }
 
