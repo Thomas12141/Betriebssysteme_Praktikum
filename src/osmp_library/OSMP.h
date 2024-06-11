@@ -67,27 +67,27 @@ typedef enum OSMP_Datatype {
 /**
  * Gibt die maximale Länge der Nutzlast einer Nachricht zurück.
  */
-int get_OSMP_MAX_PAYLOAD_LENGTH();
+int get_OSMP_MAX_PAYLOAD_LENGTH(void);
 
 /**
  * Gibt die Maximale Anzahl der Nachrichten, die insgesamt vorhanden sein dürfen zurück. 
  */
-int get_OSMP_MAX_SLOTS();
+int get_OSMP_MAX_SLOTS(void);
 
 /**
  * Gibt die maximale Zahl der Nachrichten pro Prozess zurück.
  */
-int get_OSMP_MAX_MESSAGES_PROC();
+int get_OSMP_MAX_MESSAGES_PROC(void);
 
 /**
  * Gibt den Wert von OSMP_FAILURE zurück.
  */
-int get_OSMP_FAILURE();
+int get_OSMP_FAILURE(void);
 
 /**
  * Gibt den Wert von OSMP_SUCCESS zurück.
  */
-int get_OSMP_SUCCESS();
+int get_OSMP_SUCCESS(void);
 
 /**
  * Die Funktion OSMP_SizeOf() liefert in *size* die Größe des Datentyps datatype in Byte zurück.

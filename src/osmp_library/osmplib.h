@@ -207,6 +207,12 @@ typedef struct shared_memory {
     pthread_mutex_t logging_mutex;
 
     /**
+     * @var initializing_mutex
+     * Mutex für die Initialisierung von den OSMP_Prozessen.
+     */
+    pthread_mutex_t initializing_mutex;
+
+    /**
      * @var free_slots
      * Liste der freien Nachrichtenslots.
      */

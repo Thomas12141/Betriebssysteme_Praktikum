@@ -108,6 +108,7 @@ void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
 int start_all_executables(int number_of_executables, char* executable, char ** arguments, shared_memory* shm_ptr, int shared_memory_fd){
     int i;
     int volatile run = 1;
+    pthread_mutex_lock(&(shm_ptr->initializing_mutex));
     for (i = 0; i < number_of_executables && run==1; ++i) {
         int pid = fork();
         for(int j = 0; arguments[j] != NULL; j++) {
@@ -133,8 +134,10 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
 
     if(run!=1){
         kill_threads(i, shared_memory_fd, shm_ptr);
+        pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
         return OSMP_FAILURE;
     } else{
+        pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
         for (int j = 0; j < number_of_executables; ++j) {
             int status;
             wait(&status);
@@ -373,6 +376,12 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     return_value = init_shared_mutex(&(shm_ptr->mutex_shm_free_slots));
     if(return_value != OSMP_SUCCESS) {
         log_to_file(3, "Error on initializing Mutex mutex_shm_free_slots.");
+        exit(EXIT_FAILURE);
+    }
+
+    return_value = init_shared_mutex(&(shm_ptr->initializing_mutex));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Error on initializing Mutex initializing_mutex.");
         exit(EXIT_FAILURE);
     }
 
