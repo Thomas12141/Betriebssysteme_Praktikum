@@ -90,7 +90,7 @@ int free_all(int shm_fd, shared_memory* shm_ptr){
         log_to_file(3, "Couldn't unlink file name.");
         return OSMP_FAILURE;
     }
-    log_to_file(2, "Freeing shared_memory_name");
+    // Ab hier kein Logging mehr möglich
     free(shared_memory_name);
     return OSMP_SUCCESS;
 }
