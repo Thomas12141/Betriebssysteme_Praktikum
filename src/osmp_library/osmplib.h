@@ -148,12 +148,6 @@ typedef struct {
  */
 typedef struct process_info {
     /**
-     * @var thread_linked_list_mutex
-     * Mutex für die threads.
-     */
-    pthread_mutex_t thread_linked_list_mutex;
-
-    /**
      * @var rank
      * Rang des Prozesses.
      */

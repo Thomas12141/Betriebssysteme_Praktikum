@@ -19,6 +19,7 @@ shared_memory *shm_ptr = NULL;
 int shared_memory_fd, OSMP_size, OSMP_rank = OSMP_FAILURE, memory_size;
 thread_node * erster_thread = NULL;
 thread_node * letzter_thread = NULL;
+pthread_mutex_t * thread_linked_list_mutex = NULL;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -82,9 +83,8 @@ int get_next_message(void ) {
  */
 int create_thread(pthread_t** thread) {
     log_osmp_lib_call("create_thread");
-    process_info * process = get_process_info(OSMP_rank);
 
-    pthread_mutex_lock(&(process->thread_linked_list_mutex));
+    pthread_mutex_lock(thread_linked_list_mutex);
     thread_node * node = malloc(sizeof(thread_node));
     if(node == NULL){
         log_to_file(3, "Failed to allocate memory for a thread.\n");
@@ -101,7 +101,7 @@ int create_thread(pthread_t** thread) {
         letzter_thread = node;
     }
     *thread = &(node->thread);
-    pthread_mutex_unlock(&(process->thread_linked_list_mutex));
+    pthread_mutex_unlock(thread_linked_list_mutex);
     return OSMP_SUCCESS;
 }
 
@@ -265,7 +265,13 @@ int OSMP_Init(const int *argc, char ***argv) {
             process->available = AVAILABLE;
         }
     }
+    thread_linked_list_mutex = malloc(sizeof(pthread_mutex_t));
 
+    int mutex_result = pthread_mutex_init(thread_linked_list_mutex, NULL);
+    if(mutex_result < 0){
+        log_to_file(3, "Failed to initialize pthread_mutex_init");
+        return OSMP_FAILURE;
+    }
     if(OSMP_rank < OSMP_SUCCESS){
         pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
         log_to_file(3, "Couldn't find rank in the shared memory.\n");
@@ -461,12 +467,12 @@ int OSMP_Finalize(void) {
         }
     }
 
-    result = pthread_mutex_destroy(&(info->thread_linked_list_mutex));
+    result = pthread_mutex_destroy(thread_linked_list_mutex);
     if(result != 0) {
         log_to_file(3, "Couldn't destroy mutex thread_linked_list_mutex in finalize!\n");
         return OSMP_FAILURE;
     }
-
+    free(thread_linked_list_mutex);
     result = close(shared_memory_fd);
     if(result==-1){
         log_to_file(3, "Couldn't close shared memory FD.");
