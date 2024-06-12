@@ -40,8 +40,12 @@ set(SOURCES_FOR_EXECUTABLE_GATHER
         src/osmp_executables/osmpExecutable_Gather.c
         ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
-set(SOURCES_FOR_EXECUTABLE_TEST_TID_PID
+set(SOURCES_FOR_EXECUTABLE_TESTTIDPID
         src/osmp_executables/testTidPid.c
+        ${MAIN_SOURCES_FOR_EXECUTABLES}
+)
+set(SOURCES_FOR_EXECUTABLE_ISENDIRECV
+        src/osmp_executables/osmpExecutable_ISendIRecv.c
         ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
 
@@ -52,7 +56,8 @@ add_executable(osmpExecutable_SendIRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDIRE
 add_executable(osmpExecutable_SendRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV} )
 add_executable(osmpExecutable_Barrier ${SOURCES_FOR_EXECUTABLE_BARRIER} )
 add_executable(osmpExecutable_Gather ${SOURCES_FOR_EXECUTABLE_GATHER} )
-add_executable(testTidPid ${SOURCES_FOR_EXECUTABLE_TEST_TID_PID})
+add_executable(testTidPid ${SOURCES_FOR_EXECUTABLE_TESTTIDPID})
+add_executable(osmpExecutable_ISendIRecv ${SOURCES_FOR_EXECUTABLE_ISENDIRECV})
 
 #== Add Library taget ==#
 add_library(libosmp STATIC ${LIBRARY_SRC_FILES})
@@ -72,5 +77,6 @@ target_link_libraries(osmpExecutable_SendRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_Barrier ${LIBRARIES})
 target_link_libraries(osmpExecutable_Gather ${LIBRARIES})
 target_link_libraries(testTidPid ${LIBRARIES})
+target_link_libraries(osmpExecutable_ISendIRecv ${LIBRARIES})
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
