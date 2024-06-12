@@ -27,5 +27,15 @@
     "osmp_executable": "osmpExecutable_SendRecv",
     "parameter": [
     ]
+  },
+
+  {
+    "TestName": "ISendIRecvTest",
+    "ProcAnzahl": 2,
+    "PfadZurLogDatei": "",
+    "LogVerbositaet": 0,
+    "osmp_executable": "osmpExecutable_ISendIRecv",
+    "parameter": [
+    ]
   }
 ]
