@@ -37,5 +37,15 @@
     "osmp_executable": "osmpExecutable_ISendIRecv",
     "parameter": [
     ]
+  },
+
+  {
+    "TestName": "GatherLoopTest",
+    "ProcAnzahl": 20,
+    "PfadZurLogDatei": "",
+    "LogVerbositaet": 0,
+    "osmp_executable": "osmpExecutable_GatherLoop",
+    "parameter": [
+    ]
   }
 ]
