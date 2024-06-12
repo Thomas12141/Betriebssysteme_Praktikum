@@ -256,7 +256,6 @@ int OSMP_Init(const int *argc, char ***argv) {
     OSMP_GetSharedMemoryName(&shared_memory_name);
     shared_memory_fd = shm_open(shared_memory_name,O_RDWR, 0666);
     if(shared_memory_fd == -1){
-        pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
         printf("Failed to open shared memory.\n");
         return OSMP_FAILURE;
     }
