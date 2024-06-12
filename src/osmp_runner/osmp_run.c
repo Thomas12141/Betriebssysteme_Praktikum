@@ -552,6 +552,13 @@ int cleanup_shm(shared_memory* shm_ptr) {
         puts("Couldn't destroy mutex logging_mutex");
         return OSMP_FAILURE;
     }
+
+    rv = pthread_mutex_destroy(&(shm_ptr->initializing_mutex));
+    if(rv != 0) {
+        puts("Couldn't destroy mutex initializing_mutex");
+        return OSMP_FAILURE;
+    }
+
     return OSMP_SUCCESS;
 }
 

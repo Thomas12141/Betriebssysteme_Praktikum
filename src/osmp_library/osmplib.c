@@ -494,6 +494,12 @@ int OSMP_Finalize(void) {
         }
     }
 
+    result = pthread_mutex_destroy(&(info->thread_linked_list_mutex));
+    if(result != 0) {
+        puts("Couldn't destroy mutex thread_linked_list_mutex");
+        return OSMP_FAILURE;
+    }
+
     result = close(shared_memory_fd);
     if(result==-1){
         log_to_file(3, "Couldn't close shared memory FD.");
