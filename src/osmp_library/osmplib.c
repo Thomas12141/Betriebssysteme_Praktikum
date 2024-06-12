@@ -19,6 +19,7 @@ shared_memory *shm_ptr = NULL;
 int shared_memory_fd, OSMP_size, OSMP_rank = OSMP_FAILURE, memory_size;
 thread_node * erster_thread = NULL;
 thread_node * letzter_thread = NULL;
+pthread_mutex_t * thread_linked_list_mutex = NULL;
 
 /**
  * Übergibt eine Level-1-Lognachricht an den Logger.
@@ -32,30 +33,6 @@ void log_osmp_lib_call( const char* function_name) {
     char message[string_len];
     sprintf(message, "OSMP function %s() called", function_name);
     log_to_file(1, message);
-}
-
-/**
- * Gibt die Nummer des nächsten freien Nachrichtenslots zurück. Dieser wird aus der Liste der freien Slots gelöscht,
- * alle übrigen Einträge im Array rücken eine Stelle nach vorne.
- * Das Flag im Slot selbst wird dadurch noch nicht auf "belegt" gesetzt! Dafür ist der Aufrufende verantwortlich.
- * @return Die Nummer des nächsten freien Nachrichtenslots. NO_SLOT, wenn kein Slot frei ist.
- */
-int get_next_free_slot(void) {
-    log_osmp_lib_call("get_next_free_slot");
-    //Das Ergebnis.
-    int slot;
-    //Index für den Freien Slots Array.
-    int index;
-    //Kritischer Abschnitt
-    pthread_mutex_lock(&shm_ptr->mutex_shm_free_slots);
-    //Den index für den Array.
-    sem_getvalue(&shm_ptr->sem_shm_free_slots, &index);
-    //Runterzählen
-    sem_post(&shm_ptr->sem_shm_free_slots);
-    slot = shm_ptr->free_slots[index];
-    pthread_mutex_unlock(&shm_ptr->mutex_shm_free_slots);
-
-    return slot;
 }
 
 /**
@@ -99,10 +76,15 @@ int get_next_message(void ) {
     return slot_index;
 }
 
+/**
+ * Die Funktion create_thread() fügt ein neues Thread in die liste der Threads und speichert den in thread.
+ * @param thread Der gestarte Thread.
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
+ */
 int create_thread(pthread_t** thread) {
-    process_info * process = get_process_info(OSMP_rank);
+    log_osmp_lib_call("create_thread");
 
-    pthread_mutex_lock(&(process->thread_linked_list_mutex));
+    pthread_mutex_lock(thread_linked_list_mutex);
     thread_node * node = malloc(sizeof(thread_node));
     if(node == NULL){
         log_to_file(3, "Failed to allocate memory for a thread.\n");
@@ -119,11 +101,15 @@ int create_thread(pthread_t** thread) {
         letzter_thread = node;
     }
     *thread = &(node->thread);
-    pthread_mutex_unlock(&(process->thread_linked_list_mutex));
+    pthread_mutex_unlock(thread_linked_list_mutex);
     return OSMP_SUCCESS;
 }
 
+/**
+ * Wartet bis alle gestartete Threads fertig sind und beendet die.
+ */
 void wait_and_finalize_all_threads(void){
+    log_osmp_lib_call("wait_and_finalize_all_threads");
     thread_node * iterator = erster_thread;
     while (iterator!=NULL){
         thread_node * temp = iterator;
@@ -171,6 +157,7 @@ int calculate_shared_memory_size(int processes) {
  * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE.
  */
 int barrier_wait(barrier_t* barrier) {
+    log_osmp_lib_call("barrier_wait");
     int status, cancel, tmp, cycle;
     // Thread-Safety:
     if(getpid()!=gettid()) {
@@ -219,31 +206,6 @@ int barrier_wait(barrier_t* barrier) {
         log_to_file(3, "Failed to unlock barrier mutex!");
         return OSMP_FAILURE;
     }
-    return OSMP_SUCCESS;
-}
-
-int get_OSMP_MAX_PAYLOAD_LENGTH(void) {
-    log_osmp_lib_call("get_OSMP_MAX_PAYLOAD_LENGTH");
-    return OSMP_MAX_PAYLOAD_LENGTH;
-}
-
-int get_OSMP_MAX_SLOTS(void) {
-    log_osmp_lib_call("get_OSMP_MAX_SLOTS");
-    return OSMP_MAX_SLOTS;
-}
-
-int get_OSMP_MAX_MESSAGES_PROC(void) {
-    log_osmp_lib_call("get_OSMP_MAX_MESSAGES_PROC");
-    return OSMP_MAX_MESSAGES_PROC;
-}
-
-int get_OSMP_FAILURE(void) {
-    log_osmp_lib_call("get_OSMP_FAILURE");
-    return OSMP_FAILURE;
-}
-
-int get_OSMP_SUCCESS(void) {
-    log_osmp_lib_call("get_OSMP_SUCCESS");
     return OSMP_SUCCESS;
 }
 
@@ -303,7 +265,13 @@ int OSMP_Init(const int *argc, char ***argv) {
             process->available = AVAILABLE;
         }
     }
+    thread_linked_list_mutex = malloc(sizeof(pthread_mutex_t));
 
+    int mutex_result = pthread_mutex_init(thread_linked_list_mutex, NULL);
+    if(mutex_result < 0){
+        log_to_file(3, "Failed to initialize pthread_mutex_init");
+        return OSMP_FAILURE;
+    }
     if(OSMP_rank < OSMP_SUCCESS){
         pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
         log_to_file(3, "Couldn't find rank in the shared memory.\n");
@@ -355,7 +323,7 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 
 int OSMP_Size(int *size) {
     if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
+        log_to_file(3, "Initializing of threads is not allowed\n");
         exit(0);
     }
     *size = shm_ptr->size;
@@ -363,8 +331,9 @@ int OSMP_Size(int *size) {
 }
 
 int OSMP_Rank(int *rank) {
+    log_osmp_lib_call("OSMP_Rank");
     if(gettid() != getpid()){
-        printf("Initializing of threads is not allowed\n");
+        log_to_file(3, "Initializing of threads is not allowed\n");
         return OSMP_FAILURE;
     }
     if(OSMP_rank == OSMP_FAILURE){
@@ -378,15 +347,18 @@ int OSMP_Rank(int *rank) {
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     log_osmp_lib_call("OSMP_Send");
     if(count <= 0) {
+        log_to_file(2, "Cant send with count zero or less.\n");
         return OSMP_FAILURE;
     }
     if(dest>=OSMP_size || dest<0){
+        log_to_file(2, "Destination must be between zero and OSMP_size.\n");
         return OSMP_FAILURE;
     }
     unsigned int datatype_size;
     OSMP_SizeOf(datatype, &datatype_size);
     int length_in_bytes = (int)datatype_size * count;
     if(length_in_bytes > OSMP_MAX_PAYLOAD_LENGTH) {
+        log_to_file(2, "Cant send more than OSMP_MAX_PAYLOAD_LENGTH bytes.\n");
         return OSMP_FAILURE;
     }
     process_info * process_info = get_process_info(dest);
@@ -439,6 +411,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *len) {
     log_osmp_lib_call("OSMP_Recv");
     if(count <= 0) {
+        log_to_file(2, "Cant receive with count zero or less.\n");
         return OSMP_FAILURE;
     }
 
@@ -450,7 +423,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source, int *le
     message_slot* slot = &(shm_ptr->slots[slot_index]);
 
     if(length_in_bytes < slot->len) {
-        log_to_file(3, "Recv buffer too small!");
+        log_to_file(3, "Recv buffer too small!\n");
     }
     memcpy(buf, slot->payload, (unsigned long) length_in_bytes);
     *source = slot->from;
@@ -494,12 +467,12 @@ int OSMP_Finalize(void) {
         }
     }
 
-    result = pthread_mutex_destroy(&(info->thread_linked_list_mutex));
+    result = pthread_mutex_destroy(thread_linked_list_mutex);
     if(result != 0) {
-        puts("Couldn't destroy mutex thread_linked_list_mutex");
+        log_to_file(3, "Couldn't destroy mutex thread_linked_list_mutex in finalize!\n");
         return OSMP_FAILURE;
     }
-
+    free(thread_linked_list_mutex);
     result = close(shared_memory_fd);
     if(result==-1){
         log_to_file(3, "Couldn't close shared memory FD.");
@@ -578,6 +551,11 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype, void *recv
     return OSMP_SUCCESS;
 }
 
+/**
+ * Asynchron starten vom send durch einen Thread.
+ * @param args die Argumente für den thread.
+ * @return Im Erfolgsfall Null, sonst OSMP_FAILURE
+ */
 void * OSMP_thread_send(void* args){
     log_osmp_lib_call("OSMP_thread_send");
 
@@ -860,9 +838,5 @@ int OSMP_GetSharedMemoryName(char **name) {
         return OSMP_FAILURE;
     }
     return OSMP_SUCCESS;
-}
-
-void OSMP_GetSharedMemoryPointer(char **shared_memory) {
-    *shared_memory = (char*)shm_ptr;
 }
 

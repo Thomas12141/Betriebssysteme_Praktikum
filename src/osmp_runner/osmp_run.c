@@ -95,7 +95,14 @@ int free_all(int shm_fd, shared_memory* shm_ptr){
     return OSMP_SUCCESS;
 }
 
+/**
+ * Eine Methode, die alle threads schließt.
+ * @param count Anzahl der Threads
+ * @param shared_memory_fd shared memory Dateizeiger
+ * @param shm_ptr shared memory Zeiger
+ */
 void kill_threads(int count, int shared_memory_fd, shared_memory* shm_ptr){
+    log_to_file(1,"killing threads.");
     for (int i = 0; i < count; ++i) {
         process_info * process_info = get_process_info(i);
         kill(process_info->pid, SIGTERM);
@@ -133,6 +140,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
     }
 
     if(run!=1){
+        log_to_file(3,"Problem while starting threads or processes.");
         kill_threads(i, shared_memory_fd, shm_ptr);
         pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
         return OSMP_FAILURE;
@@ -142,6 +150,7 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
             int status;
             wait(&status);
             if(WIFEXITED(status)&&WEXITSTATUS(status)!=0){
+                log_to_file(3,"A process returned failure.");
                 kill_threads(number_of_executables, shared_memory_fd, shm_ptr);
             }
         }
@@ -412,11 +421,6 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     // Setze Process Infos
     process_info* info = &(shm_ptr->first_process_info);
     for(int i=0; i<processes; i++) {
-        return_value = init_shared_mutex(&(info->thread_linked_list_mutex));
-        if(return_value != OSMP_SUCCESS) {
-            log_to_file(3, "Error on initializing Mutex thread_linked_list_mutex.");
-            exit(EXIT_FAILURE);
-        }
         info->rank = i;
 
         //Der Prozess ist noch nicht erreichbar.
