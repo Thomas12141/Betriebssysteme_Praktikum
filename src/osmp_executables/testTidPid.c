@@ -1,4 +1,7 @@
-
+/**
+ * Kleines Programm, mit dem gezeigt werden kann, dass die PID bei einem Prozess und seinem Kindthread
+ * gleich ist, die TID aber nicht.
+ */
 
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -8,6 +11,8 @@
 #include <unistd.h>
 
 void* check(void * args){
+    // satisfy compiler because args is otherwise unused
+    (void)args;
     printf("thread tid %d pid %d\n", gettid(), getpid());
     return NULL;
 }
