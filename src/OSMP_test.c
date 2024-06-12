@@ -8,7 +8,7 @@
 // Created by fidor on 22.05.2024.
 //
 int main(void) {
-    int count = 500;
+    int count = 30;
     errno = 0;
 
     for (int i = count; i >= 0; --i) {
@@ -16,7 +16,7 @@ int main(void) {
         if (pid == 0) {
             // Child process
             printf("Child process with i = %d\n", i);
-            execl("./cmake-build-debug/osmp_run", "./cmake-build-debug/osmp_run", "3", "./cmake-build-debug/osmpExecutable_Barrier", "Test", NULL);
+            execl("./cmake-build-debug/osmp_run", "./cmake-build-debug/osmp_run", "50", "./cmake-build-debug/osmpExecutable_Barrier", "Test", NULL);
             // If execl fails, print error and exit
             perror("execl failed");
             exit(errno);

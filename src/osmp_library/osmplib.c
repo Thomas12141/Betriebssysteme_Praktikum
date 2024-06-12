@@ -87,9 +87,9 @@ int get_next_message(void ) {
     int out_index = process->postbox.out_index;
     int slot_index = process->postbox.postbox[out_index];
     process->postbox.postbox[out_index] = NO_MESSAGE;
-    --(process->postbox.out_index);
-    if(process->postbox.out_index<0){
-        process->postbox.out_index= OSMP_MAX_MESSAGES_PROC-1;
+    (process->postbox.out_index)++;
+    if(process->postbox.out_index==OSMP_MAX_MESSAGES_PROC){
+        process->postbox.out_index= 0;
     }
 
     pthread_mutex_unlock(&process->postbox.mutex_proc_out);

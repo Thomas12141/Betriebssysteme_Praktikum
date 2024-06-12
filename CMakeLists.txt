@@ -32,6 +32,10 @@ set(SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV
     src/osmp_executables/osmpExecutable_SendRecv.c
     ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
+set(SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV2
+        src/osmp_executables/osmpExecutable_SendRecv2.c
+        ${MAIN_SOURCES_FOR_EXECUTABLES}
+)
 set(SOURCES_FOR_EXECUTABLE_BARRIER
         src/osmp_executables/osmpExecutable_Barrier.c
         ${MAIN_SOURCES_FOR_EXECUTABLES}
@@ -54,6 +58,7 @@ set(SOURCES_FOR_EXECUTABLE_ISENDIRECV
 add_executable(osmp_run ${SOURCES_FOR_STARTER})
 add_executable(osmpExecutable_SendIRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDIRECV} )
 add_executable(osmpExecutable_SendRecv ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV} )
+add_executable(osmpExecutable_SendRecv2 ${SOURCES_FOR_EXECUTABLE_EXAMPLE_SENDRECV2} )
 add_executable(osmpExecutable_Barrier ${SOURCES_FOR_EXECUTABLE_BARRIER} )
 add_executable(osmpExecutable_Gather ${SOURCES_FOR_EXECUTABLE_GATHER} )
 add_executable(testTidPid ${SOURCES_FOR_EXECUTABLE_TESTTIDPID})
@@ -74,6 +79,7 @@ set(LIBRARIES
 target_link_libraries(osmp_run ${LIBRARIES})
 target_link_libraries(osmpExecutable_SendIRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_SendRecv ${LIBRARIES})
+target_link_libraries(osmpExecutable_SendRecv2 ${LIBRARIES})
 target_link_libraries(osmpExecutable_Barrier ${LIBRARIES})
 target_link_libraries(osmpExecutable_Gather ${LIBRARIES})
 target_link_libraries(testTidPid ${LIBRARIES})
