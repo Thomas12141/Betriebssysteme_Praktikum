@@ -418,6 +418,7 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     // Schreibe Nachricht in Slot
     mempcpy(&shm_ptr->slots[slot_index].payload, buf, (unsigned int)length_in_bytes);
     shm_ptr->slots[slot_index].len = length_in_bytes;
+    shm_ptr->slots[slot_index].from = OSMP_rank;
 
     pthread_mutex_lock(&process_info->postbox.mutex_proc_in);
 
