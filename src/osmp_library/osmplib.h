@@ -148,6 +148,12 @@ typedef struct {
  */
 typedef struct process_info {
     /**
+     * @var thread_linked_list_mutex
+     * Mutex für die threads.
+     */
+    pthread_mutex_t thread_linked_list_mutex;
+
+    /**
      * @var rank
      * Rang des Prozesses.
      */
@@ -212,11 +218,6 @@ typedef struct shared_memory {
      */
     pthread_mutex_t initializing_mutex;
 
-    /**
-     * @var thread_linked_list_mutex
-     * Mutex für die threads.
-     */
-    pthread_mutex_t thread_linked_list_mutex;
 
     /**
      * @var free_slots

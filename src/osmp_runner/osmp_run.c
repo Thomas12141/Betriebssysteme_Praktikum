@@ -385,11 +385,6 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         exit(EXIT_FAILURE);
     }
 
-    return_value = init_shared_mutex(&(shm_ptr->thread_linked_list_mutex));
-    if(return_value != OSMP_SUCCESS) {
-        log_to_file(3, "Error on initializing Mutex thread_linked_list_mutex.");
-        exit(EXIT_FAILURE);
-    }
 
     // Initialisiere Slots
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
@@ -417,6 +412,11 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
     // Setze Process Infos
     process_info* info = &(shm_ptr->first_process_info);
     for(int i=0; i<processes; i++) {
+        return_value = init_shared_mutex(&(info->thread_linked_list_mutex));
+        if(return_value != OSMP_SUCCESS) {
+            log_to_file(3, "Error on initializing Mutex thread_linked_list_mutex.");
+            exit(EXIT_FAILURE);
+        }
         info->rank = i;
 
         //Der Prozess ist noch nicht erreichbar.
