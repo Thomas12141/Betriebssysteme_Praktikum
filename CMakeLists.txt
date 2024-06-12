@@ -56,6 +56,10 @@ set(SOURCES_FOR_EXECUTABLE_GATHERLOOP
         src/osmp_executables/osmpExecutable_GatherLoop.c
         ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
+set(SOURCES_FOR_EXECUTABLE_BARRIERLOOP
+        src/osmp_executables/osmpExecutable_BarrierLoop.c
+        ${MAIN_SOURCES_FOR_EXECUTABLES}
+)
 
 #== Add executable target with source files listed in SOURCE_FILES variable ==#
 #== If you added a new executable, add a new add_executable line here ==#
@@ -68,6 +72,7 @@ add_executable(osmpExecutable_Gather ${SOURCES_FOR_EXECUTABLE_GATHER} )
 add_executable(testTidPid ${SOURCES_FOR_EXECUTABLE_TESTTIDPID})
 add_executable(osmpExecutable_ISendIRecv ${SOURCES_FOR_EXECUTABLE_ISENDIRECV})
 add_executable(osmpExecutable_GatherLoop ${SOURCES_FOR_EXECUTABLE_GATHERLOOP})
+add_executable(osmpExecutable_BarrierLoop ${SOURCES_FOR_EXECUTABLE_BARRIERLOOP})
 
 #== Add Library taget ==#
 add_library(libosmp STATIC ${LIBRARY_SRC_FILES})
@@ -90,5 +95,6 @@ target_link_libraries(osmpExecutable_Gather ${LIBRARIES})
 target_link_libraries(testTidPid ${LIBRARIES})
 target_link_libraries(osmpExecutable_ISendIRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_GatherLoop ${LIBRARIES})
+target_link_libraries(osmpExecutable_BarrierLoop ${LIBRARIES})
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")

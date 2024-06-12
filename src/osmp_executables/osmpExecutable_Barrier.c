@@ -1,7 +1,8 @@
 /******************************************************************************
 * FILE: osmpExecutable_Barrier.c
 * DESCRIPTION:
-* OSMP program using OSMP_Barrier()
+* OSMP program using OSMP_Barrier(). Every process waits a random time (1-10 s)
+* and then calls Barrier.
 ******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>

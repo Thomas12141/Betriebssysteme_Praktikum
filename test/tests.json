@@ -50,6 +50,17 @@
   },
 
   {
+    "TestName": "BarrierLoopTest",
+    "ProcAnzahl": 50,
+    "PfadZurLogDatei": "",
+    "LogVerbositaet": 0,
+    "osmp_executable": "osmpExecutable_BarrierLoop",
+    "parameter": [
+      "100"
+    ]
+  },
+
+  {
     "TestName": "MultipleSendRecvTest",
     "ProcAnzahl": 30,
     "PfadZurLogDatei": "",
