@@ -143,9 +143,11 @@ int start_all_executables(int number_of_executables, char* executable, char ** a
         log_to_file(3,"Problem while starting threads or processes.");
         kill_threads(i, shared_memory_fd, shm_ptr);
         pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
+        pthread_cond_broadcast(&(shm_ptr->initializing_condition));
         return OSMP_FAILURE;
     } else{
         pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
+        pthread_cond_broadcast(&(shm_ptr->initializing_condition));
         for (int j = 0; j < number_of_executables; ++j) {
             int status;
             wait(&status);
@@ -394,6 +396,11 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         exit(EXIT_FAILURE);
     }
 
+    return_value = init_shared_cond_var(&(shm_ptr->initializing_condition));
+    if(return_value != OSMP_SUCCESS) {
+        log_to_file(3, "Error on initializing Condition initializing_condition.");
+        exit(EXIT_FAILURE);
+    }
 
     // Initialisiere Slots
     for(int i=0; i<OSMP_MAX_SLOTS; i++) {
@@ -560,6 +567,12 @@ int cleanup_shm(shared_memory* shm_ptr) {
     rv = pthread_mutex_destroy(&(shm_ptr->initializing_mutex));
     if(rv != 0) {
         puts("Couldn't destroy mutex initializing_mutex");
+        return OSMP_FAILURE;
+    }
+
+    rv = pthread_cond_destroy(&(shm_ptr->initializing_condition));
+    if(rv != 0) {
+        puts("Couldn't destroy condition initializing_condition");
         return OSMP_FAILURE;
     }
 
