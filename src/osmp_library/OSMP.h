@@ -25,7 +25,7 @@ typedef void* OSMP_Request;
 /**
  * Die maximale Zahl der Nachrichten pro Prozess 
  */
-#define OSMP_MAX_MESSAGES_PROC 16
+#define OSMP_MAX_MESSAGES_PROC 30
 
 /**
  * Die maximale Anzahl der Nachrichten, die insgesamt vorhanden sein dürfen
