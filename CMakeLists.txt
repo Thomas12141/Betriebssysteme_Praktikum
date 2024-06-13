@@ -64,6 +64,10 @@ set(SOURCES_FOR_EXECUTABLE_SENDRECV3
         src/osmp_executables/osmpExecutable_SendRecv3.c
         ${MAIN_SOURCES_FOR_EXECUTABLES}
 )
+set(SOURCES_FOR_EXECUTABLE_ISENDIRECV2
+        src/osmp_executables/osmpExecutable_ISendIRecv2.c
+        ${MAIN_SOURCES_FOR_EXECUTABLES}
+)
 
 #== Add executable target with source files listed in SOURCE_FILES variable ==#
 #== If you added a new executable, add a new add_executable line here ==#
@@ -78,6 +82,7 @@ add_executable(osmpExecutable_ISendIRecv ${SOURCES_FOR_EXECUTABLE_ISENDIRECV})
 add_executable(osmpExecutable_GatherLoop ${SOURCES_FOR_EXECUTABLE_GATHERLOOP})
 add_executable(osmpExecutable_BarrierLoop ${SOURCES_FOR_EXECUTABLE_BARRIERLOOP})
 add_executable(osmpExecutable_SendRecv3 ${SOURCES_FOR_EXECUTABLE_SENDRECV3})
+add_executable(osmpExecutable_ISendIRecv2 ${SOURCES_FOR_EXECUTABLE_ISENDIRECV2})
 
 #== Add Library taget ==#
 add_library(libosmp STATIC ${LIBRARY_SRC_FILES})
@@ -102,5 +107,6 @@ target_link_libraries(osmpExecutable_ISendIRecv ${LIBRARIES})
 target_link_libraries(osmpExecutable_GatherLoop ${LIBRARIES})
 target_link_libraries(osmpExecutable_BarrierLoop ${LIBRARIES})
 target_link_libraries(osmpExecutable_SendRecv3 ${LIBRARIES})
+target_link_libraries(osmpExecutable_ISendIRecv2 ${LIBRARIES})
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
