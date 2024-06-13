@@ -140,6 +140,8 @@ typedef struct {
      * A number representing the value of the semaphore.
      */
      int sem_proc_full_value;
+
+     pthread_mutex_t sem_proc_full_value_mutex;
 } postbox_utilities;
 
 /**

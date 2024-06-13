@@ -1,7 +1,7 @@
 /******************************************************************************
 * FILE: osmpExecutable_SendRecv2.c
 * DESCRIPTION:
-* OSMP program with many OSMP_ISend/OSMP_IRecv calls
+* OSMP program with many OSMP_ISend/OSMP_Recv calls
 ******************************************************************************/
 #include <stdio.h>
 
@@ -64,12 +64,15 @@ int main(int argc, char *argv[]) {
     }
     printf("%d]\n",bufout[size-2]);
 
+
+
     for(int i=0; i<size-1; i++) {
         rv = OSMP_Wait( myrequest[i] );
         rv = OSMP_RemoveRequest(myrequest[i]);
     }
 
     rv = OSMP_Finalize();
+
     if(rv == OSMP_FAILURE){
         printf("OSMP_Finalize returned error for rank %d\n", rank);
         return -1;

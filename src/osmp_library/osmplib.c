@@ -28,11 +28,13 @@ pthread_mutex_t * thread_linked_list_mutex = NULL;
  * @param function_name Der Name der aufrufenden Funktion.
  */
 void log_osmp_lib_call( const char* function_name) {
+    (void)function_name;
+    return;
     // ausreichend großen Buffer für formatierten String erstellen
-    unsigned long string_len = 30 + strlen(function_name);
+    /*unsigned long string_len = 30 + strlen(function_name);
     char message[string_len];
     sprintf(message, "OSMP function %s() called", function_name);
-    log_to_file(1, message);
+    log_to_file(1, message);*/
 }
 
 /**
@@ -60,7 +62,12 @@ int get_next_message(void ) {
     sem_wait(&process->postbox.sem_proc_full);
 
     pthread_mutex_lock(&process->postbox.mutex_proc_out);
+
+    pthread_mutex_lock(&(process->postbox.sem_proc_full_value_mutex));
     process->postbox.sem_proc_full_value--;
+    pthread_mutex_unlock(&(process->postbox.sem_proc_full_value_mutex));
+
+
     int out_index = process->postbox.out_index;
     int slot_index = process->postbox.postbox[out_index];
     process->postbox.postbox[out_index] = NO_MESSAGE;
@@ -401,7 +408,11 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         process_in_index=0;
     }
     process_info->postbox.in_index = process_in_index;
+
+    pthread_mutex_lock(&(process_info->postbox.sem_proc_full_value_mutex));
     process_info->postbox.sem_proc_full_value++;
+    pthread_mutex_unlock(&(process_info->postbox.sem_proc_full_value_mutex));
+
     pthread_mutex_unlock(&process_info->postbox.mutex_proc_in);
 
     sem_post(&process_info->postbox.sem_proc_full);
@@ -454,9 +465,13 @@ int OSMP_Finalize(void) {
     // Ein Flag, damit es bewusst wird, dass der Prozess nicht erreichbar ist.
     info->available = NOT_AVAILABLE;
 
+    pthread_mutex_lock(&(info->postbox.sem_proc_full_value_mutex));
     semval = info->postbox.sem_proc_full_value;
+    pthread_mutex_unlock(&(info->postbox.sem_proc_full_value_mutex));
+
 
     wait_and_finalize_all_threads();
+
     if(semval > 0) {
         // lies alle restlichen Nachrichten
         char* buffer[OSMP_MAX_PAYLOAD_LENGTH];
@@ -466,6 +481,7 @@ int OSMP_Finalize(void) {
             OSMP_Recv(buffer, OSMP_MAX_PAYLOAD_LENGTH, OSMP_BYTE, &source, &len);
         }
     }
+
 
     result = pthread_mutex_destroy(thread_linked_list_mutex);
     if(result != 0) {
@@ -617,7 +633,13 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
     }
 
     // Starte Thread
-    pthread_create(thread, NULL, OSMP_thread_send, request);
+    int rv = pthread_create(thread, NULL, OSMP_thread_send, request);
+    if(rv != 0) {
+        puts("pthread_create failed");
+        perror("pthread_create_failed");
+        log_to_file(3, "pthread_create failed");
+        return OSMP_FAILURE;
+    }
     return OSMP_SUCCESS;
 }
 
@@ -688,7 +710,12 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source, int *l
     }
 
     // Starte Thread
-    pthread_create(thread, NULL, OSMP_thread_recv, request);
+    int rv = pthread_create(thread, NULL, OSMP_thread_recv, request);
+    if(rv != 0) {
+        puts("pthread_create failed");
+        log_to_file(3, "pthread_create failed");
+        return OSMP_FAILURE;
+    }
     return OSMP_SUCCESS;
 }
 

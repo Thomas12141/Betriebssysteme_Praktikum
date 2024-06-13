@@ -463,6 +463,8 @@ void init_shm(shared_memory* shm_ptr, int processes, int verbosity) {
         return_value = sem_init(&(pb_util->sem_proc_full), 1, OSMP_MAX_MESSAGES_PROC);
         pb_util->sem_proc_full_value=OSMP_MAX_MESSAGES_PROC;
 
+        init_shared_mutex(&(pb_util->sem_proc_full_value_mutex));
+
         if(return_value != 0) {
             log_pb_util_init_error("Couldn't initialize sem_proc_full in postbox_utilities of process # %d", i);
         }
@@ -511,6 +513,12 @@ int destroy_postbox_utilities(postbox_utilities* postbox) {
     postbox->sem_proc_full_value = 0;
     if(rv != 0) {
         log_to_file(3, "Couldn't destroy semaphore sem_proc_full");
+        return OSMP_FAILURE;
+    }
+
+    rv = pthread_mutex_destroy(&(postbox->sem_proc_full_value_mutex));
+    if(rv != 0) {
+        log_to_file(3, "Couldn't destroy mutex sem_proc_full_value_mutex");
         return OSMP_FAILURE;
     }
 
