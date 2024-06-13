@@ -242,6 +242,7 @@ int OSMP_Init(const int *argc, char ***argv) {
     log_to_file(2, "Calloc 256 B (shared_memory_name)");
     if(shm_ptr == MAP_FAILED){
         pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
+        pthread_cond_broadcast(&(shm_ptr->initializing_condition));
         log_to_file(3, "Failed to map shared memory.\n");
         return OSMP_FAILURE;
     }
@@ -274,6 +275,7 @@ int OSMP_Init(const int *argc, char ***argv) {
     }
     if(OSMP_rank < OSMP_SUCCESS){
         pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
+        pthread_cond_broadcast(&(shm_ptr->initializing_condition));
         log_to_file(3, "Couldn't find rank in the shared memory.\n");
         return OSMP_FAILURE;
     }
@@ -282,6 +284,7 @@ int OSMP_Init(const int *argc, char ***argv) {
     log_to_file(2, "Free 256 B (shared_memory_name)");
 
     pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
+    pthread_cond_broadcast(&(shm_ptr->initializing_condition));
     return OSMP_SUCCESS;
 }
 
@@ -363,14 +366,11 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     }
     process_info * process_info = get_process_info(dest);
 
-    if(process_info->available == NOT_AVAILABLE){
-        //Es kann wegen der Mutex passieren, dass es bei der Initialisierung noch ist.
-        sleep(1);
-        if(process_info->available == NOT_AVAILABLE){
-            log_to_file(2, "Trying to write to a not available process.\n");
-            return OSMP_FAILURE;
-        }
+    pthread_mutex_lock(&(shm_ptr->initializing_mutex));
+    while (process_info->available == NOT_AVAILABLE){
+        pthread_cond_wait(&(shm_ptr->initializing_condition), &(shm_ptr->initializing_mutex));
     }
+    pthread_mutex_unlock(&(shm_ptr->initializing_mutex));
     sem_wait(&process_info->postbox.sem_proc_empty);
     sem_wait(&shm_ptr->sem_shm_free_slots);
 

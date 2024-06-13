@@ -213,6 +213,12 @@ typedef struct shared_memory {
     pthread_mutex_t initializing_mutex;
 
     /**
+     * @var initializing_condition
+     * Ein Condition für das Warten bis ein Prozess initialisiert würde.
+     */
+    pthread_cond_t initializing_condition;
+
+    /**
      * @var free_slots
      * Liste der freien Nachrichtenslots.
      */
