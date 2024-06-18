@@ -141,6 +141,10 @@ typedef struct {
      */
      int sem_proc_full_value;
 
+    /**
+    * @var sem_proc_full_value_mutex
+    * Mutex für die Synchronisierung der sem_proc_full_value Variable.
+    */
      pthread_mutex_t sem_proc_full_value_mutex;
 } postbox_utilities;
 

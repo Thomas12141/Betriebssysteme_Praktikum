@@ -29,12 +29,11 @@ pthread_mutex_t * thread_linked_list_mutex = NULL;
  */
 void log_osmp_lib_call( const char* function_name) {
     (void)function_name;
-    return;
     // ausreichend großen Buffer für formatierten String erstellen
-    /*unsigned long string_len = 30 + strlen(function_name);
+    unsigned long string_len = 30 + strlen(function_name);
     char message[string_len];
     sprintf(message, "OSMP function %s() called", function_name);
-    log_to_file(1, message);*/
+    log_to_file(1, message);
 }
 
 /**
